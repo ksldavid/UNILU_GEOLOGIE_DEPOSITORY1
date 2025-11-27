@@ -1,0 +1,398 @@
+:root {
+    /* Color Palette - Geology Theme */
+    --primary-color: #2A9D8F;
+    /* Mineral Green/Teal */
+    --primary-dark: #21867a;
+    --secondary-color: #264653;
+    /* Deep Slate */
+    --accent-color: #E9C46A;
+    /* Gold/Sand */
+    --text-main: #2b2b2b;
+    --text-muted: #666666;
+    --bg-light: #f8f9fa;
+    --white: #ffffff;
+    --error: #e76f51;
+
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+    /* Transitions */
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+}
+
+body {
+    height: 100vh;
+    width: 100vw;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: var(--bg-light);
+}
+
+
+.container {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+/* --- Visual Side (Left) --- */
+.visual-side {
+    flex: 1.2;
+    /* Takes up slightly more space */
+    position: relative;
+    background-image: url('geology_background_texture.png');
+    /* Will be replaced by the generated image path in JS or manually */
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 4rem;
+    color: var(--white);
+    overflow: hidden;
+}
+
+/* Fallback if image fails or for overlay effect */
+.visual-side::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(38, 70, 83, 0.85) 0%, rgba(42, 157, 143, 0.6) 100%);
+    z-index: 1;
+}
+
+.visual-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.logo-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.uni-logo {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: inline-block;
+}
+
+.main-logo {
+    width: 70px;
+    /* tu mets la taille que tu veux */
+    height: 70px;
+    /* garde le ratio */
+
+}
+
+.logo-container {
+    display: flex;
+    justify-content: center;
+    /* centre horizontalement */
+}
+
+.logo-text {
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+}
+
+.text-content h1 {
+    font-size: 4.5rem;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.text-content p {
+    font-size: 1.5rem;
+    font-weight: 300;
+    opacity: 0.9;
+}
+
+.divider {
+    height: 4px;
+    width: 80px;
+    background-color: var(--accent-color);
+    margin: 2rem 0;
+    border-radius: 2px;
+}
+
+.quote {
+    font-style: italic;
+    font-size: 1.1rem !important;
+    opacity: 0.8 !important;
+    max-width: 400px;
+}
+
+/* --- Login Side (Right) --- */
+.login-side {
+    flex: 1;
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+}
+
+.login-wrapper {
+    width: 100%;
+    max-width: 420px;
+    padding: 2rem;
+    margin-top: 4rem;
+    /* Push down slightly to fix "too high" feeling */
+}
+
+
+.logo-fallback {
+    font-size: 3rem;
+    color: var(--primary-color);
+    background: rgba(42, 157, 143, 0.1);
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.form-header h2 {
+    font-size: 2.2rem;
+    color: var(--secondary-color);
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.form-header p {
+    color: var(--text-muted);
+}
+
+/* Role Selector */
+.role-selector {
+    display: flex;
+    background: #f0f2f5;
+    padding: 4px;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.role-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.role-btn.active {
+    background: var(--white);
+    color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Form Inputs */
+.input-group {
+    margin-bottom: 1.5rem;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--secondary-color);
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 16px;
+    color: #a0a0a0;
+    font-size: 1.1rem;
+    transition: var(--transition);
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 14px 16px 14px 48px;
+    /* Left padding for icon */
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: var(--transition);
+    outline: none;
+    background: var(--bg-light);
+}
+
+.input-wrapper input:focus {
+    border-color: var(--primary-color);
+    background: var(--white);
+    box-shadow: 0 0 0 4px rgba(42, 157, 143, 0.1);
+}
+
+.input-wrapper input:focus+.input-icon {
+    color: var(--primary-color);
+}
+
+.toggle-password {
+    position: absolute;
+    right: 16px;
+    background: none;
+    border: none;
+}
+
+.forgot-password {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.forgot-password:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+/* Submit Button */
+.submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--primary-color);
+    color: var(--white);
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: var(--transition);
+    box-shadow: 0 4px 12px rgba(42, 157, 143, 0.3);
+}
+
+.submit-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(42, 157, 143, 0.4);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+/* Footer */
+.footer-links {
+    margin-top: 3rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+}
+
+.footer-links a {
+    color: var(--secondary-color);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.lang-switch {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.lang-switch span {
+    cursor: pointer;
+    opacity: 0.5;
+    transition: var(--transition);
+}
+
+.lang-switch span.active,
+.lang-switch span:hover {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+    .visual-side {
+        display: none;
+        min-height: 100%;
+    }
+
+    .login-side {
+        background-image: url('geology_background_texture.png');
+        /* Use texture as background on mobile too but faded */
+        background-size: cover;
+        background-repeat: repeat;
+        /* POUR QUE L’IMAGE CONTINUE EN BAS */
+        background-attachment: scroll;
+        /* Optionnel mais aide sur mobile */
+        position: relative;
+    }
+
+    .login-side::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(5px);
+        z-index: 0;
+    }
+
+    .login-wrapper {
+        position: relative;
+        z-index: 1;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 24px;
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(10px);
+    }
+
+    .mobile-header {
+        display: block;
+    }
+
+    .mobile-header h2 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--primary-color);
+    }
+}

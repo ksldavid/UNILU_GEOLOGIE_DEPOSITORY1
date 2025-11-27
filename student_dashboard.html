@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Étudiant | UNILU</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="unilu_logo.png" alt="UNILU Logo">
+                <span>UNILU</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="active">
+                        <a href="#">
+                            <i class="fa-solid fa-house"></i>
+                            <span>Accueil</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fa-solid fa-book-open"></i>
+                            <span>Mes Cours</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fa-solid fa-calendar-days"></i>
+                            <span>Emploi du temps</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                            <span>Résultats</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fa-solid fa-folder-open"></i>
+                            <span>Documents</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="index.html" class="logout-btn">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Rechercher un cours, un prof...">
+                </div>
+
+                <div class="header-actions">
+                    <div class="date-display">
+                        <i class="fa-regular fa-calendar"></i>
+                        <span>27 Nov 2025</span>
+                    </div>
+                    <div class="notification-btn">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="badge"></span>
+                    </div>
+                    <div class="user-profile">
+                        <div class="avatar-circle">DM</div>
+                        <div class="user-info">
+                            <span class="name">David M.</span>
+                            <span class="role">Étudiant L3 Géologie</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div class="content-wrapper">
+                <!-- Welcome Banner -->
+                <section class="welcome-banner">
+                    <div class="banner-content">
+                        <h1>Bienvenue sur votre Portail,<br>UNILU - Géologie</h1>
+                        <p>Retrouvez vos cours, examens et actualités du département.</p>
+                    </div>
+                    <div class="banner-bg-icon">
+                        <i class="fa-solid fa-earth-africa"></i>
+                    </div>
+                </section>
+
+                <div class="dashboard-grid">
+                    <!-- Left Column: Exams -->
+                    <div class="grid-left">
+                        <div class="section-header">
+                            <h3>Prochains Examens</h3>
+                            <a href="#" class="view-all">Tout voir</a>
+                        </div>
+
+                        <div class="exam-list">
+                            <!-- Exam Item 1 -->
+                            <div class="exam-card warning">
+                                <div class="exam-icon">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                </div>
+                                <div class="exam-details">
+                                    <h4>Minéralogie Avancée</h4>
+                                    <p>Partiel - Salle B12</p>
+                                </div>
+                                <div class="exam-date">
+                                    <span class="date">28 Nov</span>
+                                    <span class="time">14:00</span>
+                                </div>
+                            </div>
+
+                            <!-- Exam Item 2 -->
+                            <div class="exam-card">
+                                <div class="exam-icon">
+                                    <i class="fa-solid fa-flask"></i>
+                                </div>
+                                <div class="exam-details">
+                                    <h4>Pétrologie Magmatique</h4>
+                                    <p>Rendu de TP</p>
+                                </div>
+                                <div class="exam-date">
+                                    <span class="date">30 Nov</span>
+                                    <span class="time">23:59</span>
+                                </div>
+                            </div>
+
+                            <!-- Exam Item 3 -->
+                            <div class="exam-card">
+                                <div class="exam-icon">
+                                    <i class="fa-solid fa-book"></i>
+                                </div>
+                                <div class="exam-details">
+                                    <h4>Géodynamique</h4>
+                                    <p>Quiz en ligne</p>
+                                </div>
+                                <div class="exam-date">
+                                    <span class="date">02 Déc</span>
+                                    <span class="time">10:00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Announcements -->
+                    <div class="grid-right">
+                        <div class="section-header">
+                            <h3 class="highlight-title">Annonces</h3>
+                        </div>
+
+                        <div class="announcements-list">
+                            <div class="announcement-item">
+                                <div class="ann-meta">
+                                    <span class="ann-date">26 Nov</span>
+                                </div>
+                                <h4>Conférence Géologie</h4>
+                                <p>Le Pr. Kabeya tiendra une conférence sur les ressources minières du Katanga ce
+                                    vendredi.</p>
+                            </div>
+
+                            <div class="announcement-item">
+                                <div class="ann-meta">
+                                    <span class="ann-date">25 Nov</span>
+                                </div>
+                                <h4>Changement de salle</h4>
+                                <p>Le cours de Cartographie de demain aura lieu en salle A4.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espace Enseignant | UNILU</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="unilu_logo.png" alt="UNILU Logo">
+                <span>UNILU</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="active">
+                        <a href="#">
+                            <i class="fa-solid fa-chart-pie"></i>
+                            <span>Vue d'ensemble</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fa-solid fa-chalkboard-user"></i>
+                            <span>Mes Cours</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            <span>Planning</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Délibérations</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fa-solid fa-users"></i>
+                            <span>Étudiants</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="index.html" class="logout-btn">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Rechercher un étudiant, un cours...">
+                </div>
+
+                <div class="header-actions">
+                    <div class="date-display">
+                        <i class="fa-regular fa-calendar"></i>
+                        <span>27 Nov 2025</span>
+                    </div>
+                    <div class="notification-btn">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="badge">5</span>
+                    </div>
+                    <div class="user-profile">
+                        <div class="avatar-circle" style="background: #264653;">PK</div>
+                        <div class="user-info">
+                            <span class="name">Pr. Kabeya</span>
+                            <span class="role">Doyen - Géologie</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div class="content-wrapper">
+                <!-- Welcome Banner -->
+                <section class="welcome-banner" style="background: linear-gradient(135deg, #264653 0%, #2A9D8F 100%);">
+                    <div class="banner-content">
+                        <h1>Espace Enseignant,<br>Faculté de Géologie</h1>
+                        <p>Gérez vos cours, consultez vos horaires et communiquez avec vos étudiants.</p>
+                    </div>
+                    <div class="banner-bg-icon">
+                        <i class="fa-solid fa-book-open-reader"></i>
+                    </div>
+                </section>
+
+                <div class="dashboard-grid">
+                    <!-- Left Column: Tasks/Classes -->
+                    <div class="grid-left">
+                        <div class="section-header">
+                            <h3>Cours de la journée</h3>
+                            <a href="#" class="view-all">Voir l'agenda</a>
+                        </div>
+
+                        <div class="exam-list">
+                            <!-- Class Item 1 -->
+                            <div class="exam-card">
+                                <div class="exam-icon info">
+                                    <i class="fa-solid fa-chalkboard"></i>
+                                </div>
+                                <div class="exam-details">
+                                    <h4>Géologie Structurale</h4>
+                                    <p>Amphi B - L2 Géologie</p>
+                                </div>
+                                <div class="exam-date">
+                                    <span class="date">Aujourd'hui</span>
+                                    <span class="time">08:30</span>
+                                </div>
+                            </div>
+
+                            <!-- Class Item 2 -->
+                            <div class="exam-card warning">
+                                <div class="exam-icon">
+                                    <i class="fa-solid fa-file-signature"></i>
+                                </div>
+                                <div class="exam-details">
+                                    <h4>Correction Examens</h4>
+                                    <p>Minéralogie - 45 copies restantes</p>
+                                </div>
+                                <div class="exam-date">
+                                    <span class="date" style="color: #e76f51;">Urgent</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Stats -->
+                    <div class="grid-right">
+                        <div class="section-header">
+                            <h3>Statistiques Rapides</h3>
+                        </div>
+
+                        <div class="stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="stat-card"
+                                style="background: #fff; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                                <h4 style="font-size: 2rem; color: #2A9D8F; margin-bottom: 5px;">124</h4>
+                                <p style="font-size: 0.85rem; color: #666;">Étudiants</p>
+                            </div>
+                            <div class="stat-card"
+                                style="background: #fff; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                                <h4 style="font-size: 2rem; color: #264653; margin-bottom: 5px;">3</h4>
+                                <p style="font-size: 0.85rem; color: #666;">Cours Actifs</p>
+                            </div>
+                        </div>
+
+                        <div class="section-header" style="margin-top: 2rem;">
+                            <h3 class="highlight-title">Annonces Faculté</h3>
+                        </div>
+
+                        <div class="announcements-list">
+                            <div class="announcement-item">
+                                <div class="ann-meta">
+                                    <span class="ann-date">26 Nov</span>
+                                </div>
+                                <h4>Réunion Départementale</h4>
+                                <p>Réunion obligatoire pour tous les enseignants ce vendredi à 14h.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

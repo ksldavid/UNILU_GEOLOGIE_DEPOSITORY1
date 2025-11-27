@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Faculté de Géologie | UNILU</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Left Side: Visual & Branding -->
+        <div class="visual-side">
+            <div class="visual-content">
+                <div class="logo-overlay">
+                    <div class="uni-logo">
+                        <span class="logo-text">UNILU</span>
+                    </div>
+                </div>
+                <div class="text-content">
+                    <h1>département de<br>Géologie</h1>
+                    <p>Portail Étudiant & Enseignant</p>
+                    <div class="divider"></div>
+                    <p class="quote">"À la découverte de la force de la terre."</p>
+                </div>
+            </div>
+            <div class="visual-overlay"></div>
+            <!-- Image will be set via CSS background -->
+        </div>
+
+        <!-- Right Side: Login Form -->
+        <div class="login-side">
+            <div class="login-wrapper">
+                <div class="mobile-header">
+
+
+                    <div class="form-header">
+                        <div class="logo-container">
+                            <img src="unilu_logo.png" alt="Logo UNILU" class="main-logo"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                            <div class="logo-fallback" style="display:none;">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+                        </div>
+                        <h2>Bienvenue</h2>
+                        <p>Portail de la Faculté de Géologie</p>
+                    </div>
+
+                    <div class="role-selector">
+                        <button class="role-btn active" data-role="student">Étudiant</button>
+                        <button class="role-btn" data-role="lecturer">Enseignant</button>
+                    </div>
+
+                    <form id="loginForm">
+                        <div class="input-group">
+                            <label for="username" id="label-username">Numéro Étudiant</label>
+                            <div class="input-wrapper">
+                                <i class="fa-regular fa-user input-icon"></i>
+                                <input type="text" id="username" placeholder="Ex: 202300123" required>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="password">Mot de passe</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-lock input-icon"></i>
+                                <input type="password" id="password" placeholder="••••••••" required>
+                                <button type="button" class="toggle-password" id="togglePassword">
+                                    <i class="fa-regular fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <div class="remember-me">
+                                <input type="checkbox" id="remember">
+                                <label for="remember">Se souvenir de moi</label>
+                            </div>
+                            <a href="#" class="forgot-password">Mot de passe oublié ?</a>
+                        </div>
+
+                        <button type="submit" class="submit-btn">
+                            <span>Se connecter</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </form>
+
+                    <div class="footer-links">
+                        <p>Pas encore de compte ? <a href="#">Contacter l'administration</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
