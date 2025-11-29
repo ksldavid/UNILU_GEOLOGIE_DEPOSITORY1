@@ -25,31 +25,31 @@
             <nav class="sidebar-nav">
                 <ul>
                     <li class="active">
-                        <a href="#">
+                        <a href="#" id="nav-overview">
                             <i class="fa-solid fa-chart-pie"></i>
                             <span>Vue d'ensemble</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#">
+                        <a href="#" id="nav-courses">
                             <i class="fa-solid fa-chalkboard-user"></i>
                             <span>Mes Cours</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#">
+                        <a href="#" id="nav-planning">
                             <i class="fa-solid fa-calendar-check"></i>
                             <span>Planning</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#">
+                        <a href="#" id="nav-deliberations">
                             <i class="fa-solid fa-pen-to-square"></i>
                             <span>Délibérations</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#">
+                        <a href="#" id="nav-students">
                             <i class="fa-solid fa-users"></i>
                             <span>Étudiants</span>
                         </a>
@@ -66,7 +66,7 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="main-content" id="mainContent">
+        <main class="main-content">
             <!-- Top Header -->
             <header class="top-header">
                 <div class="search-bar">
@@ -77,11 +77,11 @@
                 <div class="header-actions">
                     <div class="date-display">
                         <i class="fa-regular fa-calendar"></i>
-                        <span>27 Nov 2025</span>
+                        <span id="current-date"></span>
                     </div>
                     <div class="notification-btn">
                         <i class="fa-regular fa-bell"></i>
-                        <span class="badge">5</span>
+                        <span class="badge"></span>
                     </div>
                     <div class="user-profile">
                         <div class="avatar-circle" style="background: #264653;">PK</div>
@@ -93,98 +93,600 @@
                 </div>
             </header>
 
-            <!-- Dashboard Content -->
+            <!-- Content Wrapper -->
             <div class="content-wrapper">
-                <!-- Welcome Banner -->
-                <section class="welcome-banner" style="background: linear-gradient(135deg, #264653 0%, #2A9D8F 100%);">
-                    <div class="banner-content">
-                        <h1>Espace Enseignant,<br>Faculté de Géologie</h1>
-                        <p>Gérez vos cours, consultez vos horaires et communiquez avec vos étudiants.</p>
+                <!-- Overview Section -->
+                <section id="overview-section">
+                    <!-- Welcome Banner -->
+                    <div class="welcome-banner" style="background: linear-gradient(135deg, #264653 0%, #2A9D8F 100%);">
+                        <div class="banner-content">
+                            <h1>Espace Enseignant,<br>Faculté de Géologie</h1>
+                            <p>Gérez vos cours, consultez vos horaires et communiquez avec vos étudiants.</p>
+                        </div>
+                        <i class="fa-solid fa-book-open-reader banner-bg-icon"></i>
                     </div>
-                    <div class="banner-bg-icon">
-                        <i class="fa-solid fa-book-open-reader"></i>
+
+                    <div class="dashboard-grid">
+                        <!-- Left Column: Tasks/Classes -->
+                        <div class="left-column">
+                            <div class="section-header">
+                                <h3>Cours de la journée</h3>
+                                <a href="#" class="view-all">Voir l'agenda</a>
+                            </div>
+
+                            <div class="exam-list">
+                                <!-- Class Item 1 -->
+                                <div class="exam-card">
+                                    <div class="exam-icon info">
+                                        <i class="fa-solid fa-chalkboard"></i>
+                                    </div>
+                                    <div class="exam-details">
+                                        <h4>Géologie Structurale</h4>
+                                        <p>Amphi B - L2 Géologie</p>
+                                    </div>
+                                    <div class="exam-date">
+                                        <span class="date">Aujourd'hui</span>
+                                        <span class="time">08:30</span>
+                                    </div>
+                                </div>
+
+                                <!-- Class Item 2 -->
+                                <div class="exam-card warning">
+                                    <div class="exam-icon">
+                                        <i class="fa-solid fa-file-signature"></i>
+                                    </div>
+                                    <div class="exam-details">
+                                        <h4>Correction Examens</h4>
+                                        <p>Minéralogie - 45 copies restantes</p>
+                                    </div>
+                                    <div class="exam-date">
+                                        <span class="date" style="color: #e76f51;">Urgent</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Stats -->
+                        <div class="right-column">
+                            <div class="section-header">
+                                <h3>Statistiques Rapides</h3>
+                            </div>
+
+                            <div class="stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div class="stat-card"
+                                    style="background: #fff; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                                    <h4 style="font-size: 2rem; color: #2A9D8F; margin-bottom: 5px;">124</h4>
+                                    <p style="font-size: 0.85rem; color: #666;">Étudiants</p>
+                                </div>
+                                <div class="stat-card"
+                                    style="background: #fff; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                                    <h4 style="font-size: 2rem; color: #264653; margin-bottom: 5px;">4</h4>
+                                    <p style="font-size: 0.85rem; color: #666;">Cours Actifs</p>
+                                </div>
+                            </div>
+
+                            <div class="section-header" style="margin-top: 2rem;">
+                                <h3 class="highlight-title">Annonces Faculté</h3>
+                            </div>
+
+                            <div class="announcements-list">
+                                <div class="announcement-item">
+                                    <div class="ann-meta">
+                                        <span class="ann-date">26 Nov</span>
+                                    </div>
+                                    <h4>Réunion Départementale</h4>
+                                    <p>Réunion obligatoire pour tous les enseignants ce vendredi à 14h.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
-                <div class="dashboard-grid">
-                    <!-- Left Column: Tasks/Classes -->
-                    <div class="grid-left">
-                        <div class="section-header">
-                            <h3>Cours de la journée</h3>
-                            <a href="#" class="view-all">Voir l'agenda</a>
-                        </div>
+                <!-- Mes Cours Section -->
+                <section id="courses-section" style="display: none;">
+                    <div class="page-header">
+                        <h1>Mes Cours</h1>
+                        <p>Gérez vos supports de cours, consultez les soumissions et communiquez avec vos étudiants.</p>
+                    </div>
 
-                        <div class="exam-list">
-                            <!-- Class Item 1 -->
-                            <div class="exam-card">
-                                <div class="exam-icon info">
-                                    <i class="fa-solid fa-chalkboard"></i>
-                                </div>
-                                <div class="exam-details">
-                                    <h4>Géologie Structurale</h4>
-                                    <p>Amphi B - L2 Géologie</p>
-                                </div>
-                                <div class="exam-date">
-                                    <span class="date">Aujourd'hui</span>
-                                    <span class="time">08:30</span>
+                    <div class="professor-courses-grid">
+                        <!-- Course Card 1 -->
+                        <div class="professor-course-card">
+                            <div class="course-card-header">
+                                <div class="course-code-badge geo">GÉO-301</div>
+                                <span class="course-level">L3 Géologie</span>
+                            </div>
+                            <div class="course-card-body">
+                                <h3>Géologie Structurale</h3>
+                                <div class="course-schedule">
+                                    <div class="schedule-item">
+                                        <i class="fa-regular fa-clock"></i>
+                                        <span>Lundi: 08:30 - 10:30 (Amphi B)</span>
+                                    </div>
+                                    <div class="schedule-item">
+                                        <i class="fa-regular fa-clock"></i>
+                                        <span>Jeudi: 14:00 - 16:00 (Amphi C)</span>
+                                    </div>
                                 </div>
                             </div>
+                            <div class="course-card-footer">
+                                <button class="manage-course-btn">
+                                    <i class="fa-solid fa-gear"></i>
+                                    Gérer le cours
+                                </button>
+                                <div class="course-actions">
+                                    <button class="icon-btn" title="Documents">
+                                        <i class="fa-regular fa-file-lines"></i>
+                                    </button>
+                                    <button class="icon-btn" title="Partager">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
-                            <!-- Class Item 2 -->
-                            <div class="exam-card warning">
-                                <div class="exam-icon">
-                                    <i class="fa-solid fa-file-signature"></i>
+                        <!-- Course Card 2 -->
+                        <div class="professor-course-card">
+                            <div class="course-card-header">
+                                <div class="course-code-badge min">MIN-212</div>
+                                <span class="course-level">L2 Géologie</span>
+                            </div>
+                            <div class="course-card-body">
+                                <h3>Minéralogie Optique</h3>
+                                <div class="course-schedule">
+                                    <div class="schedule-item">
+                                        <i class="fa-regular fa-clock"></i>
+                                        <span>Mardi: 10:30 - 12:30 (Labo 1)</span>
+                                    </div>
+                                    <div class="schedule-item">
+                                        <i class="fa-regular fa-clock"></i>
+                                        <span>Vendredi: 08:30 - 10:30 (Labo 1)</span>
+                                    </div>
                                 </div>
-                                <div class="exam-details">
-                                    <h4>Correction Examens</h4>
-                                    <p>Minéralogie - 45 copies restantes</p>
+                            </div>
+                            <div class="course-card-footer">
+                                <button class="manage-course-btn">
+                                    <i class="fa-solid fa-gear"></i>
+                                    Gérer le cours
+                                </button>
+                                <div class="course-actions">
+                                    <button class="icon-btn" title="Documents">
+                                        <i class="fa-regular fa-file-lines"></i>
+                                    </button>
+                                    <button class="icon-btn" title="Partager">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                    </button>
                                 </div>
-                                <div class="exam-date">
-                                    <span class="date" style="color: #e76f51;">Urgent</span>
+                            </div>
+                        </div>
+
+                        <!-- Course Card 3 -->
+                        <div class="professor-course-card">
+                            <div class="course-card-header">
+                                <div class="course-code-badge pal">PAL-405</div>
+                                <span class="course-level">M1 Paléontologie</span>
+                            </div>
+                            <div class="course-card-body">
+                                <h3>Paléontologie des Vertébrés</h3>
+                                <div class="course-schedule">
+                                    <div class="schedule-item">
+                                        <i class="fa-regular fa-clock"></i>
+                                        <span>Mercredi: 13:00 - 16:00 (Salle 204)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="course-card-footer">
+                                <button class="manage-course-btn">
+                                    <i class="fa-solid fa-gear"></i>
+                                    Gérer le cours
+                                </button>
+                                <div class="course-actions">
+                                    <button class="icon-btn" title="Documents">
+                                        <i class="fa-regular fa-file-lines"></i>
+                                    </button>
+                                    <button class="icon-btn" title="Partager">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Course Card 4 -->
+                        <div class="professor-course-card">
+                            <div class="course-card-header">
+                                <div class="course-code-badge sed">SED-310</div>
+                                <span class="course-level">L3 Géologie</span>
+                            </div>
+                            <div class="course-card-body">
+                                <h3>Sédimentologie</h3>
+                                <div class="course-schedule">
+                                    <div class="schedule-item">
+                                        <i class="fa-regular fa-clock"></i>
+                                        <span>Lundi: 13:00 - 15:00 (Amphi A)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="course-card-footer">
+                                <button class="manage-course-btn">
+                                    <i class="fa-solid fa-gear"></i>
+                                    Gérer le cours
+                                </button>
+                                <div class="course-actions">
+                                    <button class="icon-btn" title="Documents">
+                                        <i class="fa-regular fa-file-lines"></i>
+                                    </button>
+                                    <button class="icon-btn" title="Partager">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </section>
 
-                    <!-- Right Column: Stats -->
-                    <div class="grid-right">
-                        <div class="section-header">
-                            <h3>Statistiques Rapides</h3>
+                <!-- Planning Section -->
+                <section id="planning-section" style="display: none;">
+                    <div class="page-header">
+                        <h1>Mon Planning</h1>
+                        <p>Vue hebdomadaire de vos cours, réunions et heures de bureau.</p>
+                    </div>
+
+                    <div class="planning-toolbar">
+                        <div class="date-navigation">
+                            <button class="nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button class="nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                            <span class="current-week">25 Nov - 1 Déc 2025</span>
                         </div>
+                        <div class="planning-actions">
+                            <button class="action-btn">Aujourd'hui</button>
+                            <button class="action-btn"><i class="fa-solid fa-filter"></i> Filtrer</button>
+                        </div>
+                    </div>
 
-                        <div class="stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <div class="stat-card"
-                                style="background: #fff; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                                <h4 style="font-size: 2rem; color: #2A9D8F; margin-bottom: 5px;">124</h4>
-                                <p style="font-size: 0.85rem; color: #666;">Étudiants</p>
+                    <div class="weekly-schedule">
+                        <!-- Lundi -->
+                        <div class="day-column">
+                            <div class="day-header">Lundi</div>
+                            <div class="event-card course">
+                                <h4 class="event-title">Géologie Structurale</h4>
+                                <p class="event-location">Amphi B - L2 Géologie</p>
+                                <div class="event-time"><i class="fa-regular fa-clock"></i> 08:30 - 10:30</div>
                             </div>
-                            <div class="stat-card"
-                                style="background: #fff; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                                <h4 style="font-size: 2rem; color: #264653; margin-bottom: 5px;">3</h4>
-                                <p style="font-size: 0.85rem; color: #666;">Cours Actifs</p>
+                            <div class="event-card office-hours">
+                                <h4 class="event-title">Heures de bureau</h4>
+                                <p class="event-location">Bureau du Doyen</p>
+                                <div class="event-time"><i class="fa-regular fa-clock"></i> 14:00 - 16:00</div>
                             </div>
                         </div>
 
-                        <div class="section-header" style="margin-top: 2rem;">
-                            <h3 class="highlight-title">Annonces Faculté</h3>
+                        <!-- Mardi -->
+                        <div class="day-column">
+                            <div class="day-header">Mardi</div>
+                            <div class="empty-slot">
+                                Aucun événement
+                            </div>
                         </div>
 
-                        <div class="announcements-list">
-                            <div class="announcement-item">
-                                <div class="ann-meta">
-                                    <span class="ann-date">26 Nov</span>
-                                </div>
-                                <h4>Réunion Départementale</h4>
-                                <p>Réunion obligatoire pour tous les enseignants ce vendredi à 14h.</p>
+                        <!-- Mercredi -->
+                        <div class="day-column">
+                            <div class="day-header">Mercredi</div>
+                            <div class="event-card course">
+                                <h4 class="event-title">Géologie Structurale</h4>
+                                <p class="event-location">Amphi B - L2 Géologie</p>
+                                <div class="event-time"><i class="fa-regular fa-clock"></i> 08:30 - 10:30</div>
+                            </div>
+                            <div class="event-card meeting">
+                                <h4 class="event-title">Réunion du département</h4>
+                                <p class="event-location">Salle de conférence</p>
+                                <div class="event-time"><i class="fa-regular fa-clock"></i> 11:00 - 12:00</div>
+                            </div>
+                        </div>
+
+                        <!-- Jeudi -->
+                        <div class="day-column">
+                            <div class="day-header">Jeudi</div>
+                            <div class="event-card course">
+                                <h4 class="event-title">Minéralogie</h4>
+                                <p class="event-location">Labo 3 - L1 Géologie</p>
+                                <div class="event-time"><i class="fa-regular fa-clock"></i> 13:00 - 15:00</div>
+                            </div>
+                        </div>
+
+                        <!-- Vendredi -->
+                        <div class="day-column">
+                            <div class="day-header">Vendredi</div>
+                            <div class="event-card office-hours">
+                                <h4 class="event-title">Heures de bureau</h4>
+                                <p class="event-location">Bureau du Doyen</p>
+                                <div class="event-time"><i class="fa-regular fa-clock"></i> 10:00 - 12:00</div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
+
+                <!-- Délibérations Section -->
+                <section id="deliberations-section" style="display: none;">
+                    <div class="deliberations-header">
+                        <div class="deliberations-title-section">
+                            <h1>Délibérations - <span class="course-name">Géologie Structurale</span></h1>
+                            <select class="course-selector">
+                                <option value="geo-301">GÉO-301 - Géologie Structurale</option>
+                                <option value="min-212">MIN-212 - Minéralogie Optique</option>
+                                <option value="pal-405">PAL-405 - Paléontologie des Vertébrés</option>
+                                <option value="sed-310">SED-310 - Sédimentologie</option>
+                            </select>
+                        </div>
+                        <div class="deliberations-actions">
+                            <button class="btn-export">
+                                <i class="fa-solid fa-download"></i>
+                                Exporter en CSV
+                            </button>
+                            <button class="btn-finalize">
+                                <i class="fa-solid fa-lock"></i>
+                                Finaliser et Clôturer
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="deliberations-table-container">
+                        <table class="deliberations-table">
+                            <thead>
+                                <tr>
+                                    <th>NOM DE L'ÉTUDIANT</th>
+                                    <th>MATRICULE</th>
+                                    <th>INTERRO<br><span class="weight">(20)</span></th>
+                                    <th>TP<br><span class="weight">(20)</span></th>
+                                    <th>EXAMEN<br><span class="weight">(60)</span></th>
+                                    <th>TOTAL<br><span class="weight">(100)</span></th>
+                                    <th>STATUT</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="student-name">Tshimanga David</td>
+                                    <td class="matricule">2023-GEOL-001</td>
+                                    <td><input type="number" class="grade-input" value="15" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="18" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="45" min="0" max="60"></td>
+                                    <td class="total">78</td>
+                                    <td><span class="status-badge success">Réussi</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="student-name">Mbombo Esther</td>
+                                    <td class="matricule">2023-GEOL-002</td>
+                                    <td><input type="number" class="grade-input" value="12" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="10" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="25" min="0" max="60"></td>
+                                    <td class="total">47</td>
+                                    <td><span class="status-badge fail">Échec</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="student-name">Kazadi Jonathan</td>
+                                    <td class="matricule">2023-GEOL-003</td>
+                                    <td><input type="number" class="grade-input" value="18" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="15" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="50" min="0" max="60"></td>
+                                    <td class="total">83</td>
+                                    <td><span class="status-badge success">Réussi</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="student-name">Ngalula Sarah</td>
+                                    <td class="matricule">2023-GEOL-004</td>
+                                    <td><input type="number" class="grade-input" value="14" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="16" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="35" min="0" max="60"></td>
+                                    <td class="total">65</td>
+                                    <td><span class="status-badge success">Réussi</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="student-name">Ilunga Moise</td>
+                                    <td class="matricule">2023-GEOL-005</td>
+                                    <td><input type="number" class="grade-input" value="9" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="11" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="21" min="0" max="60"></td>
+                                    <td class="total">41</td>
+                                    <td><span class="status-badge fail">Échec</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="student-name">Kabeya Priscille</td>
+                                    <td class="matricule">2023-GEOL-006</td>
+                                    <td><input type="number" class="grade-input" value="17" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="19" min="0" max="20"></td>
+                                    <td><input type="number" class="grade-input" value="55" min="0" max="60"></td>
+                                    <td class="total">91</td>
+                                    <td><span class="status-badge success">Réussi</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="deliberations-pagination">
+                        <span class="pagination-info">Affichage de 1-6 sur 24 étudiants</span>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn" disabled>Précédent</button>
+                            <button class="pagination-btn">Suivant</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Étudiants Section -->
+                <section id="students-section" style="display: none;">
+                    <!-- Banner -->
+                    <div class="students-banner">
+                        <div class="banner-content">
+                            <h1>Liste des Étudiants</h1>
+                            <p>Consultez et gérez les profils de vos étudiants par cours.</p>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="students-controls">
+                        <select class="students-course-selector" id="students-course-selector">
+                            <option value="geo-l2">Géologie - L2</option>
+                            <option value="geo-l3">Géologie Structurale - L3</option>
+                            <option value="min-l2">Minéralogie Optique - L2</option>
+                            <option value="pal-m1">Paléontologie des Vertébrés - M1</option>
+                            <option value="sed-l3">Sédimentologie - L3</option>
+                        </select>
+
+                        <div class="students-search-filter">
+                            <div class="students-search-bar">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" placeholder="Rechercher un étudiant..." id="students-search">
+                            </div>
+                            <button class="students-filter-btn">
+                                <i class="fa-solid fa-filter"></i>
+                                Filtre
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Students Table -->
+                    <div class="students-table-container">
+                        <table class="students-table">
+                            <thead>
+                                <tr>
+                                    <th>Nom Complet</th>
+                                    <th>Matricule</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="students-table-body">
+                                <tr>
+                                    <td class="student-full-name">Kabeya Ilunga</td>
+                                    <td class="student-matricule">22GEO001</td>
+                                    <td>
+                                        <a href="#" class="view-profile-link">Voir profil</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="student-full-name">Ndaya Tshibangu</td>
+                                    <td class="student-matricule">22GEO002</td>
+                                    <td>
+                                        <a href="#" class="view-profile-link">Voir profil</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="student-full-name">Mulumba Kalonji</td>
+                                    <td class="student-matricule">22GEO003</td>
+                                    <td>
+                                        <a href="#" class="view-profile-link">Voir profil</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="student-full-name">Kazadi Mukendi</td>
+                                    <td class="student-matricule">22GEO004</td>
+                                    <td>
+                                        <a href="#" class="view-profile-link">Voir profil</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="student-full-name">Banza Ngoy</td>
+                                    <td class="student-matricule">22GEO005</td>
+                                    <td>
+                                        <a href="#" class="view-profile-link">Voir profil</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
 
-    <script src="dashboard.js"></script>
+    <script>
+        // Display current date
+        const dateDisplay = document.getElementById('current-date');
+        const options = { day: 'numeric', month: 'short', year: 'numeric' };
+        dateDisplay.textContent = new Date().toLocaleDateString('fr-FR', options);
+
+        // Navigation
+        const navOverview = document.getElementById('nav-overview');
+        const navCourses = document.getElementById('nav-courses');
+        const navPlanning = document.getElementById('nav-planning');
+        const navDeliberations = document.getElementById('nav-deliberations');
+        const navStudents = document.getElementById('nav-students');
+
+        const overviewSection = document.getElementById('overview-section');
+        const coursesSection = document.getElementById('courses-section');
+        const planningSection = document.getElementById('planning-section');
+        const deliberationsSection = document.getElementById('deliberations-section');
+        const studentsSection = document.getElementById('students-section');
+
+        const sidebarItems = document.querySelectorAll('.sidebar-nav li');
+
+        function setActiveNav(activeItem) {
+            sidebarItems.forEach(item => item.classList.remove('active'));
+            activeItem.parentElement.classList.add('active');
+        }
+
+        function hideAllSections() {
+            overviewSection.style.display = 'none';
+            coursesSection.style.display = 'none';
+            planningSection.style.display = 'none';
+            deliberationsSection.style.display = 'none';
+            studentsSection.style.display = 'none';
+        }
+
+        navOverview.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideAllSections();
+            overviewSection.style.display = 'block';
+            setActiveNav(navOverview);
+        });
+
+        navCourses.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideAllSections();
+            coursesSection.style.display = 'block';
+            setActiveNav(navCourses);
+        });
+
+        navPlanning.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideAllSections();
+            planningSection.style.display = 'block';
+            setActiveNav(navPlanning);
+        });
+
+        navDeliberations.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideAllSections();
+            deliberationsSection.style.display = 'block';
+            setActiveNav(navDeliberations);
+        });
+
+        navStudents.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideAllSections();
+            studentsSection.style.display = 'block';
+            setActiveNav(navStudents);
+        });
+
+        // Grade calculation for deliberations
+        const gradeInputs = document.querySelectorAll('.grade-input');
+        gradeInputs.forEach(input => {
+            input.addEventListener('input', function () {
+                const row = this.closest('tr');
+                const inputs = row.querySelectorAll('.grade-input');
+                let total = 0;
+                inputs.forEach(inp => {
+                    total += parseFloat(inp.value) || 0;
+                });
+                row.querySelector('.total').textContent = total;
+
+                const statusBadge = row.querySelector('.status-badge');
+                if (total >= 50) {
+                    statusBadge.textContent = 'Réussi';
+                    statusBadge.className = 'status-badge success';
+                } else {
+                    statusBadge.textContent = 'Échec';
+                    statusBadge.className = 'status-badge fail';
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

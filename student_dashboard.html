@@ -25,31 +25,31 @@
             <nav class="sidebar-nav">
                 <ul>
                     <li class="active">
-                        <a href="#">
+                        <a href="#" id="nav-home">
                             <i class="fa-solid fa-house"></i>
                             <span>Accueil</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#">
+                        <a href="#" id="nav-courses">
                             <i class="fa-solid fa-book-open"></i>
                             <span>Mes Cours</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#">
+                        <a href="#" id="nav-schedule">
                             <i class="fa-solid fa-calendar-days"></i>
-                            <span>Emploi du temps</span>
+                            <span>Emploi du Temps</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#">
-                            <i class="fa-solid fa-graduation-cap"></i>
+                        <a href="#" id="nav-results">
+                            <i class="fa-solid fa-chart-line"></i>
                             <span>Résultats</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#">
+                        <a href="#" id="nav-documents">
                             <i class="fa-solid fa-folder-open"></i>
                             <span>Documents</span>
                         </a>
@@ -66,18 +66,18 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="main-content" id="mainContent">
+        <main class="main-content">
             <!-- Top Header -->
             <header class="top-header">
                 <div class="search-bar">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" placeholder="Rechercher un cours, un prof...">
+                    <input type="text" placeholder="Rechercher...">
                 </div>
 
                 <div class="header-actions">
                     <div class="date-display">
                         <i class="fa-regular fa-calendar"></i>
-                        <span>27 Nov 2025</span>
+                        <span id="current-date"></span>
                     </div>
                     <div class="notification-btn">
                         <i class="fa-regular fa-bell"></i>
@@ -93,106 +93,615 @@
                 </div>
             </header>
 
-            <!-- Dashboard Content -->
+            <!-- Content Wrapper -->
             <div class="content-wrapper">
-                <!-- Welcome Banner -->
-                <section class="welcome-banner">
-                    <div class="banner-content">
-                        <h1>Bienvenue sur votre Portail,<br>UNILU - Géologie</h1>
-                        <p>Retrouvez vos cours, examens et actualités du département.</p>
+                <!-- Home Section -->
+                <section id="home-section">
+                    <!-- Welcome Banner -->
+                    <div class="welcome-banner">
+                        <div class="banner-content">
+                            <h1>Bienvenue, David!</h1>
+                            <p>Prêt à continuer votre apprentissage aujourd'hui?</p>
+                        </div>
+                        <i class="fa-solid fa-graduation-cap banner-bg-icon"></i>
                     </div>
-                    <div class="banner-bg-icon">
-                        <i class="fa-solid fa-earth-africa"></i>
+
+                    <!-- Dashboard Grid -->
+                    <div class="dashboard-grid">
+                        <!-- Left Column: Upcoming Exams -->
+                        <div class="left-column">
+                            <div class="section-header">
+                                <h3 class="highlight-title">Examens à venir</h3>
+                                <a href="#" class="view-all">Voir tout →</a>
+                            </div>
+
+                            <div class="exam-list">
+                                <div class="exam-card">
+                                    <div class="exam-icon">
+                                        <i class="fa-solid fa-file-lines"></i>
+                                    </div>
+                                    <div class="exam-details">
+                                        <h4>Examen Final - Géologie Structurale</h4>
+                                        <p>Salle A-203</p>
+                                    </div>
+                                    <div class="exam-date">
+                                        <span class="date">15 Déc</span>
+                                        <span class="time">09:00</span>
+                                    </div>
+                                </div>
+
+                                <div class="exam-card warning">
+                                    <div class="exam-icon">
+                                        <i class="fa-solid fa-file-lines"></i>
+                                    </div>
+                                    <div class="exam-details">
+                                        <h4>Test - Minéralogie</h4>
+                                        <p>Salle B-105</p>
+                                    </div>
+                                    <div class="exam-date">
+                                        <span class="date">12 Déc</span>
+                                        <span class="time">14:00</span>
+                                    </div>
+                                </div>
+
+                                <div class="exam-card">
+                                    <div class="exam-icon info">
+                                        <i class="fa-solid fa-file-lines"></i>
+                                    </div>
+                                    <div class="exam-details">
+                                        <h4>Présentation - Paléontologie</h4>
+                                        <p>Salle C-301</p>
+                                    </div>
+                                    <div class="exam-date">
+                                        <span class="date">20 Déc</span>
+                                        <span class="time">10:30</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Announcements -->
+                        <div class="right-column">
+                            <div class="section-header">
+                                <h3>Annonces</h3>
+                            </div>
+
+                            <div class="announcements-list">
+                                <div class="announcement-item">
+                                    <div class="ann-meta">
+                                        <span class="ann-date">Il y a 2 heures</span>
+                                    </div>
+                                    <h4>Nouvelle ressource disponible</h4>
+                                    <p>Le Prof. Martin a partagé de nouveaux documents pour le cours de Géologie
+                                        Structurale.</p>
+                                </div>
+
+                                <div class="announcement-item">
+                                    <div class="ann-meta">
+                                        <span class="ann-date">Hier</span>
+                                    </div>
+                                    <h4>Modification d'horaire</h4>
+                                    <p>Le cours de Minéralogie du vendredi est déplacé à 14h00 au lieu de 10h00.</p>
+                                </div>
+
+                                <div class="announcement-item">
+                                    <div class="ann-meta">
+                                        <span class="ann-date">Il y a 3 jours</span>
+                                    </div>
+                                    <h4>Rappel: Projet de groupe</h4>
+                                    <p>N'oubliez pas de soumettre votre projet de Paléontologie avant le 18 décembre.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
-                <div class="dashboard-grid">
-                    <!-- Left Column: Exams -->
-                    <div class="grid-left">
-                        <div class="section-header">
-                            <h3>Prochains Examens</h3>
-                            <a href="#" class="view-all">Tout voir</a>
+                <!-- Mes Cours Section -->
+                <section id="courses-section" style="display: none;">
+                    <div class="page-header">
+                        <h1>Mes Cours</h1>
+                        <p>Tous vos cours pour ce semestre</p>
+                    </div>
+
+                    <div class="courses-grid">
+                        <div class="course-card">
+                            <div class="course-header">
+                                <span class="course-code">GEOL-301</span>
+                            </div>
+                            <div class="course-body">
+                                <h3>Géologie Structurale</h3>
+                                <p class="professor">Prof. Martin Dubois</p>
+                            </div>
+                            <div class="course-footer">
+                                <button class="access-btn">Accéder au cours</button>
+                            </div>
                         </div>
 
-                        <div class="exam-list">
-                            <!-- Exam Item 1 -->
-                            <div class="exam-card warning">
-                                <div class="exam-icon">
-                                    <i class="fa-solid fa-triangle-exclamation"></i>
-                                </div>
-                                <div class="exam-details">
-                                    <h4>Minéralogie Avancée</h4>
-                                    <p>Partiel - Salle B12</p>
-                                </div>
-                                <div class="exam-date">
-                                    <span class="date">28 Nov</span>
-                                    <span class="time">14:00</span>
-                                </div>
+                        <div class="course-card">
+                            <div class="course-header">
+                                <span class="course-code">GEOL-205</span>
                             </div>
-
-                            <!-- Exam Item 2 -->
-                            <div class="exam-card">
-                                <div class="exam-icon">
-                                    <i class="fa-solid fa-flask"></i>
-                                </div>
-                                <div class="exam-details">
-                                    <h4>Pétrologie Magmatique</h4>
-                                    <p>Rendu de TP</p>
-                                </div>
-                                <div class="exam-date">
-                                    <span class="date">30 Nov</span>
-                                    <span class="time">23:59</span>
-                                </div>
+                            <div class="course-body">
+                                <h3>Minéralogie</h3>
+                                <p class="professor">Prof. Sophie Laurent</p>
                             </div>
+                            <div class="course-footer">
+                                <button class="access-btn">Accéder au cours</button>
+                            </div>
+                        </div>
 
-                            <!-- Exam Item 3 -->
-                            <div class="exam-card">
-                                <div class="exam-icon">
-                                    <i class="fa-solid fa-book"></i>
-                                </div>
-                                <div class="exam-details">
-                                    <h4>Géodynamique</h4>
-                                    <p>Quiz en ligne</p>
-                                </div>
-                                <div class="exam-date">
-                                    <span class="date">02 Déc</span>
-                                    <span class="time">10:00</span>
-                                </div>
+                        <div class="course-card">
+                            <div class="course-header">
+                                <span class="course-code">GEOL-402</span>
+                            </div>
+                            <div class="course-body">
+                                <h3>Paléontologie</h3>
+                                <p class="professor">Prof. Pierre Kamanda</p>
+                            </div>
+                            <div class="course-footer">
+                                <button class="access-btn">Accéder au cours</button>
+                            </div>
+                        </div>
+
+                        <div class="course-card">
+                            <div class="course-header">
+                                <span class="course-code">GEOL-310</span>
+                            </div>
+                            <div class="course-body">
+                                <h3>Pétrologie</h3>
+                                <p class="professor">Prof. Marie Tshimanga</p>
+                            </div>
+                            <div class="course-footer">
+                                <button class="access-btn">Accéder au cours</button>
+                            </div>
+                        </div>
+
+                        <div class="course-card">
+                            <div class="course-header">
+                                <span class="course-code">GEOL-215</span>
+                            </div>
+                            <div class="course-body">
+                                <h3>Géophysique</h3>
+                                <p class="professor">Prof. Jean Kabongo</p>
+                            </div>
+                            <div class="course-footer">
+                                <button class="access-btn">Accéder au cours</button>
+                            </div>
+                        </div>
+
+                        <div class="course-card">
+                            <div class="course-header">
+                                <span class="course-code">GEOL-320</span>
+                            </div>
+                            <div class="course-body">
+                                <h3>Sédimentologie</h3>
+                                <p class="professor">Prof. Claire Mukendi</p>
+                            </div>
+                            <div class="course-footer">
+                                <button class="access-btn">Accéder au cours</button>
                             </div>
                         </div>
                     </div>
+                </section>
 
-                    <!-- Right Column: Announcements -->
-                    <div class="grid-right">
-                        <div class="section-header">
-                            <h3 class="highlight-title">Annonces</h3>
+                <!-- Schedule Section -->
+                <section id="schedule-section" style="display: none;">
+                    <div class="flex-header">
+                        <div class="page-header">
+                            <h1>Emploi du Temps</h1>
+                            <p>Votre calendrier académique</p>
                         </div>
-
-                        <div class="announcements-list">
-                            <div class="announcement-item">
-                                <div class="ann-meta">
-                                    <span class="ann-date">26 Nov</span>
-                                </div>
-                                <h4>Conférence Géologie</h4>
-                                <p>Le Pr. Kabeya tiendra une conférence sur les ressources minières du Katanga ce
-                                    vendredi.</p>
-                            </div>
-
-                            <div class="announcement-item">
-                                <div class="ann-meta">
-                                    <span class="ann-date">25 Nov</span>
-                                </div>
-                                <h4>Changement de salle</h4>
-                                <p>Le cours de Cartographie de demain aura lieu en salle A4.</p>
-                            </div>
+                        <div class="view-toggle">
+                            <button class="toggle-btn active">Mois</button>
+                            <button class="toggle-btn">Semaine</button>
                         </div>
                     </div>
-                </div>
+
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <button class="nav-btn">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <h2>Décembre 2025</h2>
+                            <button class="nav-btn">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <div class="calendar-grid">
+                            <div class="weekday">Lun</div>
+                            <div class="weekday">Mar</div>
+                            <div class="weekday">Mer</div>
+                            <div class="weekday">Jeu</div>
+                            <div class="weekday">Ven</div>
+                            <div class="weekday">Sam</div>
+                            <div class="weekday">Dim</div>
+
+                            <div class="day prev-month"><span class="date-num">30</span></div>
+                            <div class="day"><span class="date-num">1</span>
+                                <div class="event-tag blue">Géologie 09:00</div>
+                            </div>
+                            <div class="day"><span class="date-num">2</span></div>
+                            <div class="day"><span class="date-num">3</span>
+                                <div class="event-tag blue">Minéralogie 14:00</div>
+                            </div>
+                            <div class="day"><span class="date-num">4</span></div>
+                            <div class="day"><span class="date-num">5</span></div>
+                            <div class="day"><span class="date-num">6</span></div>
+                            <div class="day"><span class="date-num">7</span></div>
+                            <div class="day"><span class="date-num">8</span>
+                                <div class="event-tag blue">Géologie 09:00</div>
+                            </div>
+                            <div class="day"><span class="date-num">9</span></div>
+                            <div class="day"><span class="date-num">10</span></div>
+                            <div class="day"><span class="date-num">11</span></div>
+                            <div class="day"><span class="date-num">12</span></div>
+                            <div class="day"><span class="date-num">13</span></div>
+                            <div class="day"><span class="date-num">14</span></div>
+                            <div class="day"><span class="date-num">15</span>
+                                <div class="event-tag blue">Examen Final 09:00</div>
+                            </div>
+                            <div class="day"><span class="date-num">16</span></div>
+                            <div class="day"><span class="date-num">17</span></div>
+                            <div class="day"><span class="date-num">18</span></div>
+                            <div class="day"><span class="date-num">19</span></div>
+                            <div class="day"><span class="date-num">20</span></div>
+                            <div class="day"><span class="date-num">21</span></div>
+                            <div class="day"><span class="date-num">22</span></div>
+                            <div class="day"><span class="date-num">23</span></div>
+                            <div class="day"><span class="date-num">24</span></div>
+                            <div class="day"><span class="date-num">25</span></div>
+                            <div class="day"><span class="date-num">26</span></div>
+                            <div class="day"><span class="date-num">27</span></div>
+                            <div class="day"><span class="date-num">28</span></div>
+                            <div class="day"><span class="date-num">29</span></div>
+                            <div class="day"><span class="date-num">30</span></div>
+                            <div class="day"><span class="date-num">31</span></div>
+                            <div class="day prev-month"><span class="date-num">1</span></div>
+                            <div class="day prev-month"><span class="date-num">2</span></div>
+                            <div class="day prev-month"><span class="date-num">3</span></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Results Section -->
+                <section id="results-section" style="display: none;">
+                    <div class="results-banner welcome-banner">
+                        <div class="banner-content">
+                            <h1>Mes Résultats</h1>
+                            <p>Consultez vos notes et performances académiques</p>
+                        </div>
+                        <i class="fa-solid fa-chart-line banner-bg-icon"></i>
+                    </div>
+
+                    <div class="results-container">
+                        <div class="results-header">
+                            <h2>Résultats du Semestre</h2>
+                            <div class="average-score">
+                                <span>Moyenne Générale:</span>
+                                <span class="score">14.5/20</span>
+                            </div>
+                        </div>
+
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Cours</th>
+                                    <th>Code</th>
+                                    <th>Note</th>
+                                    <th>Crédits</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Géologie Structurale</strong></td>
+                                    <td>GEOL-301</td>
+                                    <td>15/20</td>
+                                    <td>6</td>
+                                    <td><span class="status-badge valid">Validé</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Minéralogie</strong></td>
+                                    <td>GEOL-205</td>
+                                    <td>13/20</td>
+                                    <td>5</td>
+                                    <td><span class="status-badge valid">Validé</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Paléontologie</strong></td>
+                                    <td>GEOL-402</td>
+                                    <td>16/20</td>
+                                    <td>6</td>
+                                    <td><span class="status-badge valid">Validé</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Pétrologie</strong></td>
+                                    <td>GEOL-310</td>
+                                    <td>12/20</td>
+                                    <td>5</td>
+                                    <td><span class="status-badge valid">Validé</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Géophysique</strong></td>
+                                    <td>GEOL-215</td>
+                                    <td>14/20</td>
+                                    <td>4</td>
+                                    <td><span class="status-badge valid">Validé</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sédimentologie</strong></td>
+                                    <td>GEOL-320</td>
+                                    <td>17/20</td>
+                                    <td>6</td>
+                                    <td><span class="status-badge valid">Validé</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Documents Section -->
+                <section id="documents-section" style="display: none;">
+                    <div class="page-header">
+                        <h1>Documents</h1>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="all">Tous les documents</button>
+                        <button class="filter-tab" data-filter="formulaires">Formulaires</button>
+                        <button class="filter-tab" data-filter="notes">Relevés de notes</button>
+                        <button class="filter-tab" data-filter="notices">Notices</button>
+                    </div>
+
+                    <!-- Documents Grid -->
+                    <div class="documents-grid">
+                        <!-- Document Card 1 -->
+                        <div class="document-card" data-category="notes">
+                            <div class="doc-icon pdf">
+                                <i class="fa-regular fa-file-pdf"></i>
+                            </div>
+                            <div class="doc-content">
+                                <div class="doc-header">
+                                    <h3>Relevé de notes - Semestre 4</h3>
+                                    <span class="doc-badge officiel">Officiel</span>
+                                </div>
+                                <p class="doc-date">Publié le 15 Juin 2025</p>
+                            </div>
+                            <button class="download-btn">
+                                <i class="fa-solid fa-download"></i>
+                                Télécharger
+                            </button>
+                        </div>
+
+                        <!-- Document Card 2 -->
+                        <div class="document-card" data-category="formulaires">
+                            <div class="doc-icon form">
+                                <i class="fa-regular fa-file-lines"></i>
+                            </div>
+                            <div class="doc-content">
+                                <div class="doc-header">
+                                    <h3>Demande de stage</h3>
+                                    <span class="doc-badge formulaire">Formulaire</span>
+                                </div>
+                                <p class="doc-date">Version 2.1 - Mise à jour le 10 Fév 2025</p>
+                            </div>
+                            <button class="download-btn">
+                                <i class="fa-solid fa-download"></i>
+                                Télécharger
+                            </button>
+                        </div>
+
+                        <!-- Document Card 3 -->
+                        <div class="document-card" data-category="notes">
+                            <div class="doc-icon pdf">
+                                <i class="fa-regular fa-file-pdf"></i>
+                            </div>
+                            <div class="doc-content">
+                                <div class="doc-header">
+                                    <h3>Règlement intérieur du département</h3>
+                                    <span class="doc-badge officiel">Officiel</span>
+                                </div>
+                                <p class="doc-date">Publié le 01 Sep 2024</p>
+                            </div>
+                            <button class="download-btn">
+                                <i class="fa-solid fa-download"></i>
+                                Télécharger
+                            </button>
+                        </div>
+
+                        <!-- Document Card 4 -->
+                        <div class="document-card" data-category="notes">
+                            <div class="doc-icon pdf">
+                                <i class="fa-regular fa-file-pdf"></i>
+                            </div>
+                            <div class="doc-content">
+                                <div class="doc-header">
+                                    <h3>Certificat de scolarité 2024-2025</h3>
+                                    <span class="doc-badge officiel">Officiel</span>
+                                </div>
+                                <p class="doc-date">Délivré le 05 Sep 2024</p>
+                            </div>
+                            <button class="download-btn">
+                                <i class="fa-solid fa-download"></i>
+                                Télécharger
+                            </button>
+                        </div>
+
+                        <!-- Document Card 5 -->
+                        <div class="document-card" data-category="notices">
+                            <div class="doc-icon notice">
+                                <i class="fa-regular fa-file-lines"></i>
+                            </div>
+                            <div class="doc-content">
+                                <div class="doc-header">
+                                    <h3>Notice d'utilisation de la bibliothèque</h3>
+                                    <span class="doc-badge notice">Notice</span>
+                                </div>
+                                <p class="doc-date">Mise à jour le 18 Oct 2024</p>
+                            </div>
+                            <button class="download-btn">
+                                <i class="fa-solid fa-download"></i>
+                                Télécharger
+                            </button>
+                        </div>
+
+                        <!-- Document Card 6 -->
+                        <div class="document-card" data-category="formulaires">
+                            <div class="doc-icon form">
+                                <i class="fa-regular fa-file-lines"></i>
+                            </div>
+                            <div class="doc-content">
+                                <div class="doc-header">
+                                    <h3>Formulaire de réorientation</h3>
+                                    <span class="doc-badge formulaire">Formulaire</span>
+                                </div>
+                                <p class="doc-date">Date limite: 30 Nov 2025</p>
+                            </div>
+                            <button class="download-btn">
+                                <i class="fa-solid fa-download"></i>
+                                Télécharger
+                            </button>
+                        </div>
+
+                        <!-- Document Card 7 -->
+                        <div class="document-card" data-category="formulaires">
+                            <div class="doc-icon form">
+                                <i class="fa-regular fa-file-lines"></i>
+                            </div>
+                            <div class="doc-content">
+                                <div class="doc-header">
+                                    <h3>Demande de bourse</h3>
+                                    <span class="doc-badge formulaire">Formulaire</span>
+                                </div>
+                                <p class="doc-date">Version 3.0 - Mise à jour le 01 Sep 2024</p>
+                            </div>
+                            <button class="download-btn">
+                                <i class="fa-solid fa-download"></i>
+                                Télécharger
+                            </button>
+                        </div>
+
+                        <!-- Document Card 8 -->
+                        <div class="document-card" data-category="notices">
+                            <div class="doc-icon notice">
+                                <i class="fa-regular fa-file-lines"></i>
+                            </div>
+                            <div class="doc-content">
+                                <div class="doc-header">
+                                    <h3>Guide de l'étudiant 2024-2025</h3>
+                                    <span class="doc-badge notice">Notice</span>
+                                </div>
+                                <p class="doc-date">Publié le 20 Août 2024</p>
+                            </div>
+                            <button class="download-btn">
+                                <i class="fa-solid fa-download"></i>
+                                Télécharger
+                            </button>
+                        </div>
+
+                        <!-- Document Card 9 -->
+                        <div class="document-card" data-category="notes">
+                            <div class="doc-icon pdf">
+                                <i class="fa-regular fa-file-pdf"></i>
+                            </div>
+                            <div class="doc-content">
+                                <div class="doc-header">
+                                    <h3>Relevé de notes - Semestre 3</h3>
+                                    <span class="doc-badge officiel">Officiel</span>
+                                </div>
+                                <p class="doc-date">Publié le 20 Jan 2025</p>
+                            </div>
+                            <button class="download-btn">
+                                <i class="fa-solid fa-download"></i>
+                                Télécharger
+                            </button>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
 
     <script src="dashboard.js"></script>
+    <script>
+        // Display current date
+        const dateDisplay = document.getElementById('current-date');
+        const options = { day: 'numeric', month: 'short', year: 'numeric' };
+        dateDisplay.textContent = new Date().toLocaleDateString('fr-FR', options);
+
+        // Add Documents navigation
+        const navDocuments = document.getElementById('nav-documents');
+        const documentsSection = document.getElementById('documents-section');
+
+        if (navDocuments) {
+            navDocuments.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllSections();
+                documentsSection.style.display = 'block';
+                setActiveNav(navDocuments);
+            });
+        }
+
+        // Filter functionality for documents
+        const filterTabs = document.querySelectorAll('.filter-tab');
+        const documentCards = document.querySelectorAll('.document-card');
+
+        filterTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                filterTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                const filter = tab.getAttribute('data-filter');
+
+                documentCards.forEach(card => {
+                    if (filter === 'all') {
+                        card.style.display = 'flex';
+                    } else {
+                        if (card.getAttribute('data-category') === filter) {
+                            card.style.display = 'flex';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    }
+                });
+            });
+        });
+
+        // Download button functionality
+        const downloadBtns = document.querySelectorAll('.download-btn');
+        downloadBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const card = e.target.closest('.document-card');
+                const docName = card.querySelector('h3').textContent;
+
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Téléchargé';
+                btn.style.backgroundColor = '#2a9d8f';
+
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fa-solid fa-download"></i> Télécharger';
+                    btn.style.backgroundColor = '';
+                }, 2000);
+            });
+        });
+
+        // Helper functions
+        function hideAllSections() {
+            document.getElementById('home-section').style.display = 'none';
+            document.getElementById('courses-section').style.display = 'none';
+            document.getElementById('schedule-section').style.display = 'none';
+            document.getElementById('results-section').style.display = 'none';
+            document.getElementById('documents-section').style.display = 'none';
+        }
+
+        function setActiveNav(activeItem) {
+            const sidebarItems = document.querySelectorAll('.sidebar-nav li');
+            sidebarItems.forEach(item => item.classList.remove('active'));
+            activeItem.parentElement.classList.add('active');
+        }
+    </script>
 </body>
 
 </html>
