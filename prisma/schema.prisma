@@ -1,0 +1,294 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- ENUMS ---
+
+enum SystemRole {
+  ADMIN // Super user, has full access
+  ACADEMIC_OFFICE // Approves grades, manages global academic data
+  USER // Standard user (Professor, Assistant, Student)
+}
+
+enum CourseRole {
+  PROFESSOR // Can create assessments, grade (with approval), manage course
+  ASSISTANT // Can take attendance, view students, limited assessment creation
+  STUDENT // Can view own grades, attendance, download docs
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum AssessmentType {
+  EXAM
+  INTERROGATION
+  TP
+  TD
+  // "Interrogation"
+}
+
+enum AnnouncementType {
+  GENERAL // Annonce générale
+  REMINDER // Rappel (devoir, projet)
+  SCHEDULE // Changement d'horaire
+  RESOURCE // Nouvelle ressource
+}
+
+enum AnnouncementTarget {
+  ALL_STUDENTS // Tous les étudiants
+  ACADEMIC_LEVEL // Étudiants d'un niveau spécifique
+  COURSE_STUDENTS // Étudiants d'un cours spécifique
+  ALL_PROFESSORS // Tous les professeurs
+  SPECIFIC_USER // Utilisateur spécifique
+}
+
+// --- MODELS ---
+
+model User {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  email     String   @unique
+  password  String // Hashed password
+  firstName String
+  lastName  String
+
+  systemRole SystemRole @default(USER)
+
+  // Relations
+  enrollments         CourseEnrollment[]
+  gradeChangeRequests GradeChangeRequest[] // Requests made by this user (Prof)
+  attendances         AttendanceRecord[] // Attendance records for this student
+
+  // For audit/logs or assessments created
+  createdAssessments Assessment[]
+  grades             Grade[]             @relation("StudentGrades")
+  studentEnrollments StudentEnrollment[] // Enrollment in academic levels
+
+  // Announcements
+  authoredAnnouncements Announcement[]     @relation("AuthoredAnnouncements")
+  targetedAnnouncements Announcement[]     @relation("TargetedAnnouncements")
+  readAnnouncements     AnnouncementRead[]
+
+  // Attendance change requests made by this user (Academic Office)
+  attendanceChangeRequests AttendanceChangeRequest[]
+}
+
+// NEW: Academic Levels (Presciences, B1, B2, B3, M1, M2)
+model AcademicLevel {
+  id          Int     @id @default(autoincrement())
+  code        String  @unique // "presciences", "b1", "b2", "b3", "m1", "m2"
+  name        String // "Presciences", "Licence 1", "Licence 2", etc.
+  displayName String // "Presciences / Géologie", "B1 / Géologie", etc.
+  order       Int // For sorting: 0, 1, 2, 3, 4, 5
+  isActive    Boolean @default(true)
+
+  // Relations
+  courses            Course[]
+  studentEnrollments StudentEnrollment[]
+  announcements      Announcement[] // Announcements targeting this level
+}
+
+// NEW: Student enrollment in academic levels per year
+model StudentEnrollment {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  academicLevelId Int
+  academicYear    String // e.g. "2024-2025"
+  enrolledAt      DateTime @default(now())
+
+  user          User          @relation(fields: [userId], references: [id])
+  academicLevel AcademicLevel @relation(fields: [academicLevelId], references: [id])
+
+  @@unique([userId, academicLevelId, academicYear])
+}
+
+model Course {
+  id              Int     @id @default(autoincrement())
+  code            String  @unique // e.g. "GEOL101"
+  name            String
+  description     String?
+  academicYear    String // e.g. "2024-2025"
+  academicLevelId Int // NEW: Link to academic level
+
+  // Relations
+  academicLevel      AcademicLevel       @relation(fields: [academicLevelId], references: [id])
+  enrollments        CourseEnrollment[]
+  assessments        Assessment[]
+  attendanceSessions AttendanceSession[]
+  resources          CourseResource[]
+  announcements      Announcement[] // Announcements for this course
+}
+
+// The Pivot Table: Links User <-> Course with a specific Role
+model CourseEnrollment {
+  id       Int        @id @default(autoincrement())
+  userId   Int
+  courseId Int
+  role     CourseRole
+  joinedAt DateTime   @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId]) // A user has only one role per course
+}
+
+model Assessment {
+  id          Int            @id @default(autoincrement())
+  courseId    Int
+  creatorId   Int
+  title       String
+  type        AssessmentType
+  maxPoints   Float
+  date        DateTime       @default(now())
+  isPublished Boolean        @default(false)
+
+  course  Course @relation(fields: [courseId], references: [id])
+  creator User   @relation(fields: [creatorId], references: [id])
+
+  grades Grade[]
+}
+
+model Grade {
+  id           Int     @id @default(autoincrement())
+  assessmentId Int
+  studentId    Int // Note: This refers to the User ID of the student
+  score        Float
+  feedback     String?
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  student    User       @relation(fields: [studentId], references: [id], name: "StudentGrades")
+
+  changeRequests GradeChangeRequest[]
+}
+
+// Workflow: Prof requests change -> Academic Office approves -> Grade User updated
+model GradeChangeRequest {
+  id            Int           @id @default(autoincrement())
+  gradeId       Int
+  requesterId   Int // The Professor asking for change
+  newScore      Float
+  reason        String
+  proofImageUrl String? // "Photo des notes"
+  status        RequestStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  resolvedAt    DateTime?
+
+  grade     Grade @relation(fields: [gradeId], references: [id])
+  requester User  @relation(fields: [requesterId], references: [id])
+}
+
+model AttendanceSession {
+  id       Int      @id @default(autoincrement())
+  courseId Int
+  date     DateTime @default(now())
+  isLocked Boolean  @default(false) // Lock after 24h
+
+  course  Course             @relation(fields: [courseId], references: [id])
+  records AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id        Int              @id @default(autoincrement())
+  sessionId Int
+  studentId Int
+  status    AttendanceStatus
+
+  session AttendanceSession @relation(fields: [sessionId], references: [id])
+  student User              @relation(fields: [studentId], references: [id])
+
+  // Change requests for this attendance record
+  changeRequests AttendanceChangeRequest[]
+
+  @@unique([sessionId, studentId])
+}
+
+// Workflow: Academic Office requests change -> Professor approves -> Attendance updated
+model AttendanceChangeRequest {
+  id           Int              @id @default(autoincrement())
+  attendanceId Int // The attendance record to modify
+  requesterId  Int // Academic Office user making the request
+  newStatus    AttendanceStatus // Requested new status
+  reason       String
+  status       RequestStatus    @default(PENDING)
+  createdAt    DateTime         @default(now())
+  resolvedAt   DateTime?
+
+  attendance AttendanceRecord @relation(fields: [attendanceId], references: [id])
+  requester  User             @relation(fields: [requesterId], references: [id])
+}
+
+model CourseResource {
+  id         Int      @id @default(autoincrement())
+  courseId   Int
+  title      String
+  url        String // Link to file storage
+  uploadedAt DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id])
+}
+
+// --- ANNOUNCEMENTS ---
+
+model Announcement {
+  id      Int                @id @default(autoincrement())
+  title   String
+  content String
+  type    AnnouncementType   @default(GENERAL)
+  target  AnnouncementTarget
+
+  // Author
+  authorId Int
+  author   User @relation("AuthoredAnnouncements", fields: [authorId], references: [id])
+
+  // Optional targeting
+  academicLevelId Int? // If target = ACADEMIC_LEVEL
+  academicLevel   AcademicLevel? @relation(fields: [academicLevelId], references: [id])
+
+  courseId Int? // If target = COURSE_STUDENTS
+  course   Course? @relation(fields: [courseId], references: [id])
+
+  // For targeting a specific user
+  targetUserId Int? // If target = SPECIFIC_USER
+  targetUser   User? @relation("TargetedAnnouncements", fields: [targetUserId], references: [id])
+
+  // Dates
+  createdAt DateTime  @default(now())
+  expiresAt DateTime? // Optional expiration
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Read receipts
+  readReceipts AnnouncementRead[]
+}
+
+model AnnouncementRead {
+  id             Int      @id @default(autoincrement())
+  announcementId Int
+  userId         Int
+  readAt         DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([announcementId, userId])
+}
