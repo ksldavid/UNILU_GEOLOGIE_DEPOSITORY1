@@ -51,6 +51,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [studentCurrentPage, setStudentCurrentPage] = useState<StudentPage>('dashboard');
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
 
   const handleLogin = (id: string, password: string, role: UserRole) => {
@@ -89,6 +90,7 @@ export default function App() {
     setStudentCurrentPage('dashboard');
     setSelectedCourse(null);
     setCurrentView('student-login');
+    setIsMobileMenuOpen(false);
   };
 
   const handleCourseSelect = (course: Course) => {
@@ -134,9 +136,14 @@ export default function App() {
           currentPage={studentCurrentPage}
           onNavigate={setStudentCurrentPage}
           onLogout={handleLogout}
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <StudentHeader studentData={userData} />
+          <StudentHeader
+            studentData={userData}
+            onMenuClick={() => setIsMobileMenuOpen(true)}
+          />
           <main className="flex-1 overflow-y-auto">
             {studentCurrentPage === 'dashboard' && <StudentDashboard onNavigate={setStudentCurrentPage} />}
             {studentCurrentPage === 'courses' && <StudentCourses />}
@@ -162,9 +169,19 @@ export default function App() {
   // Professor Interface (Corps Académique)
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} onLogout={handleLogout} />
+      <Sidebar
+        currentPage={currentPage}
+        onNavigate={setCurrentPage}
+        onLogout={handleLogout}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header userData={userData} onLogout={handleLogout} />
+        <Header
+          userData={userData}
+          onLogout={handleLogout}
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+        />
         <main className="flex-1 overflow-y-auto">
           {currentPage === 'dashboard' && <Dashboard onNavigate={setCurrentPage} />}
           {currentPage === 'courses' && <CourseList onCourseSelect={handleCourseSelect} />}

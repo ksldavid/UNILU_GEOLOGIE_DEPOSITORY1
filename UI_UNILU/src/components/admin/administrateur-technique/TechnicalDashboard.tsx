@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
     Activity, ShieldCheck, Database, Server,
     Terminal, Settings, LogOut, Bell, Search,
-    Clock, Cpu, Shield, LayoutDashboard, Globe, Wrench as ToolIcon
+    Clock, Cpu, Shield, LayoutDashboard, Globe, Wrench as ToolIcon, Menu, X
 } from 'lucide-react';
 import { SystemStatus } from './components/SystemStatus';
 import { AccessManagement } from './components/AccessManagement';
@@ -14,6 +14,7 @@ import { UserModal } from './components/UserModal';
 export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
     const [activeTab, setActiveTab] = useState('System');
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const menuItems = [
         { id: 'System', icon: Activity, label: 'État du Système' },
@@ -68,8 +69,32 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
 
     return (
         <div className="flex h-screen bg-[#0B0F19] text-slate-300 font-sans overflow-hidden">
-            {/* Sidebar NETGUARD */}
-            <aside className="w-72 bg-[#111827]/50 backdrop-blur-xl border-r border-white/5 flex flex-col pt-8">
+            {/* Mobile Sidebar Overlay */}
+            {isMobileMenuOpen && (
+                <div className="fixed inset-0 z-50 bg-[#0B0F19] flex flex-col">
+                    <div className="flex items-center justify-between p-6 border-b border-white/5">
+                        <h2 className="font-black text-xl text-white tracking-tighter">NETGUARD MOBILE</h2>
+                        <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-white/5 rounded-full">
+                            <X className="w-6 h-6 text-white" />
+                        </button>
+                    </div>
+                    <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                        {menuItems.map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }}
+                                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${activeTab === item.id ? 'bg-blue-600/10 text-white border-l-4 border-blue-500' : 'text-slate-500'}`}
+                            >
+                                <item.icon className="w-5 h-5" />
+                                <span className="font-bold uppercase tracking-widest">{item.label}</span>
+                            </button>
+                        ))}
+                    </nav>
+                </div>
+            )}
+
+            {/* Sidebar NETGUARD (Desktop) */}
+            <aside className="hidden md:flex w-72 bg-[#111827]/50 backdrop-blur-xl border-r border-white/5 flex-col pt-8">
                 {/* Brand */}
                 <div className="px-8 mb-12">
                     <div className="flex items-center gap-3 group cursor-pointer">
@@ -137,8 +162,15 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col min-w-0">
                 {/* Premium Header */}
-                <header className="h-24 bg-[#0B0F19]/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-10 z-10">
-                    <div className="flex items-center gap-8 flex-1 max-w-2xl">
+                <header className="h-24 bg-[#0B0F19]/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 md:px-10 z-10">
+                    <div className="flex items-center gap-4 md:gap-8 flex-1 max-w-2xl">
+                        {/* Mobile Trigger */}
+                        <button
+                            onClick={() => setIsMobileMenuOpen(true)}
+                            className="md:hidden p-2 bg-white/5 text-white rounded-xl"
+                        >
+                            <Menu className="w-6 h-6" />
+                        </button>
                         <div className="relative flex-1">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                             <input
