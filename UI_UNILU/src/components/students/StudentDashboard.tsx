@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Calendar, BookOpen, Clock, MapPin, User as UserIcon, Megaphone, TrendingUp, CheckCircle, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { StudentPage } from "./StudentSidebar";
-import welcomeImage from 'C:/Users/david/.gemini/antigravity/brain/53c4dfde-fc85-4e54-9476-b7bb61acbf4a/student_welcome_bg_1766793550723.png';
+import welcomeImage from '../../assets/slide1.png';
 
 interface StudentDashboardProps {
   onNavigate: (page: StudentPage) => void;
