@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import LoginPage from './components/LoginPage';
 import { AdminLoginPage } from './components/admin/AdminLoginPage';
-import { StudentDashboard } from './components/students/StudentDashboard';
+import { StudentDashboard } from './components/students/StudentHome';
 import { StudentCourses } from './components/students/StudentCourses';
 import { StudentPlanning } from './components/students/StudentPlanning';
 import { StudentGrades } from './components/students/StudentGrades';
