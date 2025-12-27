@@ -3,11 +3,11 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // --- ENUMS ---
@@ -15,13 +15,13 @@ datasource db {
 enum SystemRole {
   ADMIN // Super user, has full access
   ACADEMIC_OFFICE // Approves grades, manages global academic data
+  STUDENT
   USER // Standard user (Professor, Assistant, Student)
 }
 
 enum CourseRole {
   PROFESSOR // Can create assessments, grade (with approval), manage course
   ASSISTANT // Can take attendance, view students, limited assessment creation
-  STUDENT // Can view own grades, attendance, download docs
 }
 
 enum RequestStatus {
@@ -34,7 +34,6 @@ enum AttendanceStatus {
   PRESENT
   ABSENT
   LATE
-  EXCUSED
 }
 
 enum AssessmentType {
@@ -42,7 +41,6 @@ enum AssessmentType {
   INTERROGATION
   TP
   TD
-  // "Interrogation"
 }
 
 enum AnnouncementType {
@@ -65,6 +63,7 @@ enum AnnouncementTarget {
 model User {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   email     String   @unique
   password  String // Hashed password
   firstName String
@@ -72,10 +71,19 @@ model User {
 
   systemRole SystemRole @default(USER)
 
+  // Soft delete
+  deletedAt  DateTime?
+  isArchived Boolean   @default(false)
+
+  // Password reset
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+
   // Relations
-  enrollments         CourseEnrollment[]
-  gradeChangeRequests GradeChangeRequest[] // Requests made by this user (Prof)
-  attendances         AttendanceRecord[] // Attendance records for this student
+  enrollments              CourseEnrollment[]
+  studentCourseEnrollments StudentCourseEnrollment[] // NEW: Student enrollments in courses
+  gradeChangeRequests      GradeChangeRequest[] // Requests made by this user (Prof)
+  attendances              AttendanceRecord[] // Attendance records for this student
 
   // For audit/logs or assessments created
   createdAssessments Assessment[]
@@ -89,6 +97,13 @@ model User {
 
   // Attendance change requests made by this user (Academic Office)
   attendanceChangeRequests AttendanceChangeRequest[]
+
+  // Course retakes (for students repeating specific courses)
+  courseRetakes CourseRetake[]
+
+  @@index([email])
+  @@index([systemRole])
+  @@index([deletedAt])
 }
 
 // NEW: Academic Levels (Presciences, B1, B2, B3, M1, M2)
@@ -120,51 +135,102 @@ model StudentEnrollment {
   @@unique([userId, academicLevelId, academicYear])
 }
 
-model Course {
-  id              Int     @id @default(autoincrement())
-  code            String  @unique // e.g. "GEOL101"
-  name            String
-  description     String?
-  academicYear    String // e.g. "2024-2025"
-  academicLevelId Int // NEW: Link to academic level
-
-  // Relations
-  academicLevel      AcademicLevel       @relation(fields: [academicLevelId], references: [id])
-  enrollments        CourseEnrollment[]
-  assessments        Assessment[]
-  attendanceSessions AttendanceSession[]
-  resources          CourseResource[]
-  announcements      Announcement[] // Announcements for this course
-}
-
-// The Pivot Table: Links User <-> Course with a specific Role
-model CourseEnrollment {
-  id       Int        @id @default(autoincrement())
-  userId   Int
-  courseId Int
-  role     CourseRole
-  joinedAt DateTime   @default(now())
+// Course retakes: For students who need to retake specific courses from lower levels
+model CourseRetake {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  courseCode   String
+  academicYear String // e.g. "2024-2025"
+  reason       String? // "Échec", "Abandon", etc.
+  createdAt    DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id])
-  course Course @relation(fields: [courseId], references: [id])
+  course Course @relation(fields: [courseCode], references: [code])
 
-  @@unique([userId, courseId]) // A user has only one role per course
+  @@unique([userId, courseCode, academicYear])
+}
+
+model Course {
+  code                     String                    @id // Clé primaire : e.g. "GEOL101"
+  name                     String
+  description              String?
+  // Relations
+  academicLevels           AcademicLevel[] // Many-to-Many implicite
+  enrollments              CourseEnrollment[]
+  studentCourseEnrollments StudentCourseEnrollment[]
+  assessments              Assessment[]
+  attendanceSessions       AttendanceSession[]
+  resources                CourseResource[]
+  announcements            Announcement[]
+  retakes                  CourseRetake[]
+}
+
+// The Pivot Table: Links User <-> Course with a specific Role (PROFESSOR, ASSISTANT)
+model CourseEnrollment {
+  id           Int        @id @default(autoincrement())
+  userId       Int
+  courseCode   String
+  role         CourseRole
+  academicYear String
+  joinedAt     DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseCode], references: [code])
+
+  @@unique([userId, courseCode, academicYear])
+  @@index([userId])
+  @@index([courseCode])
+  @@index([academicYear])
+}
+
+// NEW: Student enrollment in courses (separate from staff enrollment)
+model StudentCourseEnrollment {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  courseCode   String
+  academicYear String
+  enrolledAt   DateTime @default(now())
+
+  // Status management
+  isActive    Boolean   @default(true)
+  withdrawnAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseCode], references: [code])
+
+  @@unique([userId, courseCode, academicYear])
+  @@index([userId])
+  @@index([courseCode])
+  @@index([academicYear])
+  @@index([courseCode, academicYear])
+  @@index([userId, academicYear])
 }
 
 model Assessment {
   id          Int            @id @default(autoincrement())
-  courseId    Int
+  courseCode  String
   creatorId   Int
   title       String
   type        AssessmentType
   maxPoints   Float
   date        DateTime       @default(now())
+  dueDate     DateTime?
+  weight      Float          @default(1.0)
   isPublished Boolean        @default(false)
 
-  course  Course @relation(fields: [courseId], references: [id])
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course  Course @relation(fields: [courseCode], references: [code])
   creator User   @relation(fields: [creatorId], references: [id])
 
   grades Grade[]
+
+  @@index([courseCode])
+  @@index([creatorId])
+  @@index([isPublished])
 }
 
 model Grade {
@@ -174,10 +240,19 @@ model Grade {
   score        Float
   feedback     String?
 
+  // Timestamps for audit
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  modifiedBy Int? // Who made the last modification
+
   assessment Assessment @relation(fields: [assessmentId], references: [id])
   student    User       @relation(fields: [studentId], references: [id], name: "StudentGrades")
 
   changeRequests GradeChangeRequest[]
+
+  @@unique([assessmentId, studentId]) // NEW: A student can only have ONE grade per assessment
+  @@index([studentId])
+  @@index([assessmentId])
 }
 
 // Workflow: Prof requests change -> Academic Office approves -> Grade User updated
@@ -190,19 +265,25 @@ model GradeChangeRequest {
   proofImageUrl String? // "Photo des notes"
   status        RequestStatus @default(PENDING)
   createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   resolvedAt    DateTime?
+  resolvedBy    Int? // Who approved/rejected the request
 
   grade     Grade @relation(fields: [gradeId], references: [id])
   requester User  @relation(fields: [requesterId], references: [id])
+
+  @@index([status])
+  @@index([requesterId])
+  @@index([gradeId])
 }
 
 model AttendanceSession {
-  id       Int      @id @default(autoincrement())
-  courseId Int
-  date     DateTime @default(now())
-  isLocked Boolean  @default(false) // Lock after 24h
+  id         Int      @id @default(autoincrement())
+  courseCode String
+  date       DateTime @default(now())
+  isLocked   Boolean  @default(false)
 
-  course  Course             @relation(fields: [courseId], references: [id])
+  course  Course             @relation(fields: [courseCode], references: [code])
   records AttendanceRecord[]
 }
 
@@ -212,6 +293,11 @@ model AttendanceRecord {
   studentId Int
   status    AttendanceStatus
 
+  // Timestamps for audit
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  modifiedBy Int? // Who made the last modification
+
   session AttendanceSession @relation(fields: [sessionId], references: [id])
   student User              @relation(fields: [studentId], references: [id])
 
@@ -219,6 +305,8 @@ model AttendanceRecord {
   changeRequests AttendanceChangeRequest[]
 
   @@unique([sessionId, studentId])
+  @@index([studentId])
+  @@index([sessionId])
 }
 
 // Workflow: Academic Office requests change -> Professor approves -> Attendance updated
@@ -230,20 +318,26 @@ model AttendanceChangeRequest {
   reason       String
   status       RequestStatus    @default(PENDING)
   createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
   resolvedAt   DateTime?
+  resolvedBy   Int? // Who approved/rejected the request
 
   attendance AttendanceRecord @relation(fields: [attendanceId], references: [id])
   requester  User             @relation(fields: [requesterId], references: [id])
+
+  @@index([status])
+  @@index([requesterId])
+  @@index([attendanceId])
 }
 
 model CourseResource {
   id         Int      @id @default(autoincrement())
-  courseId   Int
+  courseCode String
   title      String
-  url        String // Link to file storage
+  url        String
   uploadedAt DateTime @default(now())
 
-  course Course @relation(fields: [courseId], references: [id])
+  course Course @relation(fields: [courseCode], references: [code])
 }
 
 // --- ANNOUNCEMENTS ---
@@ -263,8 +357,8 @@ model Announcement {
   academicLevelId Int? // If target = ACADEMIC_LEVEL
   academicLevel   AcademicLevel? @relation(fields: [academicLevelId], references: [id])
 
-  courseId Int? // If target = COURSE_STUDENTS
-  course   Course? @relation(fields: [courseId], references: [id])
+  courseCode String?
+  course     Course? @relation(fields: [courseCode], references: [code])
 
   // For targeting a specific user
   targetUserId Int? // If target = SPECIFIC_USER
