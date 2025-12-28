@@ -1,8 +1,6 @@
 @import "tailwindcss";
 
-/* Détection des classes dans tous les fichiers sources */
-@source "../**/*.{js,ts,jsx,tsx}";
-@source "../../**/*.{js,ts,jsx,tsx}";
+
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;

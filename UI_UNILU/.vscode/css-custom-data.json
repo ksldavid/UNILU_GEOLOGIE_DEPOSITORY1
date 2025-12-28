@@ -24,6 +24,10 @@
         {
             "name": "@custom-variant",
             "description": "Use the @custom-variant directive to create custom variant modifiers."
+        },
+        {
+            "name": "@source",
+            "description": "Use the @source directive to explicitly specify source files that contain your template classes."
         }
     ]
 }

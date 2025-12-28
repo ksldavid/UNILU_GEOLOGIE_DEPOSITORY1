@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Phone, Clock, Layout } from 'lucide-react';
+import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
