@@ -9,19 +9,17 @@ import { parse } from 'csv-parse/sync'
 const prisma = new PrismaClient()
 
 interface ProfessorData {
-    firstName: string
-    lastName: string
-    email: string
-    password: string
+    Noms: string
+    Statut: string
+    ID_Number: string
+    Password: string
 }
 
 async function importProfessors() {
-    const filePath = path.join(__dirname, 'data', 'professors.csv')
+    const filePath = path.join(process.cwd(), 'prisma', 'professors', 'data', 'Professeurs_IDs_Password.csv')
 
     if (!fs.existsSync(filePath)) {
         console.error(`❌ Fichier introuvable: ${filePath}`)
-        console.log(`📝 Créez le fichier professors/data/professors.csv avec les colonnes:`)
-        console.log(`   firstName,lastName,email,password`)
         return
     }
 
@@ -47,36 +45,48 @@ async function importProfessors() {
     try {
         for (const prof of professors) {
             try {
-                // Vérifier si l'email existe déjà
-                const existingUser = await prisma.user.findUnique({
-                    where: { email: prof.email }
-                })
-
-                if (existingUser) {
-                    console.log(`⚠️  Existe déjà: ${prof.email}`)
-                    skipped++
-                    continue
-                }
+                // Générer un email par défaut à partir de l'ID si non fourni
+                const email = `${prof.ID_Number.toLowerCase()}@unilu.cd`
 
                 // Hacher le mot de passe
-                const hashedPassword = await bcrypt.hash(prof.password, 10)
+                const hashedPassword = await bcrypt.hash(prof.Password, 10)
 
-                // Créer le professeur (systemRole = USER, pas STUDENT)
-                await prisma.user.create({
-                    data: {
-                        firstName: prof.firstName,
-                        lastName: prof.lastName,
-                        email: prof.email,
+                // Créer le professeur (User + ProfessorProfile)
+                await prisma.user.upsert({
+                    where: { id: prof.ID_Number },
+                    update: {
+                        name: prof.Noms,
+                        email: email,
+                        professorProfile: {
+                            upsert: {
+                                create: {
+                                    id: prof.ID_Number,
+                                    title: prof.Statut || null
+                                },
+                                update: { title: prof.Statut || null }
+                            }
+                        }
+                    },
+                    create: {
+                        id: prof.ID_Number,
+                        name: prof.Noms,
+                        email: email,
                         password: hashedPassword,
-                        systemRole: 'USER'
+                        systemRole: 'USER',
+                        professorProfile: {
+                            create: {
+                                id: prof.ID_Number,
+                                title: prof.Statut || null
+                            }
+                        }
                     }
                 })
 
-                console.log(`✅ Créé: ${prof.firstName} ${prof.lastName} (${prof.email})`)
+                console.log(`✅ Créé/Mis à jour: ${prof.Noms} [${prof.Statut || 'Sans titre'}]`)
                 success++
 
             } catch (error: any) {
-                console.error(`❌ Erreur pour ${prof.email}: ${error.message}`)
+                console.error(`❌ Erreur pour ${prof.Noms}: ${error.message}`)
                 failed++
             }
         }
@@ -93,9 +103,6 @@ ${'='.repeat(70)}
 ⚠️  Ignorés (déjà existants): ${skipped}
 ❌ Échecs: ${failed}
 ${'='.repeat(70)}
-
-💡 Note: Les professeurs ont été créés avec systemRole = USER.
-   Pour les assigner à des cours, utilisez Prisma Studio ou l'interface web.
 `)
 }
 

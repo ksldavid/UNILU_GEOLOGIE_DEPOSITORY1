@@ -18,10 +18,11 @@ import { Sidebar } from "./components/corps academic/Sidebar";
 import { Header } from "./components/corps academic/Header";
 import { TechnicalDashboard } from './components/admin/administrateur-technique/TechnicalDashboard';
 import { AcademicServiceDashboard } from './components/admin/service-academique/AcademicServiceDashboard';
+import { authService } from './services/auth';
 
 
 export type Page = 'dashboard' | 'courses' | 'planning' | 'students' | 'course-detail' | 'attendance';
-export type UserRole = 'student' | 'academic' | 'admin' | 'service-academique';
+export type UserRole = 'STUDENT' | 'USER' | 'ADMIN' | 'ACADEMIC_OFFICE';
 
 export interface Course {
   id: string;
@@ -54,33 +55,49 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
 
-  const handleLogin = (id: string, password: string, role: UserRole) => {
+  const handleLogin = async (id: string, password: string, role: UserRole): Promise<'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'> => {
     if (id && password) {
-      if (role === 'student') {
+      try {
+        const response = await authService.login(id, password);
+        const { user } = response;
+        const actualRole = user.role as UserRole;
+
+        // VÉRIFICATION DE LA COHÉRENCE ENTRE L'ONGLET ET LE RÔLE RÉEL
+        if (role === 'STUDENT' && actualRole !== 'STUDENT') {
+          return 'ROLE_MISMATCH'; // Authentification réussie, mais mauvais rôle
+        }
+        if (role === 'USER' && (actualRole as string) !== 'USER') { // Note: USER = Professeur/Académique ici
+          // On accepte aussi les admins sur l'interface prof pour tester si besoin, ou on restreint strictement.
+          // Pour l'instant, soyons stricts comme demandé :
+          if ((actualRole as string) !== 'USER' && actualRole !== 'ADMIN' && actualRole !== 'ACADEMIC_OFFICE') {
+            return 'ROLE_MISMATCH';
+          }
+          // Si un Admin se connecte côté Prof, on peut le laisser passer ou le rediriger.
+          // Ici, laissons le blocage simple : Si on est sur l'onglet "Corps Académique" (role='USER'),
+          // on accepte généralement les Profs (USER). Si c'est un étudiant, c'est non.
+          if (actualRole === 'STUDENT') {
+            return 'ROLE_MISMATCH';
+          }
+        }
+
+        // Si tout est bon, on connecte
         setUserData({
-          name: 'Mohamed Benali',
-          role: 'student',
-          class: 'Licence 3 - Géologie',
-          id: id,
+          name: user.name,
+          role: actualRole,
+          id: user.id,
+          class: actualRole === 'STUDENT' ? 'Département de Géologie' : undefined,
+          title: actualRole !== 'STUDENT' ? 'Membre du Personnel' : undefined,
         });
-      } else if (role === 'academic') {
-        setUserData({
-          name: 'Pr. Kabeya',
-          role: 'academic',
-          title: 'Doyen - Géologie',
-          id: id,
-        });
-      } else {
-        setUserData({
-          name: 'Service Académique',
-          role: role, // can be 'admin' or 'service-academique'
-          title: role === 'admin' ? 'Administrateur Système' : 'Gestion Académique',
-          id: id,
-        });
+
+        setIsLoggedIn(true);
+        setCurrentView('logged-in');
+        return 'SUCCESS';
+      } catch (error) {
+        console.error("Erreur de connexion:", error);
+        return 'AUTH_FAILED'; // Mauvais mot de passe ou utilisateur inconnu
       }
-      setIsLoggedIn(true);
-      setCurrentView('logged-in');
     }
+    return 'AUTH_FAILED';
   };
 
   const handleLogout = () => {
@@ -111,7 +128,7 @@ export default function App() {
   if (currentView === 'student-login') {
     return (
       <LoginPage
-        onLogin={handleLogin}
+        onLogin={(id, pass, role) => handleLogin(id, pass, role)}
         onAdminAccess={() => setCurrentView('admin-login')}
       />
     );
@@ -120,7 +137,7 @@ export default function App() {
   if (currentView === 'admin-login') {
     return (
       <AdminLoginPage
-        onLogin={(id, pass, role) => handleLogin(id, pass, role as UserRole)}
+        onLogin={(id, pass, role) => handleLogin(id, pass, role === 'admin' ? 'ADMIN' : 'ACADEMIC_OFFICE')}
         onBack={() => setCurrentView('student-login')}
       />
     );
@@ -129,7 +146,7 @@ export default function App() {
   if (!isLoggedIn || !userData) return null;
 
   // Student Interface
-  if (userData.role === 'student') {
+  if (userData.role === 'STUDENT') {
     return (
       <div className="flex h-screen bg-gray-50">
         <StudentSidebar
@@ -141,7 +158,7 @@ export default function App() {
         />
         <div className="flex-1 flex flex-col overflow-hidden">
           <StudentHeader
-            studentData={userData}
+            studentData={{ ...userData, role: 'student' as any }}
             onMenuClick={() => setIsMobileMenuOpen(true)}
           />
           <main className="flex-1 overflow-y-auto">
@@ -157,51 +174,55 @@ export default function App() {
   }
 
   // Admin (Technical Dashboard)
-  if (userData.role === 'admin') {
+  if (userData.role === 'ADMIN') {
     return <TechnicalDashboard onLogout={handleLogout} />;
   }
 
   // Service Académique Dashboard
-  if (userData.role === 'service-academique') {
+  if (userData.role === 'ACADEMIC_OFFICE') {
     return <AcademicServiceDashboard onLogout={handleLogout} />;
   }
 
   // Professor Interface (Corps Académique)
-  return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        currentPage={currentPage}
-        onNavigate={setCurrentPage}
-        onLogout={handleLogout}
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-      />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header
-          userData={userData}
+  if (userData.role === 'USER') {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar
+          currentPage={currentPage}
+          onNavigate={setCurrentPage}
           onLogout={handleLogout}
-          onMenuClick={() => setIsMobileMenuOpen(true)}
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
         />
-        <main className="flex-1 overflow-y-auto">
-          {currentPage === 'dashboard' && <Dashboard onNavigate={setCurrentPage} />}
-          {currentPage === 'courses' && <CourseList onCourseSelect={handleCourseSelect} />}
-          {currentPage === 'course-detail' && selectedCourse && (
-            <CourseManagement
-              course={selectedCourse}
-              onBack={handleBackToCourses}
-              onTakeAttendance={handleTakeAttendance}
-            />
-          )}
-          {currentPage === 'attendance' && selectedCourse && (
-            <AttendanceManagement
-              course={selectedCourse}
-              onBack={() => setCurrentPage('course-detail')}
-            />
-          )}
-          {currentPage === 'planning' && <Planning />}
-          {currentPage === 'students' && <Students />}
-        </main>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header
+            userData={{ ...userData, role: 'academic' as any }}
+            onLogout={handleLogout}
+            onMenuClick={() => setIsMobileMenuOpen(true)}
+          />
+          <main className="flex-1 overflow-y-auto">
+            {currentPage === 'dashboard' && <Dashboard onNavigate={setCurrentPage} />}
+            {currentPage === 'courses' && <CourseList onCourseSelect={handleCourseSelect} />}
+            {currentPage === 'course-detail' && selectedCourse && (
+              <CourseManagement
+                course={selectedCourse}
+                onBack={handleBackToCourses}
+                onTakeAttendance={handleTakeAttendance}
+              />
+            )}
+            {currentPage === 'attendance' && selectedCourse && (
+              <AttendanceManagement
+                course={selectedCourse}
+                onBack={() => setCurrentPage('course-detail')}
+              />
+            )}
+            {currentPage === 'planning' && <Planning />}
+            {currentPage === 'students' && <Students />}
+          </main>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 }

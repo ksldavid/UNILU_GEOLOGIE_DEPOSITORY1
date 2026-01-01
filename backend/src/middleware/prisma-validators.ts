@@ -33,7 +33,7 @@ export class ValidationError extends Error {
 
 interface GradeData {
     assessmentId: number
-    studentId: number
+    studentId: string
     score: number
 }
 
@@ -41,10 +41,10 @@ export async function validateGradeCreation(
     prisma: PrismaClient,
     data: GradeData
 ): Promise<void> {
-    // Récupérer l'assessment pour obtenir le courseId et maxPoints
+    // Récupérer l'assessment pour obtenir le courseCode et maxPoints
     const assessment = await prisma.assessment.findUnique({
         where: { id: data.assessmentId },
-        select: { courseId: true, maxPoints: true, title: true }
+        select: { courseCode: true, maxPoints: true, title: true }
     })
 
     if (!assessment) {
@@ -55,7 +55,7 @@ export async function validateGradeCreation(
     const enrollment = await prisma.studentCourseEnrollment.findFirst({
         where: {
             userId: data.studentId,
-            courseId: assessment.courseId,
+            courseCode: assessment.courseCode,
             isActive: true
         }
     })
@@ -63,16 +63,16 @@ export async function validateGradeCreation(
     if (!enrollment) {
         const student = await prisma.user.findUnique({
             where: { id: data.studentId },
-            select: { firstName: true, lastName: true, email: true }
+            select: { name: true, email: true }
         })
 
         const course = await prisma.course.findUnique({
-            where: { id: assessment.courseId },
+            where: { code: assessment.courseCode },
             select: { code: true, name: true }
         })
 
         throw new ValidationError(
-            `L'étudiant ${student?.firstName} ${student?.lastName} ` +
+            `L'étudiant ${student?.name} ` +
             `(${student?.email}) n'est PAS inscrit au cours ${course?.code} - ${course?.name}. ` +
             `Impossible de créer une note pour un étudiant non inscrit au cours.`
         )
@@ -99,17 +99,17 @@ export async function validateGradeCreation(
 
 interface AttendanceData {
     sessionId: number
-    studentId: number
+    studentId: string
 }
 
 export async function validateAttendanceRecord(
     prisma: PrismaClient,
     data: AttendanceData
 ): Promise<void> {
-    // Récupérer la session pour obtenir le courseId
+    // Récupérer la session pour obtenir le courseCode
     const session = await prisma.attendanceSession.findUnique({
         where: { id: data.sessionId },
-        select: { courseId: true, date: true }
+        select: { courseCode: true, date: true }
     })
 
     if (!session) {
@@ -120,7 +120,7 @@ export async function validateAttendanceRecord(
     const enrollment = await prisma.studentCourseEnrollment.findFirst({
         where: {
             userId: data.studentId,
-            courseId: session.courseId,
+            courseCode: session.courseCode,
             isActive: true
         }
     })
@@ -128,16 +128,16 @@ export async function validateAttendanceRecord(
     if (!enrollment) {
         const student = await prisma.user.findUnique({
             where: { id: data.studentId },
-            select: { firstName: true, lastName: true, email: true }
+            select: { name: true, email: true }
         })
 
         const course = await prisma.course.findUnique({
-            where: { id: session.courseId },
+            where: { code: session.courseCode },
             select: { code: true, name: true }
         })
 
         throw new ValidationError(
-            `L'étudiant ${student?.firstName} ${student?.lastName} ` +
+            `L'étudiant ${student?.name} ` +
             `(${student?.email}) n'est PAS inscrit au cours ${course?.code} - ${course?.name}. ` +
             `Impossible de prendre la présence pour un étudiant non inscrit au cours.`
         )
@@ -150,7 +150,7 @@ export async function validateAttendanceRecord(
 
 interface GradeChangeRequestData {
     gradeId: number
-    requesterId: number
+    requesterId: string
 }
 
 export async function validateGradeChangeRequest(
@@ -162,7 +162,7 @@ export async function validateGradeChangeRequest(
         where: { id: data.gradeId },
         include: {
             assessment: {
-                select: { courseId: true, title: true }
+                select: { courseCode: true, title: true }
             }
         }
     })
@@ -171,13 +171,13 @@ export async function validateGradeChangeRequest(
         throw new ValidationError(`Note ${data.gradeId} introuvable`)
     }
 
-    const courseId = grade.assessment.courseId
+    const courseCode = grade.assessment.courseCode
 
     // Vérifier que le demandeur est professeur de ce cours
     const isProfessor = await prisma.courseEnrollment.findFirst({
         where: {
             userId: data.requesterId,
-            courseId: courseId,
+            courseCode: courseCode,
             role: CourseRole.PROFESSOR
         }
     })
@@ -185,16 +185,16 @@ export async function validateGradeChangeRequest(
     if (!isProfessor) {
         const requester = await prisma.user.findUnique({
             where: { id: data.requesterId },
-            select: { firstName: true, lastName: true, email: true }
+            select: { name: true, email: true }
         })
 
         const course = await prisma.course.findUnique({
-            where: { id: courseId },
+            where: { code: courseCode },
             select: { code: true, name: true }
         })
 
         throw new ValidationError(
-            `${requester?.firstName} ${requester?.lastName} ` +
+            `${requester?.name} ` +
             `(${requester?.email}) n'est PAS professeur du cours ${course?.code} - ${course?.name}. ` +
             `Seuls les professeurs du cours peuvent demander des modifications de notes.`
         )
@@ -206,7 +206,7 @@ export async function validateGradeChangeRequest(
 // ========================================================================
 
 interface AttendanceChangeRequestData {
-    requesterId: number
+    requesterId: string
 }
 
 export async function validateAttendanceChangeRequest(
@@ -216,7 +216,7 @@ export async function validateAttendanceChangeRequest(
     // Vérifier que le demandeur a le rôle ACADEMIC_OFFICE
     const requester = await prisma.user.findUnique({
         where: { id: data.requesterId },
-        select: { systemRole: true, firstName: true, lastName: true, email: true }
+        select: { systemRole: true, name: true, email: true }
     })
 
     if (!requester) {
@@ -225,7 +225,7 @@ export async function validateAttendanceChangeRequest(
 
     if (requester.systemRole !== SystemRole.ACADEMIC_OFFICE) {
         throw new ValidationError(
-            `${requester.firstName} ${requester.lastName} ` +
+            `${requester.name} ` +
             `(${requester.email}) n'a PAS le rôle ACADEMIC_OFFICE (rôle actuel: ${requester.systemRole}). ` +
             `Seuls les membres du bureau académique peuvent demander des modifications de présence.`
         )
@@ -241,13 +241,13 @@ export async function validateAttendanceChangeRequest(
  */
 export async function isStudentEnrolledInCourse(
     prisma: PrismaClient,
-    studentId: number,
-    courseId: number,
+    studentId: string,
+    courseCode: string,
     academicYear?: string
 ): Promise<boolean> {
     const where: any = {
         userId: studentId,
-        courseId: courseId,
+        courseCode: courseCode,
         isActive: true
     }
 
@@ -264,13 +264,13 @@ export async function isStudentEnrolledInCourse(
  */
 export async function isProfessorOfCourse(
     prisma: PrismaClient,
-    userId: number,
-    courseId: number
+    userId: string,
+    courseCode: string
 ): Promise<boolean> {
     const enrollment = await prisma.courseEnrollment.findFirst({
         where: {
             userId: userId,
-            courseId: courseId,
+            courseCode: courseCode,
             role: CourseRole.PROFESSOR
         }
     })
@@ -282,7 +282,7 @@ export async function isProfessorOfCourse(
  */
 export async function isAcademicOffice(
     prisma: PrismaClient,
-    userId: number
+    userId: string
 ): Promise<boolean> {
     const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -296,11 +296,11 @@ export async function isAcademicOffice(
  */
 export async function getStudentsInCourse(
     prisma: PrismaClient,
-    courseId: number,
+    courseCode: string,
     academicYear?: string
 ) {
     const where: any = {
-        courseId: courseId,
+        courseCode: courseCode,
         isActive: true
     }
 
@@ -314,15 +314,14 @@ export async function getStudentsInCourse(
             user: {
                 select: {
                     id: true,
-                    firstName: true,
-                    lastName: true,
+                    name: true,
                     email: true
                 }
             }
         },
         orderBy: {
             user: {
-                lastName: 'asc'
+                name: 'asc'
             }
         }
     })
@@ -333,7 +332,7 @@ export async function getStudentsInCourse(
  */
 export async function getStudentCourses(
     prisma: PrismaClient,
-    studentId: number,
+    studentId: string,
     academicYear?: string
 ) {
     const where: any = {
@@ -350,11 +349,9 @@ export async function getStudentCourses(
         include: {
             course: {
                 select: {
-                    id: true,
                     code: true,
                     name: true,
-                    credits: true,
-                    academicLevelCode: true
+                    academicLevels: true
                 }
             }
         },

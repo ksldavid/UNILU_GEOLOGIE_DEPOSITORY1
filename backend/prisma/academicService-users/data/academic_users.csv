@@ -1,0 +1,6 @@
+id,name,email,password,title
+ACAD-001,Direction Académique 1,acad1@unilu.cd,Direction2025!,Direction Générale
+ACAD-002,Direction Académique 2,acad2@unilu.cd,Inscriptions2025!,Bureau des Inscriptions
+ACAD-003,Direction Académique 3,acad3@unilu.cd,Examens2025!,Service des Examens
+ACAD-004,Direction Académique 4,acad4@unilu.cd,Etudiants2025!,Gestion des Étudiants
+ACAD-005,Direction Académique 5,acad5@unilu.cd,Support2025!,Support Académique

@@ -64,13 +64,13 @@ async function autoEnrollStudents(dryRun: boolean = false) {
                 se."academicYear",
                 al.code as "academicLevelCode",
                 al."displayName" as "levelName",
-                u."firstName" || ' ' || u."lastName" as "studentName",
+                u.name as "studentName",
                 u.email
             FROM "StudentEnrollment" se
             JOIN "AcademicLevel" al ON se."academicLevelId" = al.id
             JOIN "User" u ON se."userId" = u.id
             WHERE u."deletedAt" IS NULL
-            ORDER BY al."order", u."lastName", u."firstName"
+            ORDER BY al."order", u.name
         `)
 
         const studentEnrollments = enrollmentsResult.rows

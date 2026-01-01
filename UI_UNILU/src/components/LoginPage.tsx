@@ -36,7 +36,7 @@ const slides = [
 ];
 
 interface LoginPageProps {
-    onLogin: (id: string, password: string, role: 'student' | 'academic') => void;
+    onLogin: (id: string, password: string, role: 'STUDENT' | 'USER') => Promise<'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'>;
     onAdminAccess: () => void;
 }
 
@@ -50,6 +50,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(false);
+    const [roleMismatch, setRoleMismatch] = useState(false);
     const [isPlaying, setIsPlaying] = useState(true);
 
     useEffect(() => {
@@ -60,20 +61,26 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
         return () => clearInterval(timer);
     }, [isPlaying]);
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (studentId.trim() && password.trim()) {
             setIsLoading(true);
             setError(false);
+            setRoleMismatch(false);
 
-            setTimeout(() => {
-                if (studentId === 'davidksl' && password === 'davidksl') {
-                    setIsLoading(false);
+            try {
+                const targetRole = activeTab === 'student' ? 'STUDENT' : 'USER';
+                const result = await onLogin(studentId, password, targetRole);
+
+                if (result === 'ROLE_MISMATCH') {
+                    setRoleMismatch(true);
+                } else if (result === 'AUTH_FAILED') {
                     setError(true);
-                } else {
-                    onLogin(studentId, password, activeTab);
-                    setIsLoading(false);
                 }
-            }, 1800);
+            } catch (err) {
+                setError(true);
+            } finally {
+                setIsLoading(false);
+            }
         } else {
             alert('Veuillez remplir tous les champs');
         }
@@ -185,7 +192,11 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                         {/* Pill-style Role Tabs */}
                         <div className="flex p-1.5 bg-gray-50 rounded-2xl mb-6 border border-gray-100">
                             <button
-                                onClick={() => setActiveTab('student')}
+                                onClick={() => {
+                                    setActiveTab('student');
+                                    setError(false);
+                                    setRoleMismatch(false);
+                                }}
                                 className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'student'
                                     ? 'bg-white text-teal-600 shadow-sm border border-gray-100'
                                     : 'text-gray-400 hover:text-gray-600'
@@ -194,7 +205,11 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                 Étudiant
                             </button>
                             <button
-                                onClick={() => setActiveTab('academic')}
+                                onClick={() => {
+                                    setActiveTab('academic');
+                                    setError(false);
+                                    setRoleMismatch(false);
+                                }}
                                 className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'academic'
                                     ? 'bg-white text-teal-600 shadow-sm border border-gray-100'
                                     : 'text-gray-400 hover:text-gray-600'
@@ -275,6 +290,17 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                             className="text-red-500 text-xs font-bold mt-2 ml-1"
                                         >
                                             Identifiant ou mot de passe incorrect.
+                                        </motion.p>
+                                    )}
+                                    {roleMismatch && (
+                                        <motion.p
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="text-red-500 text-xs font-bold mt-2 ml-1 leading-relaxed"
+                                        >
+                                            ❌ Cet identifiant n'appartient pas à cet onglet.
+                                            Veuillez sélectionner l'onglet "{activeTab === 'student' ? 'Corps Académique' : 'Étudiant'}" pour vous connecter.
                                         </motion.p>
                                     )}
                                 </AnimatePresence>

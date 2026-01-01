@@ -1,14 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     LayoutDashboard, Users, ClipboardCheck, FileText, Calendar,
     GraduationCap, Search, Bell, ChevronDown, LogOut,
-    FileCheck, X, Check, Clock, AlertCircle, Megaphone, Send, Wrench
+    FileCheck, X, Check, Clock, AlertCircle, Megaphone, Send, Wrench, AlertTriangle, CheckCircle, ChevronLeft
 } from "lucide-react";
 import { InscriptionsManager } from "./components/InscriptionsManager";
 import { AttendanceManager } from "./components/AttendanceManager";
 import { GradesManager } from "./components/GradesManager";
 import { ScheduleManager } from "./components/ScheduleManager";
+import { StaffAssignmentManager } from "./components/StaffAssignmentManager";
 import { TechnicalSupport } from "./components/TechnicalSupport";
+import { ActivityHistory } from "./components/ActivityHistory";
+import { userService } from "../../../services/user";
+import { supportService } from "../../../services/support";
 
 interface AcademicServiceDashboardProps {
     onLogout: () => void;
@@ -16,92 +20,198 @@ interface AcademicServiceDashboardProps {
 
 const navItems = [
     { id: "supervision", label: "Supervision", icon: LayoutDashboard },
-    { id: "inscriptions", label: "Inscriptions", icon: Users },
+    { id: "inscriptions", label: "Effectifs", icon: Users },
+    { id: "charge", label: "Charge Horaire", icon: GraduationCap },
     { id: "assiduite", label: "Assiduité & Rectif.", icon: ClipboardCheck },
     { id: "notes", label: "Notes & PV", icon: FileText },
     { id: "planning", label: "Planning", icon: Calendar },
+    { id: "history", label: "Historique", icon: Clock },
 ];
 
-const stats = [
-    { label: "Effectif étudiants", value: "2,845", change: "", trend: "neutral", icon: Users, bgColor: "bg-green-50", iconColor: "text-[#1B4332]" },
-    { label: "Notes en Attente", value: "142", change: "Important", trend: "urgent", icon: FileCheck, bgColor: "bg-orange-50", iconColor: "text-orange-500" },
-    { label: "Effectif Académique", value: "158", change: "", trend: "neutral", icon: GraduationCap, bgColor: "bg-blue-50", iconColor: "text-blue-500" },
-    { label: "Nombre de Cours", value: "18", change: "", trend: "neutral", icon: Calendar, bgColor: "bg-purple-50", iconColor: "text-purple-500" },
-];
+// Note: stats sera dynamique à l'intérieur du composant, je retire la constante globale 'stats' pour la mettre dans le composant
 
-const noteRequests = [
-    { id: "1", professor: "Prof. Jean Martin", initials: "JM", course: "Mathématiques Appliquées • L2", oldGrade: "12.5", newGrade: "14.0", justification: "Erreur de comptabilisation des points de la question 3. L'étudiant mérite 1.5 points de plus." },
-    { id: "2", professor: "Prof. Alice Leroy", initials: "AL", course: "Droit Constitutionnel • L1", oldGrade: "08.0", newGrade: "10.0", justification: "Réévaluation de la copie suite à la séance de consultation. La moyenne a été ajustée." },
-];
+// Note: we'll fetch real note requests in the component
+// const noteRequests = ... removed
 
-const recentActivities = [
-    { id: "1", student: "Alice Konan", action: "Nouvelle inscription validée", course: "Licence 1 - Géologie", time: "Il y a 5 min", icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
-    { id: "2", student: "Prof. Kabeya", action: "Notes déposées", course: "Pétrologie L3", time: "Il y a 1h", icon: FileText, color: "text-green-500", bg: "bg-green-50" },
-    { id: "4", student: "Service Académique", action: "Modification de planning", course: "Salle B204 - Géochimie", time: "Il y a 3h", icon: Calendar, color: "text-purple-500", bg: "bg-purple-50" },
-    { id: "5", student: "Service Académique", action: "Demande changement présence", course: "Prof. Mbuyi - Géostatistique", time: "Il y a 4h", icon: Clock, color: "text-orange-500", bg: "bg-orange-50" },
-    { id: "6", student: "Service Académique", action: "Refus changement note", course: "Prof. Lwamba - Tectonique", time: "Il y a 5h", icon: X, color: "text-red-500", bg: "bg-red-50" },
-];
+// Note: activities will be fetched dynamically
+// const recentActivities = ... removed
 
-// Données réalistes de présence par mois
-const generateMonthsData = (monthCount: number) => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-
-    // Données fixes de présence pour chaque mois (Jan=0, Déc=11)
-    const attendanceByMonth: { [key: number]: { prescience: number; b1: number; b2: number; b3: number } } = {
-        0: { prescience: 82, b1: 88, b2: 85, b3: 79 },  // Janvier
-        1: { prescience: 84, b1: 89, b2: 87, b3: 81 },  // Février
-        2: { prescience: 86, b1: 91, b2: 88, b3: 83 },  // Mars
-        3: { prescience: 88, b1: 92, b2: 90, b3: 85 },  // Avril
-        4: { prescience: 85, b1: 90, b2: 88, b3: 82 },  // Mai
-        5: { prescience: 87, b1: 91, b2: 89, b3: 84 },  // Juin
-        6: { prescience: 83, b1: 87, b2: 86, b3: 80 },  // Juillet
-        7: { prescience: 84, b1: 88, b2: 87, b3: 81 },  // Août
-        8: { prescience: 89, b1: 93, b2: 91, b3: 86 },  // Septembre
-        9: { prescience: 91, b1: 94, b2: 92, b3: 88 },  // Octobre
-        10: { prescience: 90, b1: 93, b2: 91, b3: 87 }, // Novembre
-        11: { prescience: 88, b1: 92, b2: 90, b3: 85 }, // Décembre
-    };
-
-    const months = [];
-
-    for (let i = monthCount - 1; i >= 0; i--) {
-        const date = new Date(currentYear, currentMonth - i, 1);
-        const monthName = date.toLocaleDateString("fr-FR", { month: "short" });
-        const monthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-        const monthIndex = date.getMonth();
-
-        const data = attendanceByMonth[monthIndex];
-
-        months.push({
-            month: monthLabel,
-            prescience: data.prescience,
-            b1: data.b1,
-            b2: data.b2,
-            b3: data.b3,
-        });
-    }
-
-    return months;
-};
+// Note: attendanceData will be fetched dynamically
 
 export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardProps) {
     const [activeSection, setActiveSection] = useState("supervision");
     const [showDropdown, setShowDropdown] = useState(false);
     const [showFullYear, setShowFullYear] = useState(false);
-    const [attendanceData, setAttendanceData] = useState(generateMonthsData(8));
+    const [attendanceData, setAttendanceData] = useState<any[]>([]);
+    const [allAttendanceStats, setAllAttendanceStats] = useState<any[]>([]);
     const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
     const [announcementTarget, setAnnouncementTarget] = useState("global");
     const [specificTarget, setSpecificTarget] = useState("");
     const [selectedNoteRequest, setSelectedNoteRequest] = useState<any>(null);
     const [showTechnicalSupport, setShowTechnicalSupport] = useState(false);
+    const [realNoteRequests, setRealNoteRequests] = useState<any[]>([]);
+    const [realRecentActivities, setRealRecentActivities] = useState<any[]>([]);
+    const [notesLoading, setNotesLoading] = useState(true);
+    const [activitiesLoading, setActivitiesLoading] = useState(true);
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [supportTickets, setSupportTickets] = useState<any[]>([]);
+    const [showNotifications, setShowNotifications] = useState(false);
 
+    // Navigation Guard for Planning
+    const [isPlanningModified, setIsPlanningModified] = useState(false);
+    const [pendingSection, setPendingSection] = useState<string | null>(null);
+    const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
+    const [onPlanningSave, setOnPlanningSave] = useState<(() => Promise<void>) | null>(null);
+
+    const handleNavigate = (sectionId: string) => {
+        if (activeSection === "planning" && isPlanningModified && sectionId !== "planning") {
+            setPendingSection(sectionId);
+            setShowLeaveConfirmation(true);
+        } else {
+            setActiveSection(sectionId);
+        }
+    };
+
+    const confirmLeave = (discard: boolean) => {
+        if (discard) {
+            setIsPlanningModified(false);
+        }
+        if (pendingSection) {
+            setActiveSection(pendingSection);
+            setPendingSection(null);
+        }
+        setShowLeaveConfirmation(false);
+    };
+
+    // États pour les compteurs réels
+    const [stats, setStats] = useState([
+        { label: "Effectif étudiants", value: "...", change: "Total inscrits", trend: "neutral", icon: Users, bgColor: "bg-green-50", iconColor: "text-[#1B4332]" },
+        { label: "Change Grade Request", value: "...", change: "Actions requises", trend: "urgent", icon: FileCheck, bgColor: "bg-orange-50", iconColor: "text-orange-500" },
+        { label: "Effectif Académique", value: "...", change: "Professeurs & Ass.", trend: "neutral", icon: GraduationCap, bgColor: "bg-blue-50", iconColor: "text-blue-500" },
+        { label: "Nombre de Cours", value: "...", change: "Total catalogue", trend: "neutral", icon: Calendar, bgColor: "bg-purple-50", iconColor: "text-purple-500" },
+    ]);
+
+    // Chargement des données réelles
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                // Fetch Stats
+                const statsData = await userService.getAcademicStats();
+                setStats([
+                    {
+                        label: "Effectif étudiants",
+                        value: statsData.studentCount.toLocaleString(),
+                        change: "Total inscrits",
+                        trend: "neutral",
+                        icon: Users,
+                        bgColor: "bg-green-50",
+                        iconColor: "text-[#1B4332]"
+                    },
+                    {
+                        label: "Rectifications",
+                        value: statsData.pendingGradeChangeRequests.toString(),
+                        change: statsData.pendingGradeChangeRequests > 0 ? "Actions requises" : "À jour",
+                        trend: statsData.pendingGradeChangeRequests > 0 ? "urgent" : "neutral",
+                        icon: FileCheck,
+                        bgColor: "bg-orange-50",
+                        iconColor: "text-orange-500"
+                    },
+                    {
+                        label: "Effectif Académique",
+                        value: statsData.professorCount.toLocaleString(),
+                        change: "Professeurs & Ass.",
+                        trend: "neutral",
+                        icon: GraduationCap,
+                        bgColor: "bg-blue-50",
+                        iconColor: "text-blue-500"
+                    },
+                    {
+                        label: "Nombre de Cours",
+                        value: statsData.courseCount.toString(),
+                        change: "Total catalogue",
+                        trend: "neutral",
+                        icon: Calendar,
+                        bgColor: "bg-purple-50",
+                        iconColor: "text-purple-500"
+                    },
+                ]);
+
+                // Fetch real pending note requests
+                const { gradeService } = await import("../../../services/grade");
+                const requests = await gradeService.getGradeChangeRequests();
+                setRealNoteRequests(requests.filter((r: any) => r.status === 'pending').slice(0, 3));
+
+                // Fetch Recent Activities
+                const activities = await userService.getRecentActivities();
+                setRealRecentActivities(activities);
+
+                // Fetch Attendance Stats
+                const attStats = await userService.getAttendanceStats();
+                setAllAttendanceStats(attStats);
+                setAttendanceData(attStats.slice(0, 8)); // Par défaut 8 mois
+
+                // Fetch Support and Notifications
+                const [notifs, tickets] = await Promise.all([
+                    supportService.getNotifications(),
+                    supportService.getMyTickets()
+                ]);
+                setNotifications(notifs);
+                setSupportTickets(tickets);
+            } catch (error) {
+                console.error("Erreur chargement dashboard:", error);
+            } finally {
+                setNotesLoading(false);
+                setActivitiesLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    const formatActivityTime = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMin = Math.floor(diffMs / 60000);
+        const diffHrs = Math.floor(diffMin / 60);
+        const diffDays = Math.floor(diffHrs / 24);
+
+        if (diffMin < 60) return `Il y a ${diffMin} min`;
+        if (diffHrs < 24) return `Il y a ${diffHrs}h`;
+        return `Il y a ${diffDays}j`;
+    };
+
+    const getActivityStyle = (type: string) => {
+        switch (type) {
+            case 'STUDENT': return { icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' };
+            case 'GRADE': return { icon: FileText, color: 'text-green-500', bg: 'bg-green-50' };
+            case 'SCHEDULE': return { icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-50' };
+            case 'ATTENDANCE': return { icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50' };
+            default: return { icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50' };
+        }
+    };
+
+    const handleQuickAction = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
+        try {
+            const { gradeService } = await import("../../../services/grade");
+            await gradeService.updateRequestStatus(requestId, status);
+            setRealNoteRequests(prev => prev.filter(r => r.id !== requestId));
+            setSelectedNoteRequest(null);
+            // Mettre à jour le compteur dans les stats
+            setStats(prev => prev.map(s =>
+                s.label === "Rectifications"
+                    ? { ...s, value: (parseInt(s.value) - 1).toString() }
+                    : s
+            ));
+        } catch (error) {
+            alert("Erreur lors de l'action");
+        }
+    };
 
     const toggleFullYear = () => {
         const newShowFullYear = !showFullYear;
         setShowFullYear(newShowFullYear);
-        setAttendanceData(generateMonthsData(newShowFullYear ? 12 : 8));
+        setAttendanceData(newShowFullYear ? allAttendanceStats : allAttendanceStats.slice(0, 8));
     };
 
     const today = new Date();
@@ -132,7 +242,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                         const Icon = item.icon;
                         const isActive = activeSection === item.id;
                         return (
-                            <button key={item.id} onClick={() => setActiveSection(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-[20px] transition-all ${isActive ? "bg-[#74C69D] text-[#1B4332] shadow-lg" : "text-[#FEFCF3] hover:bg-[#2D6A4F]"}`}>
+                            <button key={item.id} onClick={() => handleNavigate(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-[20px] transition-all ${isActive ? "bg-[#74C69D] text-[#1B4332] shadow-lg" : "text-[#FEFCF3] hover:bg-[#2D6A4F]"}`}>
                                 <Icon className="w-5 h-5" />
                                 <span className="text-sm font-medium">{item.label}</span>
                             </button>
@@ -159,8 +269,8 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                 </div>
             </aside>
 
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <header className="bg-white/60 backdrop-blur-md border-b border-[#1B4332]/10 px-6 md:px-8 py-4">
+            <div className="flex-1 overflow-y-auto bg-[#F1F8F4] custom-scrollbar">
+                <header className="bg-white/60 backdrop-blur-md border-b border-[#1B4332]/10 px-6 md:px-8 py-4 relative z-30">
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="text-2xl font-bold text-[#1B4332]">Bonjour, Service Académique</h2>
@@ -182,10 +292,52 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                 <Megaphone className="w-5 h-5 text-[#1B4332]" />
                             </button>
 
-                            <button className="relative p-2 hover:bg-[#D8F3DC] rounded-[16px] transition-colors">
-                                <Bell className="w-5 h-5 text-[#1B4332]" />
-                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                            </button>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    className="relative p-2 hover:bg-[#D8F3DC] rounded-[16px] transition-colors"
+                                >
+                                    <Bell className="w-5 h-5 text-[#1B4332]" />
+                                    {notifications.filter(n => !n.isRead).length > 0 && (
+                                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                    )}
+                                </button>
+
+                                {showNotifications && (
+                                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-[24px] border border-[#1B4332]/10 shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                        <div className="p-4 bg-[#1B4332] text-white flex justify-between items-center">
+                                            <h4 className="font-bold">Notifications</h4>
+                                            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">
+                                                {notifications.filter(n => !n.isRead).length} nouvelles
+                                            </span>
+                                        </div>
+                                        <div className="max-h-[400px] overflow-y-auto">
+                                            {notifications.length === 0 ? (
+                                                <div className="p-8 text-center text-[#52796F]">
+                                                    <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                                    <p className="text-sm">Aucune notification</p>
+                                                </div>
+                                            ) : notifications.map(notif => (
+                                                <div
+                                                    key={notif.id}
+                                                    className={`p-4 border-b border-[#1B4332]/5 hover:bg-[#F1F8F4] transition-colors cursor-pointer ${!notif.isRead ? 'bg-blue-50/30' : ''}`}
+                                                >
+                                                    <div className="flex gap-3">
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${notif.type === 'SUPPORT' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                            {notif.type === 'SUPPORT' ? <Wrench className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                                                        </div>
+                                                        <div>
+                                                            <p className={`text-sm ${!notif.isRead ? 'font-bold text-[#1B4332]' : 'text-[#52796F]'}`}>{notif.title}</p>
+                                                            <p className="text-xs text-[#52796F] mt-0.5">{notif.message}</p>
+                                                            <p className="text-[10px] text-[#52796F]/50 mt-1">Il y a 2 min</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="relative">
                                 <button onClick={() => setShowDropdown(!showDropdown)} className="flex items-center gap-3 bg-white rounded-[20px] px-4 py-2 border border-[#1B4332]/10 hover:shadow-md transition-all">
@@ -219,7 +371,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-6 md:p-8">
+                <main className="p-6 md:p-8">
                     {activeSection === "supervision" && (
                         <div className="space-y-6">
                             <div>
@@ -235,7 +387,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                     return (
                                         <div
                                             key={index}
-                                            onClick={() => isEffectifGlobal ? setActiveSection("inscriptions") : null}
+                                            onClick={() => isEffectifGlobal ? handleNavigate("inscriptions") : null}
                                             className={`bg-white/80 backdrop-blur-sm rounded-[24px] p-6 border border-[#1B4332]/10 transition-all ${isEffectifGlobal
                                                 ? "cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:bg-[#D8F3DC]/30"
                                                 : "hover:shadow-lg"
@@ -256,6 +408,60 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                 })}
                             </div>
 
+                            {/* Section Support Technique */}
+                            <div className="bg-white/40 backdrop-blur-sm rounded-[24px] p-6 border border-[#1B4332]/10">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-[#1B4332] rounded-[12px] flex items-center justify-center">
+                                            <Wrench className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-[#1B4332]">Tickets Support Technique</h3>
+                                            <p className="text-xs text-[#52796F]">Suivi des réponses du service technique</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowTechnicalSupport(true)}
+                                        className="text-sm px-4 py-2 bg-[#1B4332]/10 hover:bg-[#1B4332]/20 text-[#1B4332] rounded-[12px] transition-colors font-medium border border-[#1B4332]/10"
+                                    >
+                                        Nouveau Ticket
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {supportTickets.length === 0 ? (
+                                        <div className="col-span-full py-6 text-center text-[#52796F] text-sm italic">
+                                            Aucune demande au service technique pour le moment.
+                                        </div>
+                                    ) : supportTickets.slice(0, 3).map(ticket => (
+                                        <div key={ticket.id} className="bg-white p-4 rounded-[20px] border border-[#1B4332]/10 hover:shadow-md transition-all group">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ticket.status === 'RESOLVED' ? 'bg-green-100 text-green-700' :
+                                                    ticket.status === 'IN_PROGRESS' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                    {ticket.status}
+                                                </span>
+                                                <span className="text-[10px] text-[#52796F]">
+                                                    {new Date(ticket.createdAt).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <h4 className="font-bold text-[#1B4332] text-sm mb-2 line-clamp-1">{ticket.subject}</h4>
+                                            {ticket.messages && ticket.messages.some((m: any) => m.isAdmin) ? (
+                                                <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded-lg">
+                                                    <CheckCircle className="w-3 h-3" />
+                                                    <span className="font-medium">Réponse reçue !</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 text-xs text-[#52796F] bg-gray-50 p-2 rounded-lg">
+                                                    <Clock className="w-3 h-3" />
+                                                    <span>En attente...</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className="bg-white/80 backdrop-blur-sm rounded-[24px] p-6 border border-[#1B4332]/10">
                                     <div className="flex items-center justify-between mb-6">
@@ -267,40 +473,56 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                     </div>
 
                                     <div className="space-y-4">
-                                        {noteRequests.map((request) => (
+                                        {notesLoading ? (
+                                            <div className="flex flex-col items-center justify-center py-10 opacity-50">
+                                                <div className="w-8 h-8 border-4 border-[#1B4332] border-t-transparent rounded-full animate-spin mb-2"></div>
+                                                <p className="text-sm">Vérification...</p>
+                                            </div>
+                                        ) : realNoteRequests.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center py-10 bg-[#F1F8F4] rounded-[20px] border border-dashed border-[#1B4332]/20">
+                                                <CheckCircle className="w-8 h-8 text-[#1B4332] opacity-20 mb-2" />
+                                                <p className="text-sm text-[#52796F]">Tout est à jour !</p>
+                                            </div>
+                                        ) : realNoteRequests.map((request) => (
                                             <div
                                                 key={request.id}
                                                 onClick={() => setSelectedNoteRequest(request)}
-                                                className="bg-[#D8F3DC]/30 rounded-[20px] p-4 border border-[#1B4332]/10 hover:border-[#1B4332]/30 transition-colors cursor-pointer hover:bg-[#D8F3DC]/50"
+                                                className="bg-white rounded-[20px] p-4 border border-[#1B4332]/10 hover:border-[#1B4332]/30 transition-all cursor-pointer hover:shadow-md group"
                                             >
                                                 <div className="flex items-start justify-between gap-4">
                                                     <div className="flex items-start gap-3 flex-1">
-                                                        <div className="w-10 h-10 bg-[#1B4332]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                                                            <span className="text-sm text-[#1B4332] font-bold">{request.initials}</span>
+                                                        <div className="w-10 h-10 bg-[#1B4332] text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold">
+                                                            <span>{request.professorInitials}</span>
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="font-medium text-[#1B4332] mb-1">{request.professor}</p>
-                                                            <p className="text-sm text-[#52796F] mb-3">{request.course}</p>
+                                                            <p className="font-bold text-[#1B4332] mb-0.5">{request.professor}</p>
+                                                            <p className="text-[11px] text-[#52796F] mb-3 truncate">{request.course} • {request.courseCode}</p>
                                                             <div className="flex items-center gap-4">
                                                                 <div>
-                                                                    <p className="text-xs text-[#52796F] mb-1 font-medium">NOTE INITIALE</p>
-                                                                    <p className="line-through text-[#52796F]">{request.oldGrade}</p>
+                                                                    <p className="text-[9px] text-[#52796F] mb-0.5 font-bold uppercase tracking-wider">INITIALE</p>
+                                                                    <p className="line-through text-[#52796F] text-sm">{request.oldGrade}</p>
                                                                 </div>
-                                                                <div className="w-6 h-px bg-[#1B4332]/10"></div>
+                                                                <div className="w-4 h-px bg-[#1B4332]/10"></div>
                                                                 <div>
-                                                                    <p className="text-xs text-[#52796F] mb-1 font-medium">NOUVELLE</p>
-                                                                    <p className="text-[#1B4332] font-bold">{request.newGrade}</p>
+                                                                    <p className="text-[9px] text-[#1B4332] mb-0.5 font-bold uppercase tracking-wider">NOUVELLE</p>
+                                                                    <p className="text-[#1B4332] font-black">{request.newGrade}</p>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
 
                                                     <div className="flex gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                        <button className="p-2 hover:bg-red-50 rounded-[12px] transition-colors">
-                                                            <X className="w-5 h-5 text-red-500" />
+                                                        <button
+                                                            onClick={() => handleQuickAction(request.id, 'REJECTED')}
+                                                            className="p-2 hover:bg-red-50 rounded-[12px] transition-colors"
+                                                        >
+                                                            <X className="w-5 h-5 text-red-400 group-hover:text-red-600" />
                                                         </button>
-                                                        <button className="p-2 bg-[#1B4332] hover:bg-[#2D6A4F] rounded-[12px] transition-colors">
-                                                            <Check className="w-5 h-5 text-[#FEFCF3]" />
+                                                        <button
+                                                            onClick={() => handleQuickAction(request.id, 'APPROVED')}
+                                                            className="p-2 bg-[#1B4332] hover:bg-[#2D6A4F] rounded-[12px] transition-colors"
+                                                        >
+                                                            <Check className="w-5 h-5 text-white" />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -318,28 +540,45 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                     </div>
 
                                     <div className="space-y-4">
-                                        {recentActivities.map((activity) => {
-                                            const Icon = activity.icon;
+                                        {activitiesLoading ? (
+                                            <div className="flex flex-col items-center justify-center py-10 opacity-50">
+                                                <div className="w-8 h-8 border-4 border-[#1B4332] border-t-transparent rounded-full animate-spin mb-2"></div>
+                                                <p className="text-sm text-[#52796F]">Chargement des activités...</p>
+                                            </div>
+                                        ) : realRecentActivities.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center py-10 bg-[#F1F8F4] rounded-[24px] border border-dashed border-[#1B4332]/20">
+                                                <Clock className="w-8 h-8 text-[#1B4332] opacity-20 mb-2" />
+                                                <p className="text-sm text-[#52796F]">Aucune activité récente</p>
+                                            </div>
+                                        ) : realRecentActivities.map((activity) => {
+                                            const { icon: Icon, color, bg } = getActivityStyle(activity.type);
                                             return (
-                                                <div key={activity.id} className="flex items-start gap-3 pb-4 border-b border-[#1B4332]/5 last:border-0 last:pb-0">
-                                                    <div className={`w-10 h-10 ${activity.bg} rounded-full flex items-center justify-center flex-shrink-0`}>
-                                                        <Icon className={`w-5 h-5 ${activity.color}`} />
+                                                <div key={activity.id} className="flex items-start gap-4 pb-4 border-b border-[#1B4332]/5 last:border-0 last:pb-0 group">
+                                                    <div className={`w-12 h-12 ${bg} rounded-[16px] flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                                                        <Icon className={`w-6 h-6 ${color}`} />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="font-medium text-[#1B4332] mb-1">{activity.student}</p>
-                                                        <p className="text-sm text-[#52796F] mb-1">{activity.action}</p>
-                                                        <p className="text-xs text-[#52796F]">{activity.course}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 text-xs text-[#52796F] flex-shrink-0">
-                                                        <Clock className="w-3 h-3" />
-                                                        {activity.time}
+                                                        <div className="flex items-center justify-between mb-0.5">
+                                                            <p className="font-bold text-[#1B4332] truncate">{activity.user}</p>
+                                                            <div className="flex items-center gap-1 text-[10px] text-[#52796F] font-medium whitespace-nowrap ml-2">
+                                                                <Clock className="w-3 h-3" />
+                                                                {formatActivityTime(activity.time)}
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-xs font-bold text-[#2D6A4F] mb-1">{activity.action}</p>
+                                                        <p className="text-[11px] text-[#52796F] italic truncate opacity-80">{activity.detail}</p>
                                                     </div>
                                                 </div>
                                             );
                                         })}
-                                        <button className="w-full py-2 bg-[#D8F3DC]/50 hover:bg-[#D8F3DC] text-[#1B4332] text-sm font-medium rounded-[16px] transition-colors mt-2">
-                                            Voir plus
-                                        </button>
+                                        {realRecentActivities.length > 0 && (
+                                            <button
+                                                onClick={() => handleNavigate("history")}
+                                                className="w-full py-3 bg-[#D8F3DC]/30 hover:bg-[#D8F3DC]/60 text-[#1B4332] text-xs font-bold rounded-[16px] transition-all mt-2 uppercase tracking-widest"
+                                            >
+                                                Historique complet
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -452,12 +691,80 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
 
                     {activeSection === "inscriptions" && <InscriptionsManager />}
 
+                    {activeSection === "charge" && <StaffAssignmentManager />}
+
                     {activeSection === "assiduite" && <AttendanceManager />}
 
                     {activeSection === "notes" && <GradesManager />}
 
-                    {activeSection === "planning" && <ScheduleManager />}
+                    {activeSection === "history" && (
+                        <div className="h-full flex flex-col">
+                            <div className="mb-4">
+                                <button
+                                    onClick={() => handleNavigate("supervision")}
+                                    className="flex items-center gap-2 text-[#52796F] hover:text-[#1B4332] font-bold text-sm transition-colors"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                    Retour au Tableau de Bord
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                                <ActivityHistory />
+                            </div>
+                        </div>
+                    )}
+
+                    {activeSection === "planning" && (
+                        <ScheduleManager
+                            onModifiedChange={setIsPlanningModified}
+                            onSaveReady={(saveFn) => setOnPlanningSave(() => saveFn)}
+                        />
+                    )}
                 </main>
+
+                {/* Confirm Leave Modal */}
+                {showLeaveConfirmation && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                        <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden border border-red-100">
+                            <div className="p-10 text-center">
+                                <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                                    <AlertTriangle className="w-10 h-10 text-red-500" />
+                                </div>
+                                <h3 className="text-2xl font-black text-[#1B4332] mb-3">Changements non publiés !</h3>
+                                <p className="text-[#52796F] font-medium mb-8">
+                                    Vous allez perdre les modifications apportées aux horaires. Voulez-vous publier avant de partir ou abandonner ?
+                                </p>
+
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={async () => {
+                                            if (onPlanningSave) {
+                                                await onPlanningSave();
+                                                confirmLeave(false);
+                                            }
+                                        }}
+                                        className="w-full py-4 bg-[#1B4332] text-white font-black rounded-2xl shadow-xl shadow-[#1B4332]/20 flex items-center justify-center gap-2"
+                                    >
+                                        <Send className="w-5 h-5" />
+                                        Publier maintenant
+                                    </button>
+                                    <button
+                                        onClick={() => confirmLeave(true)}
+                                        className="w-full py-4 bg-red-50 text-red-600 font-extrabold rounded-2xl hover:bg-red-100 transition-all uppercase tracking-wider text-sm"
+                                    >
+                                        Abandonner les changements
+                                    </button>
+                                    <button
+                                        onClick={() => setShowLeaveConfirmation(false)}
+                                        className="w-full py-4 text-[#52796F] font-bold"
+                                    >
+                                        Continuer l'édition
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Technical Support Modal */}
                 {showTechnicalSupport && (
@@ -627,11 +934,17 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                             </div>
 
                             <div className="flex gap-3 pt-2">
-                                <button className="flex-1 py-3 border border-red-200 hover:bg-red-50 text-red-600 rounded-[16px] font-medium transition-colors flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => handleQuickAction(selectedNoteRequest.id, 'REJECTED')}
+                                    className="flex-1 py-3 border border-red-200 hover:bg-red-50 text-red-600 rounded-[16px] font-medium transition-colors flex items-center justify-center gap-2"
+                                >
                                     <X className="w-4 h-4" />
                                     Refuser
                                 </button>
-                                <button className="flex-1 py-3 bg-[#1B4332] hover:bg-[#2D6A4F] text-white rounded-[16px] font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#1B4332]/20">
+                                <button
+                                    onClick={() => handleQuickAction(selectedNoteRequest.id, 'APPROVED')}
+                                    className="flex-1 py-3 bg-[#1B4332] hover:bg-[#2D6A4F] text-white rounded-[16px] font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#1B4332]/20"
+                                >
                                     <Check className="w-4 h-4" />
                                     Valider
                                 </button>

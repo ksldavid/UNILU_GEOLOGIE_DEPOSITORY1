@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import logoImage from '../../assets/da1a2f529aca98b88831def6f2dc64f21ceb1b65.png';
 
 interface AdminLoginPageProps {
-  onLogin: (id: string, password: string, role: 'admin' | 'service-academique') => void;
+  onLogin: (id: string, password: string, role: 'admin' | 'service-academique') => Promise<void | boolean | 'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'>;
   onBack: () => void;
 }
 
@@ -14,15 +14,26 @@ export function AdminLoginPage({ onLogin, onBack }: AdminLoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [activeRole, setActiveRole] = useState<'admin' | 'service-academique'>('admin');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(''); // On efface les erreurs précédentes
+
     if (userId.trim() && password.trim()) {
       setIsLoading(true);
-      setTimeout(() => {
-        onLogin(userId, password, activeRole);
+      try {
+        const success = await onLogin(userId, password, activeRole);
+        if (!success) {
+          setError('Identifiant ou mot de passe incorrect.');
+        }
+      } catch (error) {
+        setError('Une erreur est survenue lors de la connexion.');
+      } finally {
         setIsLoading(false);
-      }, 1200);
+      }
+    } else {
+      setError('Veuillez remplir tous les champs.');
     }
   };
 
@@ -192,12 +203,15 @@ export function AdminLoginPage({ onLogin, onBack }: AdminLoginPageProps) {
                       type="text"
                       placeholder="ID"
                       value={userId}
-                      onChange={(e) => setUserId(e.target.value)}
-                      className="w-full h-14 bg-white/40 border-b border-[#1B4332]/25 text-slate-900 placeholder:text-slate-600 focus:border-[#1B4332] focus:bg-white/60 transition-all outline-none font-medium text-lg px-2 rounded-t-xl"
+                      onChange={(e) => {
+                        setUserId(e.target.value);
+                        if (error) setError('');
+                      }}
+                      className={`w-full h-14 bg-white/40 border-b text-slate-900 placeholder:text-slate-600 focus:bg-white/60 transition-all outline-none font-medium text-lg px-2 rounded-t-xl ${error ? 'border-red-400' : 'border-[#1B4332]/25 focus:border-[#1B4332]'}`}
                       required
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                      <User className="w-5 h-5 text-[#1B4332]/20" />
+                      <User className={`w-5 h-5 ${error ? 'text-red-400' : 'text-[#1B4332]/20'}`} />
                     </div>
                   </div>
                 </div>
@@ -209,19 +223,38 @@ export function AdminLoginPage({ onLogin, onBack }: AdminLoginPageProps) {
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••••••"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full h-14 bg-white/40 border-b border-[#1B4332]/25 text-slate-900 placeholder:text-slate-400 focus:border-[#1B4332] focus:bg-white/60 transition-all outline-none font-medium text-lg px-2 rounded-t-xl"
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (error) setError('');
+                      }}
+                      className={`w-full h-14 bg-white/40 border-b text-slate-900 placeholder:text-slate-400 focus:bg-white/60 transition-all outline-none font-medium text-lg px-2 rounded-t-xl ${error ? 'border-red-400' : 'border-[#1B4332]/25 focus:border-[#1B4332]'}`}
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[#1B4332]/20 hover:text-[#1B4332] transition-colors"
+                      className={`absolute right-2 top-1/2 -translate-y-1/2 transition-colors ${error ? 'text-red-400' : 'text-[#1B4332]/20 hover:text-[#1B4332]'}`}
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
+
+                <AnimatePresence>
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="bg-red-50 text-red-600 text-xs font-bold p-3 rounded-xl border border-red-100 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {error}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-3 group cursor-pointer">
@@ -271,6 +304,7 @@ export function AdminLoginPage({ onLogin, onBack }: AdminLoginPageProps) {
                 </button>
 
               </form>
+
             </div>
 
             {/* Footer decoration */}

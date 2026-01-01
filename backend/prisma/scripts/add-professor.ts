@@ -5,20 +5,27 @@ const prisma = new PrismaClient()
 
 async function main() {
     // --- CONFIGURATION ---
+    const id = 'PROF-001' // ID/Matricule unique (Requis par le schéma)
     const email = 'nouveau.prof@unilu.cd'
     const password = 'password123'
-    const firstName = 'Pierre'
-    const lastName = 'Durand'
+    const name = 'Pierre Durand' // Le schéma utilise 'name' au lieu de firstName/lastName
     const courseCodeToAssign = 'GEOL_100' // Changez ceci si vous voulez l'assigner directement à un cours
     const assignToCourse = false // Mettez à true pour activer l'assignation
     // ---------------------
 
     console.log("🔄 Création du compte utilisateur...")
 
-    // 1. Vérifier si l'email existe déjà
-    const existingUser = await prisma.user.findUnique({ where: { email } })
+    // 1. Vérifier si l'email ou l'ID existe déjà
+    const existingUser = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { email },
+                { id }
+            ]
+        }
+    })
     if (existingUser) {
-        console.error(`❌ Un utilisateur avec l'email ${email} existe déjà.`)
+        console.error(`❌ Un utilisateur avec l'email ${email} ou l'ID ${id} existe déjà.`)
         return
     }
 
@@ -30,16 +37,16 @@ async function main() {
     // se fait souvent au niveau de l'inscription à un cours (CourseEnrollment).
     const user = await prisma.user.create({
         data: {
+            id,
             email,
             password: hashedPassword,
-            firstName,
-            lastName,
+            name,
             systemRole: SystemRole.USER, // Un professeur est un User standard au niveau système
         }
     })
 
     console.log(`✅ Utilisateur créé avec succès !`)
-    console.log(`👤 Nom : ${user.firstName} ${user.lastName}`)
+    console.log(`👤 Nom : ${user.name}`)
     console.log(`📧 Email : ${user.email}`)
     console.log(`🔑 Role Système : ${user.systemRole} (Normal, ce n'est pas ici qu'on distingue Prof/Assistant)`)
 
@@ -57,10 +64,10 @@ async function main() {
                     userId: user.id,
                     courseCode: courseCodeToAssign,
                     role: CourseRole.PROFESSOR, // <--- C'EST ICI LA CLÉ : On force le rôle PROFESSOR
-                    academicYear: '2024-2025' // À adapter selon l'année en cours
+                    academicYear: '2025-2026' // À adapter selon l'année en cours
                 }
             })
-            console.log(`✅ ${user.firstName} est maintenant officiellement PROFESSEUR du cours ${courseCodeToAssign}.`)
+            console.log(`✅ ${user.name} est maintenant officiellement PROFESSEUR du cours ${courseCodeToAssign}.`)
         }
     } else {
         console.log(`\nℹ️  L'utilisateur n'est pas encore assigné à un cours.`)
