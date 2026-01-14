@@ -7,24 +7,28 @@ const JWT_SECRET = process.env.JWT_SECRET || 'unilu_super_secret_key_2025'
 
 export const login = async (req: Request, res: Response) => {
     try {
-        const { email, password } = req.body
+        const { email, idNumber, password } = req.body
+        const identifier = email || idNumber;
 
         // 1. Trouver l'utilisateur
         const user = await prisma.user.findFirst({
             where: {
                 OR: [
-                    { email: email },
-                    { id: email } // Permet de se connecter avec l'email ou le matricule
+                    { email: identifier },
+                    { id: identifier } // Permet de se connecter avec l'email ou le matricule
                 ]
             }
         })
 
         if (!user) {
+            console.log(`[AUTH] Utilisateur non trouvé pour: "${identifier}"`);
             return res.status(401).json({ message: 'Identifiants invalides' })
         }
 
         // 2. Vérifier le mot de passe
         const isPasswordValid = await bcrypt.compare(password, user.password)
+        console.log(`[AUTH] Tentative login pour ${identifier}. ID trouvé: ${user.id}. Password Match: ${isPasswordValid}`);
+
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Identifiants invalides' })
         }

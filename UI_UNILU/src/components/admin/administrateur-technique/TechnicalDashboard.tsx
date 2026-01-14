@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Activity, ShieldCheck, Database, Server,
     Terminal, Settings, LogOut, Bell, Search,
-    Clock, Cpu, Shield, LayoutDashboard, Globe, Wrench as ToolIcon, Menu, X
+    Clock, Cpu, Shield, LayoutDashboard, Globe, Menu, X, MessageSquare
 } from 'lucide-react';
 import { SystemStatus } from './components/SystemStatus';
 import { AccessManagement } from './components/AccessManagement';
@@ -10,11 +10,56 @@ import { DatabaseManager } from './components/DatabaseManager';
 import { ServersStatus } from './components/ServersStatus';
 import { SystemLogs } from './components/SystemLogs';
 import { UserModal } from './components/UserModal';
+import { SupportTicketsAdmin } from './components/SupportTicketsAdmin';
+import { ConfigManager } from './components/ConfigManager';
 
 export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
     const [activeTab, setActiveTab] = useState('System');
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [userRefreshKey, setUserRefreshKey] = useState(0);
+    const [systemData, setSystemData] = useState<{
+        status: string,
+        uptime: string,
+        dbLatency: number,
+        memPercent: number
+    }>({
+        status: 'Online',
+        uptime: '0d 0h 0m',
+        dbLatency: 0,
+        memPercent: 0
+    });
+
+    useEffect(() => {
+        const fetchSystem = async () => {
+            try {
+                const token = sessionStorage.getItem('token');
+                const res = await fetch('http://localhost:3001/api/stats/technical', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const totalSeconds = data.system.uptime || 0;
+                    const days = Math.floor(totalSeconds / (3600 * 24));
+                    const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    setSystemData({
+                        status: 'Online',
+                        uptime: `${days}d ${hours}h ${minutes}m`,
+                        dbLatency: data.database?.latency || 0,
+                        memPercent: data.system?.memPercent || 0
+                    });
+                } else {
+                    setSystemData((prev: any) => ({ ...prev, status: 'Error' }));
+                }
+            } catch (err) {
+                setSystemData((prev: any) => ({ ...prev, status: 'Offline' }));
+            }
+        };
+        fetchSystem();
+        const interval = setInterval(fetchSystem, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     const menuItems = [
         { id: 'System', icon: Activity, label: 'État du Système' },
@@ -22,6 +67,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
         { id: 'Database', icon: Database, label: 'Base de Données' },
         { id: 'Servers', icon: Server, label: 'Serveurs' },
         { id: 'Logs', icon: Terminal, label: 'Logs' },
+        { id: 'Support', icon: MessageSquare, label: 'Support' },
         { id: 'Config', icon: Settings, label: 'Configuration' },
     ];
 
@@ -30,31 +76,17 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
             case 'System':
                 return <SystemStatus />;
             case 'Users':
-                return <AccessManagement onOpenNewUser={() => setIsUserModalOpen(true)} />;
+                return <AccessManagement key={`users-${userRefreshKey}`} onOpenNewUser={() => setIsUserModalOpen(true)} />;
             case 'Database':
                 return <DatabaseManager />;
             case 'Servers':
                 return <ServersStatus />;
             case 'Logs':
                 return <SystemLogs />;
+            case 'Support':
+                return <SupportTicketsAdmin />;
             case 'Config':
-                return (
-                    <div className="bg-[#111827] border border-slate-800 rounded-[32px] p-12 text-center animate-in zoom-in duration-500">
-                        <ToolIcon className="w-16 h-16 text-slate-700 mx-auto mb-6" />
-                        <h2 className="text-2xl font-black text-white uppercase mb-2">Configuration Globale</h2>
-                        <p className="text-slate-500 max-w-md mx-auto">Interface de modification des variables d'environnement et des clés de sécurité.</p>
-                        <div className="mt-10 grid grid-cols-2 gap-4 max-w-lg mx-auto">
-                            <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50 text-left">
-                                <span className="text-[10px] font-black uppercase text-blue-500 block mb-1">CORS Policy</span>
-                                <span className="text-xs text-white font-mono">ALLOW_ALL: FALSE</span>
-                            </div>
-                            <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50 text-left">
-                                <span className="text-[10px] font-black uppercase text-blue-500 block mb-1">Auth Strategy</span>
-                                <span className="text-xs text-white font-mono">JWT + 2FA</span>
-                            </div>
-                        </div>
-                    </div>
-                );
+                return <ConfigManager />;
             default:
                 return (
                     <div className="flex flex-col items-center justify-center h-[60vh] text-slate-500 space-y-4">
@@ -136,16 +168,41 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                     <div className="bg-[#0B0F19] border border-white/5 rounded-2xl p-4 space-y-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">System: Online</span>
+                                <div className={`w-2 h-2 rounded-full ${systemData.status === 'Online' ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} />
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${systemData.status === 'Online' ? 'text-emerald-500' : 'text-red-500'}`}>System: {systemData.status}</span>
                             </div>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-800/50 rounded-full overflow-hidden">
-                            <div className="h-full w-[85%] bg-blue-500 rounded-full" />
+
+                        {/* Memory Usage Bar */}
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[8px] font-black text-slate-600 uppercase">
+                                <span>Memory</span>
+                                <span>{systemData.memPercent}%</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-slate-800/50 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-1000 ${systemData.memPercent > 80 ? 'bg-red-500' :
+                                            systemData.memPercent > 60 ? 'bg-orange-500' :
+                                                'bg-blue-500'
+                                        }`}
+                                    style={{ width: `${Math.min(100, systemData.memPercent)}%` }}
+                                />
+                            </div>
                         </div>
-                        <div className="flex justify-between items-center text-[9px] font-black font-mono text-slate-600 uppercase">
-                            <span>Uptime</span>
-                            <span>14d 2h 12m</span>
+
+                        {/* Uptime & DB Latency */}
+                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                            <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-600 uppercase block">Uptime</span>
+                                <span className="text-[9px] font-black font-mono text-white">{systemData.uptime}</span>
+                            </div>
+                            <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-600 uppercase block">DB Ping</span>
+                                <span className={`text-[9px] font-black font-mono ${systemData.dbLatency < 50 ? 'text-emerald-500' :
+                                        systemData.dbLatency < 150 ? 'text-orange-500' :
+                                            'text-red-500'
+                                    }`}>{systemData.dbLatency}ms</span>
+                            </div>
                         </div>
                     </div>
 
@@ -254,6 +311,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
             <UserModal
                 isOpen={isUserModalOpen}
                 onClose={() => setIsUserModalOpen(false)}
+                onSuccess={() => setUserRefreshKey(prev => prev + 1)}
             />
         </div>
     );

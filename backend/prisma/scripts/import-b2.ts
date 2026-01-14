@@ -2,6 +2,7 @@ import { PrismaClient, SystemRole } from '@prisma/client'
 import * as fs from 'fs'
 import * as path from 'path'
 import { parse } from 'csv-parse/sync'
+import * as bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
 
@@ -32,6 +33,9 @@ async function importStudents(filePath: string, levelId: number, levelCode: stri
 
             if (!studentID || studentID === "") continue;
 
+            // Hachage du mot de passe
+            const hashedPassword = await bcrypt.hash(password, 10);
+
             // Upsert User
             const user = await prisma.user.upsert({
                 where: { id: studentID },
@@ -39,7 +43,7 @@ async function importStudents(filePath: string, levelId: number, levelCode: stri
                     name,
                     email,
                     whatsapp,
-                    password,
+                    password: hashedPassword,
                     systemRole: SystemRole.STUDENT,
                 },
                 create: {
@@ -47,7 +51,7 @@ async function importStudents(filePath: string, levelId: number, levelCode: stri
                     email,
                     name,
                     whatsapp,
-                    password,
+                    password: hashedPassword,
                     systemRole: SystemRole.STUDENT,
                 }
             });

@@ -1,7 +1,7 @@
-import { LayoutDashboard, BookOpen, Calendar, GraduationCap, Megaphone, LogOut } from "lucide-react";
+import { LayoutDashboard, BookOpen, Calendar, GraduationCap, Megaphone, LogOut, Settings2 } from "lucide-react";
 import uniluLogo from "../../assets/unilu-official-logo.png";
 
-export type StudentPage = 'dashboard' | 'courses' | 'planning' | 'grades' | 'announcements';
+export type StudentPage = 'dashboard' | 'courses' | 'planning' | 'grades' | 'announcements' | 'settings';
 
 interface StudentSidebarProps {
   currentPage: StudentPage;
@@ -18,6 +18,7 @@ export function StudentSidebar({ currentPage, onNavigate, onLogout, isOpen, onCl
     { id: 'planning' as const, icon: Calendar, label: 'Emploi du temps' },
     { id: 'grades' as const, icon: GraduationCap, label: 'Notes & Résultats' },
     { id: 'announcements' as const, icon: Megaphone, label: 'Annonces' },
+    { id: 'settings' as const, icon: Settings2, label: 'Mon Parcours' },
   ];
 
   return (
@@ -34,7 +35,6 @@ export function StudentSidebar({ currentPage, onNavigate, onLogout, isOpen, onCl
             <img src={uniluLogo} alt="UNILU Logo" className="w-20 h-20 object-contain" />
             <div className="text-center">
               <h1 className="text-gray-900 font-black text-xs uppercase tracking-[0.2em]">Portail Étudiant</h1>
-              <p className="text-[10px] text-teal-600 font-black uppercase tracking-widest mt-1 italic">Faculté de Géologie</p>
             </div>
           </div>
         </div>
@@ -55,7 +55,7 @@ export function StudentSidebar({ currentPage, onNavigate, onLogout, isOpen, onCl
                 className={`
                   w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
                   ${isActive
-                    ? 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white shadow-md shadow-teal-500/20'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
                     : 'text-gray-700 hover:bg-gray-50'
                   }
                 `}

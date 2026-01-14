@@ -8,14 +8,14 @@ import { parse } from 'csv-parse/sync'
 const prisma = new PrismaClient()
 
 interface AssignmentData {
-    profId: string
+    profID: string
     courseCode: string
-    role: string
+    userRole: string
     academicYear: string
 }
 
 async function importAssignments() {
-    const filePath = path.join(process.cwd(), 'prisma', 'professors', 'data', 'course_assignments.csv')
+    const filePath = path.join(process.cwd(), 'prisma', 'professors', 'data', 'cours_attribution_professeurs.csv')
 
     if (!fs.existsSync(filePath)) {
         console.error(`❌ Fichier introuvable: ${filePath}`)
@@ -26,7 +26,8 @@ async function importAssignments() {
     const assignments: AssignmentData[] = parse(fileContent, {
         columns: true,
         skip_empty_lines: true,
-        trim: true
+        trim: true,
+        relax_column_count: true
     })
 
     console.log(`
@@ -56,12 +57,12 @@ async function importAssignments() {
 
                 // Vérifier si le prof existe
                 const prof = await prisma.user.findUnique({
-                    where: { id: assign.profId },
+                    where: { id: assign.profID },
                     include: { professorProfile: true }
                 })
 
                 if (!prof) {
-                    console.warn(`⚠️ Professeur introuvable: ${assign.profId} (Assignation ignorée)`)
+                    console.warn(`⚠️ Professeur introuvable: ${assign.profID} (Assignation ignorée)`)
                     failed++
                     continue
                 }
@@ -76,13 +77,13 @@ async function importAssignments() {
                     })
                 }
 
-                const role = assign.role === 'ASSISTANT' ? CourseRole.ASSISTANT : CourseRole.PROFESSOR
+                const role = assign.userRole === 'ASSISTANT' ? CourseRole.ASSISTANT : CourseRole.PROFESSOR
 
                 // Créer l'assignation
                 await prisma.courseEnrollment.upsert({
                     where: {
                         userId_courseCode_academicYear: {
-                            userId: assign.profId,
+                            userId: assign.profID,
                             courseCode: assign.courseCode,
                             academicYear: assign.academicYear
                         }
@@ -91,18 +92,18 @@ async function importAssignments() {
                         role: role
                     },
                     create: {
-                        userId: assign.profId,
+                        userId: assign.profID,
                         courseCode: assign.courseCode,
                         role: role,
                         academicYear: assign.academicYear
                     }
                 })
 
-                console.log(`✅ Assigné: ${assign.profId} -> ${assign.courseCode} [${assign.role}]`)
+                console.log(`✅ Assigné: ${assign.profID} -> ${assign.courseCode} [${assign.userRole}]`)
                 success++
 
             } catch (error: any) {
-                console.error(`❌ Erreur pour ${assign.profId} - ${assign.courseCode}: ${error.message}`)
+                console.error(`❌ Erreur pour ${assign.profID} - ${assign.courseCode}: ${error.message}`)
                 failed++
             }
         }

@@ -17,7 +17,7 @@ export interface User {
 
 export const userService = {
     async getAllUsers(role?: string, academicLevelId?: number) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
@@ -39,7 +39,7 @@ export const userService = {
     },
 
     async updateUser(id: string, data: { name?: string, email?: string, title?: string }) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
@@ -58,7 +58,7 @@ export const userService = {
     },
 
     async getAcademicStats() {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
@@ -72,7 +72,7 @@ export const userService = {
     },
 
     async getRecentActivities() {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
@@ -86,7 +86,7 @@ export const userService = {
     },
 
     async getAttendanceStats() {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
@@ -100,7 +100,7 @@ export const userService = {
     },
 
     async getDetailedAttendance(courseCode: string, academicLevelId: number) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
@@ -109,6 +109,25 @@ export const userService = {
         const response = await fetch(`${API_URL}/stats/course-attendance?courseCode=${courseCode}&academicLevelId=${academicLevelId}`, { headers });
         if (!response.ok) {
             throw new Error('Erreur lors de la récupération de l\'assiduité détaillée');
+        }
+        return response.json();
+    },
+
+    async createAnnouncement(data: { title: string, content: string, type: string, target: string, academicLevelId?: number, targetUserId?: string }) {
+        const token = sessionStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        const response = await fetch(`${API_URL}/announcements`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            throw new Error('Erreur lors de la création de l\'annonce');
         }
         return response.json();
     }

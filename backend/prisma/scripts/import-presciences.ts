@@ -2,6 +2,7 @@ import { PrismaClient, SystemRole } from '@prisma/client'
 import * as fs from 'fs'
 import * as path from 'path'
 import { parse } from 'csv-parse/sync'
+import * as bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
 
@@ -81,7 +82,11 @@ async function main() {
 
             if (!studentID || studentID === "") continue;
 
+            // Normalisation WhatsApp
             const whatsapp = normalizeWhatsApp(rawWhatsApp);
+
+            // Hachage du mot de passe
+            const hashedPassword = await bcrypt.hash(password, 10);
 
             // Upsert User
             const user = await prisma.user.upsert({
@@ -90,7 +95,7 @@ async function main() {
                     name,
                     email,
                     whatsapp,
-                    password,
+                    password: hashedPassword,
                     systemRole: SystemRole.STUDENT,
                 },
                 create: {
@@ -98,7 +103,7 @@ async function main() {
                     email,
                     name,
                     whatsapp,
-                    password,
+                    password: hashedPassword,
                     systemRole: SystemRole.STUDENT,
                 }
             });

@@ -5,9 +5,11 @@ interface HeaderProps {
   userData: UserData;
   onLogout: () => void;
   onMenuClick: () => void;
+  hasUnreadAnnouncements?: boolean;
+  onBellClick?: () => void;
 }
 
-export function Header({ userData, onMenuClick }: HeaderProps) {
+export function Header({ userData, onMenuClick, hasUnreadAnnouncements, onBellClick }: HeaderProps) {
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -51,9 +53,14 @@ export function Header({ userData, onMenuClick }: HeaderProps) {
             </span>
           </div>
 
-          <button className="relative p-2 hover:bg-gray-50 rounded-lg transition-colors">
-            <Bell className="w-5 h-5 text-gray-700" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          <button
+            onClick={onBellClick}
+            className={`relative p-2 hover:bg-gray-50 rounded-lg transition-all duration-300 ${hasUnreadAnnouncements ? 'text-teal-600' : 'text-gray-700'}`}
+          >
+            <Bell className={`w-5 h-5 ${hasUnreadAnnouncements ? 'animate-bell' : ''}`} />
+            {hasUnreadAnnouncements && (
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse-red"></span>
+            )}
           </button>
 
           <div className="flex items-center gap-3 pl-2 md:pl-6 border-l border-gray-200">

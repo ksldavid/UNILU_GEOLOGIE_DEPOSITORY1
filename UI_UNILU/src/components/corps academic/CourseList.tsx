@@ -1,52 +1,28 @@
+import { useState, useEffect } from "react";
 import type { Course } from "../../App";
+import { professorService } from "../../services/professor";
 
 interface CourseListProps {
   onCourseSelect: (course: Course) => void;
 }
 
 export function CourseList({ onCourseSelect }: CourseListProps) {
-  const courses: Course[] = [
-    {
-      id: 'geo-301',
-      code: 'GÉO-301',
-      name: 'Géologie Structurale',
-      level: 'L3 Géologie',
-      schedule: 'Lundi: 08:30 - 12:30 (Amphi B)\nJeudi: 14:00 - 16:00 (Amphi C)',
-      location: 'Amphi B',
-      color: 'blue',
-      role: 'Professeur'
-    },
-    {
-      id: 'min-212',
-      code: 'MIN-212',
-      name: 'Minéralogie Optique',
-      level: 'L2 Géologie',
-      schedule: 'Mardi: 10:30 - 12:30 (Labo 1)\nVendredi: 08:30 - 10:30 (Labo 1)',
-      location: 'Labo 1',
-      color: 'green',
-      role: 'Assistant'
-    },
-    {
-      id: 'pal-405',
-      code: 'PAL-405',
-      name: 'Paléontologie des Vertébrés',
-      level: 'M1 Paléontologie',
-      schedule: 'Mercredi: 13:00 - 16:00 (Salle 204)',
-      location: 'Salle 204',
-      color: 'yellow',
-      role: 'Professeur'
-    },
-    {
-      id: 'sed-310',
-      code: 'SED-310',
-      name: 'Sédimentologie',
-      level: 'L3 Géologie',
-      schedule: 'Lundi: 13:00 - 15:00 (Amphi A)',
-      location: 'Amphi A',
-      color: 'purple',
-      role: 'Assistant'
-    }
-  ];
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const data = await professorService.getCourses();
+        setCourses(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   const getColorClasses = (color: string) => {
     const colors: { [key: string]: { bg: string; text: string } } = {
@@ -57,6 +33,15 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
     };
     return colors[color] || colors.blue;
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="w-12 h-12 border-4 border-[#009485] border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-500 font-medium">Chargement de vos cours...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto">

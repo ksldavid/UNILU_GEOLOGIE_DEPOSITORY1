@@ -1,40 +1,41 @@
-// Script d'import des cours
+// Script d'import des cours avec Prisma Client
 import 'dotenv/config'
-import pkg from 'pg'
+import { PrismaClient } from '@prisma/client'
 import * as fs from 'fs'
 import * as path from 'path'
 import { parse } from 'csv-parse/sync'
 
-const { Client } = pkg
+const prisma = new PrismaClient()
 
 // Fichiers CSV par niveau
-// Fichiers CSV par niveau
 const LEVEL_FILES: Record<string, string> = {
-    'presciences': 'presciences.csv',
+    'prescience': 'presciences.csv',
     'b1': 'b1.csv',
     'b2': 'b2.csv',
     'b3': 'b3.csv',
-    // M1 et M2 sont maintenant génériques
-    'm1': 'm1_environnement_hydrogeologie.csv', // On utilise un fichier par défaut ou on pourrait modifier la logique pour lire plusieurs
-    'm2': 'm2_environnement_hydrogeologie.csv'  // Idem
+    'm1_hydro': 'm1_environnement_hydrogeologie.csv',
+    'm1_exploration': 'm1_exploration_geologie_minieres.csv',
+    'm1_geotechnique': 'm1_geotechnique.csv',
+    'm2_hydro': 'm2_environnement_hydrogeologie.csv',
+    'm2_exploration': 'm2_exploration_geologie_minieres.csv',
+    'm2_geotechnique': 'm2_geotechnique.csv'
 }
 
-// Note: Pour M1 et M2, comme nous avons plusieurs fichiers sources mais une seule "destination" logique (m1/m2),
-// nous allons adapter le script pour lire tous les fichiers pertinents si on demande 'm1' ou 'm2'.
-// Mais pour l'instant, simplifions en disant que nous avons fusionné les fichiers ou que nous traitons fichier par fichier.
+const LEVEL_MAPPING: Record<string, string> = {
+    'presciences': 'prescience',
+    'm1_environnement': 'm1_hydro',
+    'm2_environnement': 'm2_hydro',
+};
 
-// Pour faire simple et respecter les fichiers existants :
 const FILES_TO_PROCESS = [
-    { level: 'presciences', file: 'presciences.csv' },
+    { level: 'prescience', file: 'presciences.csv' },
     { level: 'b1', file: 'b1.csv' },
     { level: 'b2', file: 'b2.csv' },
     { level: 'b3', file: 'b3.csv' },
-    // M1 - Spécialisations
-    { level: 'm1_environnement', file: 'm1_environnement_hydrogeologie.csv' },
+    { level: 'm1_hydro', file: 'm1_environnement_hydrogeologie.csv' },
     { level: 'm1_exploration', file: 'm1_exploration_geologie_minieres.csv' },
     { level: 'm1_geotechnique', file: 'm1_geotechnique.csv' },
-    // M2 - Spécialisations
-    { level: 'm2_environnement', file: 'm2_environnement_hydrogeologie.csv' },
+    { level: 'm2_hydro', file: 'm2_environnement_hydrogeologie.csv' },
     { level: 'm2_exploration', file: 'm2_exploration_geologie_minieres.csv' },
     { level: 'm2_geotechnique', file: 'm2_geotechnique.csv' }
 ];
@@ -63,59 +64,64 @@ async function importCourses(levelCode: string, fileName: string) {
     })
 
     console.log(`\n📂 Import de ${courses.length} cours depuis ${fileName}`)
-    console.log(`🎓 Niveau: ${levelCode} (Code CSV) -> Vers Base de données\n`)
-
-    const databaseUrl = process.env.DATABASE_URL
-    if (!databaseUrl) {
-        console.error('❌ DATABASE_URL introuvable')
-        process.exit(1)
-    }
-
-    const client = new Client({ connectionString: databaseUrl })
-    await client.connect()
+    console.log(`🎓 Niveau par défaut: ${levelCode}\n`)
 
     let success = 0
     let failed = 0
     let skipped = 0
 
-    try {
-        for (const course of courses) {
-            try {
-                const targetLevel = course.level || levelCode;
+    for (const data of courses) {
+        try {
+            let targetLevelCode = data.level || levelCode;
 
-                // 1. Insérer le cours ou mettre à jour
-                await client.query(`
-                    INSERT INTO "Course" (code, name, description)
-                    VALUES ($1, $2, $3)
-                    ON CONFLICT (code) DO UPDATE SET
-                        name = EXCLUDED.name,
-                        description = EXCLUDED.description
-                `, [course.code, course.name, course.description || null])
+            // Appliquer le mapping si nécessaire
+            if (LEVEL_MAPPING[targetLevelCode]) {
+                targetLevelCode = LEVEL_MAPPING[targetLevelCode];
+            }
 
-                // 2. Lier au niveau académique (Table de jointure implicite Prisma: _AcademicLevelToCourse)
-                // A = AcademicLevel Id (Int), B = Course Code (String)
-                await client.query(`
-                    INSERT INTO "_AcademicLevelToCourse" ("A", "B")
-                    SELECT id, $1 FROM "AcademicLevel" WHERE code = $2
-                    ON CONFLICT DO NOTHING
-                `, [course.code, targetLevel])
+            // 1. Upsert du cours
+            const course = await prisma.course.upsert({
+                where: { code: data.code },
+                update: {
+                    name: data.name,
+                    description: data.description || null,
+                },
+                create: {
+                    code: data.code,
+                    name: data.name,
+                    description: data.description || null,
+                }
+            })
 
-                console.log(`✅ Créé/Lié: ${course.code} - ${course.name} [${targetLevel}]`)
+            // 2. Lier au niveau académique
+            const academicLevel = await prisma.academicLevel.findUnique({
+                where: { code: targetLevelCode }
+            })
+
+            if (academicLevel) {
+                await prisma.academicLevel.update({
+                    where: { id: academicLevel.id },
+                    data: {
+                        courses: {
+                            connect: { code: course.code }
+                        }
+                    }
+                })
+                console.log(`✅ Créé/Lié: ${course.code} - ${course.name} [${targetLevelCode}]`)
                 success++
-
-            } catch (error: any) {
-                console.error(`❌ Erreur pour ${course.code}: ${error.message}`)
+            } else {
+                console.error(`❌ Niveau académique introuvable: ${targetLevelCode} pour le cours ${course.code}`)
                 failed++
             }
-        }
 
-    } finally {
-        await client.end()
+        } catch (error: any) {
+            console.error(`❌ Erreur pour ${data.code}: ${error.message}`)
+            failed++
+        }
     }
 
-    console.log(`\n📊 Résumé:`)
+    console.log(`\n📊 Résumé pour ${fileName}:`)
     console.log(` ✅ Succès: ${success}`)
-    console.log(` ⚠️  Ignorés (déjà existants): ${skipped}`)
     console.log(` ❌ Échecs: ${failed}`)
 
     return { success, failed, skipped }
@@ -126,7 +132,7 @@ async function main() {
 
     console.log(`
 ╔════════════════════════════════════════════════════════════════════╗
-║                    📚 IMPORTATION DES COURS                        ║
+║             📚 IMPORTATION DES COURS (VIA PRISMA)                  ║
 ╚════════════════════════════════════════════════════════════════════╝
 `)
 
@@ -135,20 +141,17 @@ async function main() {
 
         let totalSuccess = 0
         let totalFailed = 0
-        let totalSkipped = 0
 
         for (const { level, file } of FILES_TO_PROCESS) {
             const result = await importCourses(level, file)
             totalSuccess += result.success
             totalFailed += result.failed
-            totalSkipped += result.skipped
         }
 
         console.log(`\n${'='.repeat(70)}`)
         console.log(`📊 RÉSUMÉ GLOBAL`)
         console.log(`${'='.repeat(70)}`)
-        console.log(`✅ Total créés: ${totalSuccess}`)
-        console.log(`⚠️  Total ignorés: ${totalSkipped}`)
+        console.log(`✅ Total créés/mis à jour: ${totalSuccess}`)
         console.log(`❌ Total échecs: ${totalFailed}`)
         console.log(`${'='.repeat(70)}\n`)
 
@@ -170,7 +173,6 @@ async function main() {
 Utilisation:
   npx tsx prisma/courses/import.ts --all              # Importer tous les cours
   npx tsx prisma/courses/import.ts --level b1         # Importer cours B1
-  npx tsx prisma/courses/import.ts --level m1_geotechnique
         `)
     }
 }
@@ -179,4 +181,7 @@ main()
     .catch((error) => {
         console.error('\n❌ ERREUR GLOBALE:', error)
         process.exit(1)
+    })
+    .finally(async () => {
+        await prisma.$disconnect()
     })

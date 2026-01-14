@@ -1,4 +1,4 @@
-import { LayoutGrid, GraduationCap, Calendar, Users, LogOut } from "lucide-react";
+import { LayoutGrid, GraduationCap, Calendar, Users, LogOut, Megaphone } from "lucide-react";
 import logoImage from "../../assets/da1a2f529aca98b88831def6f2dc64f21ceb1b65.png";
 import type { Page } from "../../App";
 
@@ -16,6 +16,7 @@ export function Sidebar({ currentPage, onNavigate, onLogout, isOpen, onClose }: 
     { id: 'courses' as const, label: "Mes Cours", icon: GraduationCap },
     { id: 'planning' as const, label: "Planning", icon: Calendar },
     { id: 'students' as const, label: "Étudiants", icon: Users },
+    { id: 'announcements' as const, label: "Mes Annonces", icon: Megaphone },
   ];
 
   return (

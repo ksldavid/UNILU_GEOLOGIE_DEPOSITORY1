@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     Clock, Users, FileText, Calendar, Filter,
-    Search, Activity, LayoutGrid, List
+    Search, Activity, LayoutGrid, List, Megaphone
 } from 'lucide-react';
 import { userService } from '../../../../services/user';
 
@@ -35,6 +35,7 @@ export function ActivityHistory() {
             case 'GRADE': return { icon: FileText, color: 'text-green-500', bg: 'bg-green-50', label: 'Note' };
             case 'SCHEDULE': return { icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-50', label: 'Planning' };
             case 'ATTENDANCE': return { icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50', label: 'Présence' };
+            case 'ANNOUNCEMENT': return { icon: Megaphone, color: 'text-pink-500', bg: 'bg-pink-50', label: 'Annonce' };
             default: return { icon: Activity, color: 'text-gray-500', bg: 'bg-gray-50', label: 'Système' };
         }
     };

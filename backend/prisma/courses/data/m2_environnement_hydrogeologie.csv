@@ -1,5 +1,5 @@
 code,name,description,academicYear,level
-GEOL502,Évaluation des gisements et calcul des réserves,tronc commun,2025-2026,m2_environnement
+GEOL502,Évaluati des gisements et calcul des réserves,tronc commun,2025-2026,m2_environnement
 GEOL503,Géologie des terrains superficiels,tronc commun,2025-2026,m2_environnement
 GEOL515,Contrôle géologique des exploitations minières,tronc commun,2025-2026,m2_environnement
 PROJ550,Rédaction et défense d'un mémoire,tronc commun,2025-2026,m2_environnement
@@ -11,3 +11,5 @@ GEOL552,Aménagement et gestion des ressources en eau,Techniques de planificatio
 GEOL553,Hydrogéologie minière,Analyse des eaux souterraines et impacts liés aux activités minières,2025-2026,m2_environnement
 GEOL554,Hydrogéologie des contaminants,Étude de la pollution des nappes et du transport des contaminants,2025-2026,m2_environnement
 PROJ551,Projet de modélisation hydrogéologique,Développement de modèles pour simuler le comportement des eaux souterraines,2025-2026,m2_environnement
+GEOL441,Géostatistique avancée,Techniques statistiques avancées pour l'analyse des données géologiques,2025-2026,m2_environnement
+GEOL440, Prospection géochimique(pratique),Techniques pratiques de prospection géochimique pour l'analyse des sols et des eaux souterraines,2025-2026,m2_environnement

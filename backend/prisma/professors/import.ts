@@ -16,7 +16,7 @@ interface ProfessorData {
 }
 
 async function importProfessors() {
-    const filePath = path.join(process.cwd(), 'prisma', 'professors', 'data', 'Professeurs_IDs_Password.csv')
+    const filePath = path.join(process.cwd(), 'prisma', 'professors', 'data', 'professeur_idNumber_password_FINAL_final.csv')
 
     if (!fs.existsSync(filePath)) {
         console.error(`❌ Fichier introuvable: ${filePath}`)

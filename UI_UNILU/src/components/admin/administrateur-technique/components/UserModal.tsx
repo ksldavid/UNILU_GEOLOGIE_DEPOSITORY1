@@ -10,11 +10,19 @@ import { jsPDF } from 'jspdf';
 import uniluLogo from '../../../../assets/unilu-official-logo.png';
 
 const STUDENT_CLASSES = [
-    "L1 Géologie", "L2 Mines", "L3 Exploration",
-    "M1 Géo-ressources", "M2 Environnement"
+    "Prescience",
+    "Licence 1 (B1)",
+    "Licence 2 (B2)",
+    "Licence 3 (B3)",
+    "Master 1 (Exploration)",
+    "Master 1 (Géotechnique)",
+    "Master 1 (Hydro)",
+    "Master 2 (Exploration)",
+    "Master 2 (Géotechnique)",
+    "Master 2 (Hydro)"
 ];
 
-export function UserModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess?: () => void }) {
     const [role, setRole] = useState('student');
     const [password, setPassword] = useState('');
     const [userId, setUserId] = useState('');
@@ -24,62 +32,44 @@ export function UserModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
     const [middleName, setMiddleName] = useState('');
     const [firstName, setFirstName] = useState('');
     const [gender, setGender] = useState<'M' | 'F'>('M');
-    const [studentClass, setStudentClass] = useState('L1 Géologie');
+    const [studentClass, setStudentClass] = useState('Prescience');
     const [isCreated, setIsCreated] = useState(false);
 
-    const generatePassword = useCallback(() => {
-        const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-        const numbers = "23456789";
-
-        let newPass = "";
-        for (let i = 0; i < 4; i++) {
-            newPass += upper.charAt(Math.floor(Math.random() * upper.length));
+    const fetchSuggestions = useCallback(async () => {
+        if (!lastName && !firstName) return;
+        try {
+            const token = sessionStorage.getItem('token');
+            const fullNameForPass = `${lastName} ${firstName}`;
+            const res = await fetch(`http://localhost:3001/api/admin/credentials/suggest?role=${role}&name=${encodeURIComponent(fullNameForPass)}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setUserId(data.id);
+                setPassword(data.password);
+            }
+        } catch (error) {
+            console.error("Erreur suggestions:", error);
         }
-        for (let i = 0; i < 4; i++) {
-            newPass += numbers.charAt(Math.floor(Math.random() * numbers.length));
-        }
-        setPassword(newPass);
-    }, []);
+    }, [role, lastName, firstName]);
 
-    const generateUserId = useCallback(() => {
-        const digits = "0123456789";
-        let randomPart = "";
-        let prefix = "";
-        let count = 0;
-
-        switch (role) {
-            case 'prof':
-                prefix = "PROF-";
-                count = 3;
-                break;
-            case 'admin':
-                prefix = "TECH-";
-                count = 2;
-                break;
-            case 'academic':
-                prefix = "ACAD-";
-                count = 2;
-                break;
-            case 'student':
-            default:
-                prefix = "A001-";
-                count = 5;
-                break;
-        }
-
-        for (let i = 0; i < count; i++) {
-            randomPart += digits.charAt(Math.floor(Math.random() * digits.length));
-        }
-        setUserId(`${prefix}${randomPart}`);
-    }, [role]);
-
-    // Initial generation on mount and on role change
+    // Régénérer uniquement quand le rôle change ou qu'on clique manuellement
     useEffect(() => {
-        if (isOpen && !isCreated) {
-            generatePassword();
-            generateUserId();
+        if (isOpen && !isCreated && (lastName || firstName)) {
+            fetchSuggestions();
         }
-    }, [isOpen, isCreated, role, generatePassword, generateUserId]);
+    }, [role, isOpen, isCreated]);
+
+    const handleRefreshCredentials = () => {
+        fetchSuggestions();
+    };
+
+    // Initial generation on name blur
+    const handleNameBlur = () => {
+        if (!userId || !password) {
+            fetchSuggestions();
+        }
+    };
 
     const downloadPDF = async () => {
         const doc = new jsPDF();
@@ -288,12 +278,43 @@ export function UserModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
         doc.save(`${fileName}.pdf`);
     };
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         if (!lastName || !firstName || !userId) {
             alert("Le Nom, le Prénom et l'Identifiant sont obligatoires.");
             return;
         }
-        setIsCreated(true);
+
+        try {
+            const token = sessionStorage.getItem('token');
+            const fullName = `${lastName.toUpperCase()} ${middleName.toUpperCase()} ${firstName}`.replace(/\s+/g, ' ').trim();
+
+            const res = await fetch('http://localhost:3001/api/admin/users', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id: userId,
+                    name: fullName,
+                    email: `${userId.toLowerCase()}@unilu.ac.cd`, // On pourrait aussi prendre l'input si besoin
+                    password: password,
+                    role: role,
+                    studentClass: role === 'student' ? studentClass : undefined
+                })
+            });
+
+            if (res.ok) {
+                setIsCreated(true);
+                if (onSuccess) onSuccess();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Une erreur est survenue lors de la création.");
+            }
+        } catch (error) {
+            console.error("Erreur création utilisateur:", error);
+            alert("Erreur de connexion au serveur.");
+        }
     };
 
     const resetAndClose = () => {
@@ -302,7 +323,7 @@ export function UserModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
         setMiddleName('');
         setFirstName('');
         setGender('M');
-        setStudentClass('L1 Géologie');
+        setStudentClass('Prescience');
         setUserId('');
         setRole('student');
         onClose();
@@ -349,6 +370,7 @@ export function UserModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                                             className="w-full bg-[#0B0F19] border border-slate-800 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-blue-500/50 transition-all font-bold placeholder:text-slate-800"
                                             value={lastName}
                                             onChange={(e) => setLastName(e.target.value)}
+                                            onBlur={handleNameBlur}
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -369,6 +391,7 @@ export function UserModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                                             className="w-full bg-[#0B0F19] border border-slate-800 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-blue-500/50 transition-all font-bold placeholder:text-slate-800"
                                             value={firstName}
                                             onChange={(e) => setFirstName(e.target.value)}
+                                            onBlur={handleNameBlur}
                                         />
                                     </div>
 
@@ -435,7 +458,7 @@ export function UserModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                                                 />
                                             </div>
                                             <button
-                                                onClick={generateUserId}
+                                                onClick={handleRefreshCredentials}
                                                 className="w-14 h-14 bg-blue-600/10 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 hover:bg-blue-600 hover:text-white transition-all active:scale-95 group"
                                                 title="Régénérer l'ID"
                                             >
@@ -474,7 +497,7 @@ export function UserModal({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                                         className="flex-1 bg-[#111827] border border-slate-800 rounded-2xl px-5 py-4 text-2xl text-white font-mono text-center outline-none shadow-xl tracking-[0.2em] font-black"
                                     />
                                     <button
-                                        onClick={generatePassword}
+                                        onClick={handleRefreshCredentials}
                                         className="px-6 bg-blue-600 hover:bg-blue-500 rounded-2xl text-white transition-all shadow-lg shadow-blue-600/20 active:scale-95 group"
                                     >
                                         <RefreshCcw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />

@@ -51,6 +51,7 @@ enum AnnouncementType {
 }
 
 enum AnnouncementTarget {
+  GLOBAL // Toute l'Université
   ALL_STUDENTS // Tous les étudiants
   ACADEMIC_LEVEL // Étudiants d'un niveau spécifique
   COURSE_STUDENTS // Étudiants d'un cours spécifique
@@ -99,6 +100,7 @@ model User {
   authoredAnnouncements Announcement[]     @relation("AuthoredAnnouncements")
   targetedAnnouncements Announcement[]     @relation("TargetedAnnouncements")
   readAnnouncements     AnnouncementRead[]
+  submissions           Submission[] // Student submissions for assignments
 
   // Attendance change requests made by this user (Academic Office)
   attendanceChangeRequests AttendanceChangeRequest[]
@@ -347,9 +349,28 @@ model Assessment {
 
   grades Grade[]
 
+  submissions Submission[]
+
   @@index([courseCode])
   @@index([creatorId])
   @@index([isPublished])
+}
+
+model Submission {
+  id           Int      @id @default(autoincrement())
+  assessmentId Int
+  studentId    String
+  fileUrl      String // URL from Cloudinary
+  fileName     String
+  publicId     String? // Add this to handle deletions from Cloudinary
+  submittedAt  DateTime @default(now())
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  student    User       @relation(fields: [studentId], references: [id])
+
+  @@unique([assessmentId, studentId])
+  @@index([assessmentId])
+  @@index([studentId])
 }
 
 model Grade {
@@ -399,11 +420,20 @@ model GradeChangeRequest {
 model AttendanceSession {
   id         Int      @id @default(autoincrement())
   courseCode String
-  date       DateTime @default(now())
+  date       DateTime @default(now()) // Represents the day of the session
   isLocked   Boolean  @default(false)
+
+  // Security & QR Code
+  qrToken   String? @unique
+  latitude  Float?
+  longitude Float?
 
   course  Course             @relation(fields: [courseCode], references: [code])
   records AttendanceRecord[]
+
+  @@unique([courseCode, date]) // One session per course per day
+  @@index([courseCode])
+  @@index([date])
 }
 
 model AttendanceRecord {
@@ -454,6 +484,7 @@ model CourseResource {
   courseCode String
   title      String
   url        String
+  publicId   String? // Add this to handle deletions from Cloudinary
   uploadedAt DateTime @default(now())
 
   course Course @relation(fields: [courseCode], references: [code])

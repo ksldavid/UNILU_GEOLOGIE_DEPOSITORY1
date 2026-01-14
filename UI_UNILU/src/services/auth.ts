@@ -34,20 +34,20 @@ export const authService = {
 
         // Stocker le token
         if (data.token) {
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            sessionStorage.setItem('token', data.token);
+            sessionStorage.setItem('user', JSON.stringify(data.user));
         }
 
         return data; // Contient { message, token, user }
     },
 
     logout() {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
     },
 
     getCurrentUser() {
-        const userStr = localStorage.getItem('user');
+        const userStr = sessionStorage.getItem('user');
         if (userStr) return JSON.parse(userStr);
         return null;
     }

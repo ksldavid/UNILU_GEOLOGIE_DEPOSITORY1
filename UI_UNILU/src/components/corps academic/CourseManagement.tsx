@@ -1,11 +1,12 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   ArrowLeft, FileText, Users, ClipboardList, UserPlus, FilePlus,
   Settings2, BarChart3, UploadCloud, ChevronRight, Loader2, CheckCircle2,
   Search, Filter, Plus, Calendar, Trophy, Download, Trash2, Eye, Mail,
-  AlertTriangle, X, UserCheck, Send, History
+  AlertTriangle, X, UserCheck, Send, History, Save
 } from "lucide-react";
 import type { Course } from "../../App";
+import { professorService } from "../../services/professor";
 
 interface CourseManagementProps {
   course: Course;
@@ -37,6 +38,236 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modifFileInputRef = useRef<HTMLInputElement>(null);
 
+  const [students, setStudents] = useState<any[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [selectedStudentPerformance, setSelectedStudentPerformance] = useState<any | null>(null);
+  const [performanceData, setPerformanceData] = useState<any>(null);
+  const [loadingPerformance, setLoadingPerformance] = useState(false);
+  const [exams, setExams] = useState<any[]>([]);
+  const [loadingExams, setLoadingExams] = useState(false);
+  const [newExamData, setNewExamData] = useState({
+    title: "",
+    type: "Interrogation",
+    maxPoints: "20",
+    date: new Date().toISOString().split('T')[0],
+    weight: "1"
+  });
+  const [tempGrades, setTempGrades] = useState<Record<string, string>>({});
+  const [isSavingGrades, setIsSavingGrades] = useState(false);
+  const [resources, setResources] = useState<any[]>([]);
+  const [loadingResources, setLoadingResources] = useState(false);
+  const [assignmentData, setAssignmentData] = useState({
+    title: "",
+    instructions: "",
+    dueDate: new Date().toISOString().split('T')[0],
+    dueTime: "23:59"
+  });
+  const [isLaunchingAssignment, setIsLaunchingAssignment] = useState(false);
+  const [selectedAssignmentForSubmissions, setSelectedAssignmentForSubmissions] = useState<any>(null);
+
+  useEffect(() => {
+    if (selectedStudentPerformance) {
+      const fetchPerformance = async () => {
+        setLoadingPerformance(true);
+        try {
+          const data = await professorService.getStudentPerformance(selectedStudentPerformance.id, course.code);
+          setPerformanceData(data);
+        } catch (error) {
+          console.error(error);
+        } finally {
+          setLoadingPerformance(false);
+        }
+      };
+      fetchPerformance();
+    } else {
+      setPerformanceData(null);
+    }
+  }, [selectedStudentPerformance, course.code]);
+
+  const fetchStudents = async () => {
+    setLoadingStudents(true);
+    try {
+      // We fetch all students for the professor, then filter by this course
+      // Ideally we'd have a specific endpoint /course/:id/students
+      const allStudents = await professorService.getStudents();
+      // Filter where courseCode matches our course.code (or id if we had it mapped)
+      // The course object from App.tsx has 'code' like 'GEO301'. 
+      // The backend returns courseCode.
+      const courseStudents = allStudents.filter((s: any) => s.courseCode === course.code || s.courseName === course.name);
+
+      // Map to expected format (add default attendance/grade if missing from backend)
+      const formattedStudents = courseStudents.map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        matricule: s.id, // ID is matricule
+        attendance: 0, // Default 0 as we don't have this data linked yet
+        grade: 0 // Default 0
+      }));
+      setStudents(formattedStudents);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const fetchExams = async () => {
+    setLoadingExams(true);
+    try {
+      const data = await professorService.getCourseAssessments(course.code);
+      setExams(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingExams(false);
+    }
+  };
+
+  const fetchResources = async () => {
+    setLoadingResources(true);
+    try {
+      const data = await professorService.getCourseResources(course.code);
+      setResources(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingResources(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeSubView === 'students') {
+      fetchStudents();
+    }
+  }, [activeSubView, course.code, course.name]);
+
+  useEffect(() => {
+    if (activeSubView === 'manage-exams' || activeSubView === 'main' || activeSubView === 'assignments') {
+      fetchExams();
+    }
+  }, [activeSubView, course.code]);
+
+  useEffect(() => {
+    if (activeSubView === 'documents' || activeSubView === 'main') {
+      fetchResources();
+    }
+  }, [activeSubView, course.code]);
+
+  useEffect(() => {
+    if (selectedExam && selectedExam.grades) {
+      const gradesMap: Record<string, string> = {};
+      selectedExam.grades.forEach((g: any) => {
+        gradesMap[g.studentId] = g.score.toString();
+      });
+      setTempGrades(gradesMap);
+    }
+  }, [selectedExam]);
+
+  const handleSaveGrades = async () => {
+    if (!selectedExam) return;
+    setIsSavingGrades(true);
+    try {
+      const gradesArray = Object.entries(tempGrades).map(([studentId, score]) => ({
+        studentId,
+        score
+      }));
+      await professorService.saveGrades(selectedExam.id, gradesArray);
+      alert("Notes enregistrées avec succès !");
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de l'enregistrement des notes");
+    } finally {
+      setIsSavingGrades(false);
+    }
+  };
+
+  const handleCreateExam = async () => {
+    try {
+      await professorService.createAssessment({
+        ...newExamData,
+        courseCode: course.code
+      });
+      alert("Évaluation créée avec succès !");
+      setActiveSubView('manage-exams');
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de la création");
+    }
+  };
+
+  const handleDeleteResource = async (resourceId: number) => {
+    if (!window.confirm("Voulez-vous vraiment supprimer ce document ?")) return;
+
+    try {
+      await professorService.deleteResource(resourceId);
+      // Refresh list
+      fetchResources();
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de la suppression du document");
+    }
+  };
+
+  const handleLaunchAssignment = async () => {
+    if (!assignmentData.title || !assignmentData.dueDate) return;
+    setIsLaunchingAssignment(true);
+    try {
+      const dueDateTime = new Date(`${assignmentData.dueDate}T${assignmentData.dueTime}`);
+      await professorService.createAssessment({
+        title: assignmentData.title,
+        type: 'TP', // Or TD, let's use TP for Assignments
+        maxPoints: 20,
+        date: new Date().toISOString(),
+        dueDate: dueDateTime.toISOString(),
+        courseCode: course.code,
+        weight: 1
+      });
+      alert("Travail lancé avec succès !");
+      setAssignmentData({
+        title: "",
+        instructions: "",
+        dueDate: new Date().toISOString().split('T')[0],
+        dueTime: "23:59"
+      });
+      fetchExams(); // Refresh assignments list
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors du lancement du travail");
+    } finally {
+      setIsLaunchingAssignment(false);
+    }
+  };
+
+  const [globalStudents, setGlobalStudents] = useState<any[]>([]);
+  const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
+
+  useEffect(() => {
+    const search = async () => {
+      if (searchQuery.length < 2) {
+        setGlobalStudents([]);
+        return;
+      }
+      setIsSearchingGlobal(true);
+      try {
+        const results = await professorService.searchStudents(searchQuery);
+        setGlobalStudents(results);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsSearchingGlobal(false);
+      }
+    };
+
+    if (activeSubView === 'add-student') {
+      const timer = setTimeout(search, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [searchQuery, activeSubView]);
+
+
+
+  const modifHistory: any[] = [];
+
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
@@ -47,10 +278,33 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
     }
   };
 
-  const confirmUpload = () => {
+  const confirmUpload = async () => {
     if (pendingFile) {
-      simulateUpload();
-      setPendingFile(null);
+      setIsUploading(true);
+      setUploadProgress(0);
+      setUploadSuccess(false);
+
+      try {
+        // Simuler une progression visuelle rapide avant l'appel API permanent
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => (prev < 90 ? prev + 10 : prev));
+        }, 200);
+
+        await professorService.uploadResource(course.code, pendingFile.name, pendingFile);
+
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+        setUploadSuccess(true);
+        fetchResources(); // Rafraîchir la liste
+        setTimeout(() => setUploadSuccess(false), 3000);
+      } catch (error) {
+        console.error(error);
+        alert("Erreur lors de l'envoi du document");
+      } finally {
+        setIsUploading(false);
+        setPendingFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -59,25 +313,6 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
-
-  const simulateUpload = () => {
-    setIsUploading(true);
-    setUploadProgress(0);
-    setUploadSuccess(false);
-
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsUploading(false);
-          setUploadSuccess(true);
-          setTimeout(() => setUploadSuccess(false), 3000);
-          return 100;
-        }
-        return prev + 5;
-      });
-    }, 100);
   };
 
   const onDragOver = (e: React.DragEvent) => {
@@ -164,65 +399,91 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
     }
   ];
 
-  const students = [
-    { id: 1, name: "Jean-Pierre Kabamba", matricule: "24-GEOL-101", attendance: 92, grade: 15.5 },
-    { id: 2, name: "Sarah Mujinga", matricule: "24-GEOL-102", attendance: 85, grade: 14.2 },
-    { id: 3, name: "Marc Tshilenge", matricule: "24-GEOL-103", attendance: 78, grade: 12.8 },
-    { id: 4, name: "Dorcas Mwamba", matricule: "24-GEOL-104", attendance: 95, grade: 16.1 },
-    { id: 5, name: "Alain Kasongo", matricule: "24-GEOL-105", attendance: 65, grade: 10.5 },
-  ];
-
-  const globalStudents = [
-    { id: 10, name: "Bénédicte Kalenga", matricule: "24-GEOL-201", email: "benedicte@unilu.ac.cd" },
-    { id: 11, name: "Chris Mukendi", matricule: "24-GEOL-202", email: "chris@unilu.ac.cd" },
-    { id: 12, name: "Arlette Ngoy", matricule: "24-GEOL-203", email: "arlette@unilu.ac.cd" },
-    { id: 13, name: "David Muteba", matricule: "24-GEOL-204", email: "david@unilu.ac.cd" },
-  ];
-
-  const modifHistory = [
-    {
-      id: 1,
-      studentName: "Marc Tshilenge",
-      examTitle: "Interrogation 1",
-      oldGrade: 12.8,
-      newGrade: 14.5,
-      date: "25 Déc 2025",
-      status: "Validé",
-      reason: "Erreur de transcription lors de la saisie initiale.",
-      adminNote: "Note mise à jour après vérification de la copie physique."
-    },
-    {
-      id: 2,
-      studentName: "Alain Kasongo",
-      examTitle: "Interrogation 1",
-      oldGrade: 10.5,
-      newGrade: 12.0,
-      date: "26 Déc 2025",
-      status: "Refusé",
-      reason: "Omission d'un bonus accordé en classe.",
-      adminNote: "Absence de preuve tangible (copie non signée par le professeur)."
-    },
-    {
-      id: 3,
-      studentName: "Sarah Mujinga",
-      examTitle: "Interrogation 1",
-      oldGrade: 14.2,
-      newGrade: 15.5,
-      date: "27 Déc 2025",
-      status: "En cours",
-      reason: "Réévaluation après réclamation sur la question 4.",
-      adminNote: ""
-    }
-  ];
-
   const filteredGlobalStudents = globalStudents.filter(s =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.matricule.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Global Components (Modals & Inputs)
+  const GlobalComponents = () => (
+    <>
+      <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
+
+      {/* Upload confirmation / progress Modal - ONLY in sub-views */}
+      {(pendingFile || isUploading || uploadSuccess) && activeSubView !== 'main' && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-[#1B4332] rounded-[44px] p-12 border border-white/10 relative overflow-hidden max-w-2xl w-full shadow-2xl">
+            <button
+              onClick={() => { setPendingFile(null); setIsUploading(false); setUploadSuccess(false); }}
+              className="absolute top-8 right-8 text-white/30 hover:text-white transition-colors z-50"
+            >
+              <X className="w-8 h-8" />
+            </button>
+
+            {/* Decoration */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-teal-400/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+
+            <div className="relative z-10 flex flex-col items-center text-center">
+              {pendingFile && !isUploading && !uploadSuccess && (
+                <div className="animate-in zoom-in-95 duration-300 flex flex-col items-center">
+                  <div className="w-24 h-24 bg-white/10 rounded-[32px] flex items-center justify-center mb-8 border border-white/20">
+                    <FileText className="w-12 h-12 text-teal-300" />
+                  </div>
+                  <h3 className="text-4xl font-black text-white mb-4 tracking-tight">Prêt à soumettre ?</h3>
+                  <div className="px-6 py-3 bg-teal-900/50 rounded-2xl border border-white/5 mb-10">
+                    <p className="text-teal-100 font-bold italic truncate max-w-sm">"{pendingFile.name}"</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <button onClick={cancelUpload} className="px-8 py-4 rounded-2xl font-bold bg-white/5 text-white hover:bg-white/10 transition-all border border-white/10">Annuler</button>
+                    <button onClick={confirmUpload} className="px-10 py-5 rounded-2xl font-black bg-white text-teal-900 hover:bg-teal-50 transition-all shadow-xl shadow-teal-900/40 flex items-center gap-3">
+                      Confirmer l'envoi
+                      <ArrowLeft className="w-6 h-6 rotate-180" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {isUploading && (
+                <div className="w-full flex flex-col items-center animate-in zoom-in-95 duration-300">
+                  <div className="relative mb-12">
+                    <div className="w-32 h-32 border-8 border-teal-500/20 rounded-full animate-spin border-t-white"></div>
+                    <Loader2 className="w-12 h-12 text-teal-400 animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                  </div>
+                  <h3 className="text-4xl font-black text-white mb-2 uppercase tracking-tight">Transmission En Cours</h3>
+                  <p className="text-teal-400 font-black tracking-[0.3em] text-xs animate-pulse">CRYPTAGE & OPTIMISATION DES PACKETS</p>
+                  <div className="w-full bg-white/10 h-6 rounded-full overflow-hidden mt-12 mb-6 p-1.5 border border-white/10">
+                    <div
+                      className="bg-gradient-to-r from-teal-400 via-cyan-400 to-teal-400 h-full rounded-full transition-all duration-300 shadow-[0_0_25px_rgba(45,212,191,0.6)]"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex items-end gap-1">
+                    <span className="text-7xl font-black text-white">{uploadProgress}</span>
+                    <span className="text-3xl font-bold text-teal-400 mb-2">%</span>
+                  </div>
+                </div>
+              )}
+
+              {uploadSuccess && (
+                <div className="animate-in zoom-in duration-500 flex flex-col items-center">
+                  <div className="w-32 h-32 bg-emerald-500 rounded-[40px] flex items-center justify-center mb-10 shadow-[0_0_50px_rgba(16,185,129,0.5)] border-4 border-white/20 rotate-3">
+                    <CheckCircle2 className="w-16 h-16 text-white" />
+                  </div>
+                  <h3 className="text-5xl font-black text-white mb-4 tracking-tighter">TERMINE !</h3>
+                  <p className="text-teal-100/70 text-xl font-medium">Le document est archivé et disponible pour la promotion.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   if (activeSubView === 'students') {
     return (
       <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
+        <GlobalComponents />
         <button onClick={() => setActiveSubView('main')} className="flex items-center gap-2 text-gray-500 hover:text-teal-600 transition-colors font-bold">
           <ArrowLeft className="w-5 h-5" /> Retour
         </button>
@@ -284,7 +545,10 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                       </span>
                     </td>
                     <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
-                      <button className="p-2.5 hover:bg-teal-50 rounded-xl text-teal-600 transition-colors opacity-0 group-hover:opacity-100">
+                      <button
+                        onClick={() => setSelectedStudentPerformance(student)}
+                        className="p-2.5 hover:bg-teal-50 rounded-xl text-teal-600 transition-colors opacity-0 group-hover:opacity-100"
+                      >
                         <Eye className="w-5 h-5" />
                       </button>
                       <button
@@ -301,6 +565,105 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           </div>
         </div>
 
+        {/* Student Details Modal */}
+        {selectedStudentPerformance && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-[32px] w-full max-w-xl shadow-2xl border border-gray-100 overflow-hidden relative flex flex-col max-h-[90vh]">
+              <div className="bg-gradient-to-r from-teal-600 to-cyan-600 p-6 text-white flex justify-between items-center shrink-0">
+                <div>
+                  <h3 className="text-2xl font-black">{selectedStudentPerformance.name}</h3>
+                  <p className="text-teal-50 text-xs font-mono font-bold tracking-widest opacity-80">{selectedStudentPerformance.id}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedStudentPerformance(null)}
+                  className="p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto custom-scrollbar space-y-8">
+                {loadingPerformance ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="w-10 h-10 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+                    <p className="mt-4 text-gray-500 font-black uppercase tracking-widest text-[10px]">Chargement des données...</p>
+                  </div>
+                ) : performanceData ? (
+                  <>
+                    {/* Attendance Stats */}
+                    <div>
+                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        Assiduité au cours
+                      </h4>
+                      <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-gray-500 font-bold text-sm">Taux de présence global</span>
+                          <span className="text-2xl font-black text-gray-900">{performanceData.attendanceRate}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-teal-600 h-2 rounded-full transition-all duration-1000 shadow-sm"
+                            style={{ width: `${performanceData.attendanceRate}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-3 font-medium flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div>
+                          Présent à {performanceData.presentCount} séances sur {performanceData.totalSessions} au total
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Interro Marks */}
+                    <div>
+                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        Résultats des Évaluations
+                      </h4>
+                      {performanceData.grades.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-3">
+                          {performanceData.grades.map((grade: any, i: number) => (
+                            <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 hover:border-teal-300 transition-all hover:shadow-sm group/card">
+                              <div className="flex justify-between items-center mb-2">
+                                <div className="font-black text-gray-900 text-sm group-hover/card:text-teal-600 transition-colors uppercase tracking-tight truncate pr-4">{grade.title}</div>
+                                <div className={`text-lg font-black shrink-0 ${grade.score >= (grade.maxPoints / 2) ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                  {grade.score}<span className="text-gray-300 text-xs font-bold">/{grade.maxPoints}</span>
+                                </div>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <div className="text-[10px] text-gray-400 font-bold uppercase">{new Date(grade.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                                <div className="w-20 bg-gray-50 rounded-full h-1 overflow-hidden">
+                                  <div
+                                    className={`h-1 rounded-full transition-all duration-1000 ${grade.score >= (grade.maxPoints / 2) ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                                    style={{ width: `${(grade.score / grade.maxPoints) * 100}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                          <p className="text-gray-400 font-bold text-xs italic">Aucune note enregistrée</p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-10 text-rose-500 font-bold text-sm">
+                    Erreur de chargement.
+                  </div>
+                )}
+              </div>
+              <div className="bg-gray-50 p-4 flex justify-end shrink-0 border-t border-gray-100">
+                <button
+                  onClick={() => setSelectedStudentPerformance(null)}
+                  className="px-6 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-sm active:scale-95"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Delete Confirmation Modal */}
         {studentToDelete && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -320,9 +683,16 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   Annuler
                 </button>
                 <button
-                  onClick={() => {
-                    // Logic to delete would go here
-                    setStudentToDelete(null);
+                  onClick={async () => {
+                    try {
+                      await professorService.unenrollStudent(studentToDelete.id, course.code);
+                      setStudents(prev => prev.filter(s => s.id !== studentToDelete.id));
+                      setStudentToDelete(null);
+                      alert("Étudiant retiré avec succès");
+                    } catch (error) {
+                      console.error(error);
+                      alert("Erreur lors de la suppression");
+                    }
                   }}
                   className="py-4 rounded-2xl font-black bg-red-600 text-white hover:bg-red-700 shadow-xl shadow-red-200 transition-all active:scale-95"
                 >
@@ -339,6 +709,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   if (activeSubView === 'add-student') {
     return (
       <div className="p-8 max-w-2xl mx-auto space-y-8 animate-in zoom-in-95 duration-200">
+        <GlobalComponents />
         <button onClick={() => setActiveSubView('main')} className="flex items-center gap-2 text-gray-500 hover:text-teal-600 transition-colors font-bold">
           <ArrowLeft className="w-5 h-5" /> Retour
         </button>
@@ -417,11 +788,17 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   {selectedStudentToAdd.email}
                 </div>
                 <button
-                  onClick={() => {
-                    // Logic to add student would go here
-                    setActiveSubView('students');
-                    setSelectedStudentToAdd(null);
-                    setSearchQuery("");
+                  onClick={async () => {
+                    try {
+                      await professorService.enrollStudent(selectedStudentToAdd.id, course.code);
+                      alert("Étudiant inscrit avec succès !");
+                      setActiveSubView('students');
+                      setSelectedStudentToAdd(null);
+                      setSearchQuery("");
+                    } catch (error: any) {
+                      console.error(error);
+                      alert(error.message || "Erreur lors de l'inscription");
+                    }
                   }}
                   className="w-full bg-[#1B4332] text-white py-5 rounded-2xl font-black text-xl hover:bg-[#2D6A4F] transition-all shadow-[0_20px_40px_rgba(27,67,50,0.2)] flex items-center justify-center gap-3 active:scale-95"
                 >
@@ -439,6 +816,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   if (activeSubView === 'create-exam') {
     return (
       <div className="p-8 max-w-2xl mx-auto space-y-8 animate-in zoom-in-95 duration-200">
+        <GlobalComponents />
         <button onClick={() => setActiveSubView('main')} className="flex items-center gap-2 text-gray-500 hover:text-teal-600 transition-colors font-bold">
           <ArrowLeft className="w-5 h-5" /> Retour
         </button>
@@ -450,31 +828,57 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Titre de l'évaluation</label>
-              <input type="text" placeholder="Ex: Examen de mi-parcours" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500" />
+              <input
+                type="text"
+                placeholder="Ex: Examen de mi-parcours"
+                value={newExamData.title}
+                onChange={(e) => setNewExamData({ ...newExamData, title: e.target.value })}
+                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Type</label>
-                <select className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-orange-500">
-                  <option>Interrogation</option>
-                  <option>Examen Final</option>
-                  <option>TP / Labo</option>
-                  <option>Rapport</option>
+                <select
+                  value={newExamData.type}
+                  onChange={(e) => setNewExamData({ ...newExamData, type: e.target.value })}
+                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-orange-500"
+                >
+                  <option value="INTERROGATION">Interrogation</option>
+                  <option value="EXAM">Examen Final</option>
+                  <option value="TP">TP / Labo</option>
+                  <option value="TD">TD / Rapport</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Pondération (%)</label>
-                <input type="number" placeholder="20" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-orange-500" />
+                <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Note Max (Points)</label>
+                <input
+                  type="number"
+                  value={newExamData.maxPoints}
+                  onChange={(e) => setNewExamData({ ...newExamData, maxPoints: e.target.value })}
+                  placeholder="20"
+                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-orange-500"
+                />
               </div>
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Date de l'épreuve</label>
               <div className="relative">
                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
-                <input type="date" className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-orange-500" />
+                <input
+                  type="date"
+                  value={newExamData.date}
+                  onChange={(e) => setNewExamData({ ...newExamData, date: e.target.value })}
+                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-orange-500"
+                />
               </div>
             </div>
-            <button className="w-full bg-orange-600 text-white py-5 rounded-2xl font-black text-lg hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/20 active:scale-95">Créer l'évaluation</button>
+            <button
+              onClick={handleCreateExam}
+              className="w-full bg-orange-600 text-white py-5 rounded-2xl font-black text-lg hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/20 active:scale-95"
+            >
+              Créer l'évaluation
+            </button>
           </div>
         </div>
       </div>
@@ -484,6 +888,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   if (activeSubView === 'manage-exams') {
     return (
       <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300">
+        <GlobalComponents />
         <button onClick={() => setActiveSubView('main')} className="flex items-center gap-2 text-gray-500 hover:text-teal-600 transition-colors font-bold">
           <ArrowLeft className="w-5 h-5" /> Retour
         </button>
@@ -495,43 +900,51 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          {[
-            { title: "Interrogation 1", date: "15 Nov 2025", type: "Interro", status: "Publié", points: "Saisis" },
-            { title: "Examen Semestriel", date: "12 Déc 2025", type: "Examen", status: "Non publié", points: "-" },
-            { title: "TP Minéralogie", date: "05 Déc 2025", type: "TP", status: "Non publié", points: "Partiel" },
-          ].map((exam, i) => (
-            <div key={i} className="bg-white border border-gray-100 p-6 rounded-3xl flex items-center justify-between hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-6">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${exam.type === 'Examen' ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600'}`}>
-                  <FileText className="w-7 h-7" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">{exam.title}</h3>
-                  <div className="flex items-center gap-4 text-sm text-gray-400 font-medium">
-                    <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> {exam.date}</span>
-                    <span className="flex items-center gap-1"><Trophy className="w-4 h-4" /> {exam.type}</span>
+          {loadingExams ? (
+            <div className="text-center py-12">
+              <Loader2 className="w-8 h-8 text-orange-500 animate-spin mx-auto mb-4" />
+              <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Chargement...</p>
+            </div>
+          ) : exams.length > 0 ? (
+            exams.map((exam) => (
+              <div
+                key={exam.id}
+                onClick={() => {
+                  setSelectedExam(exam);
+                  setActiveSubView('exam-details');
+                }}
+                className="bg-white border border-gray-100 rounded-[32px] p-6 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex items-center justify-between"
+              >
+                <div className="flex items-center gap-6">
+                  <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-gray-900 mb-1">{exam.title}</h3>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-black text-orange-600 uppercase tracking-widest">{exam.type}</span>
+                      <span className="text-xs text-gray-400 font-bold">• {new Date(exam.date).toLocaleDateString()}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-8">
-                <div className="text-right">
-                  <div className="text-xs font-bold text-gray-300 uppercase mb-1">Diffusion</div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${exam.status === 'Publié' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                    {exam.status}
-                  </span>
+                <div className="flex items-center gap-8">
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Moyenne</p>
+                    <p className="text-lg font-black text-gray-900">--/20</p>
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-gray-300 group-hover:text-orange-600" />
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedExam(exam);
-                    setActiveSubView('exam-details');
-                  }}
-                  className="bg-gray-50 text-gray-900 px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all border border-gray-100"
-                >
-                  Voir l'épreuve
-                </button>
               </div>
+            ))
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-6 h-6 text-gray-400" />
+              </div>
+              <h3 className="text-gray-900 font-bold mb-1">Aucune épreuve</h3>
+              <p className="text-gray-500 text-sm">Créez une nouvelle épreuve pour commencer.</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
     );
@@ -540,6 +953,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   if (activeSubView === 'exam-details') {
     return (
       <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in slide-in-from-right-8 duration-500">
+        <GlobalComponents />
         <button onClick={() => setActiveSubView('manage-exams')} className="flex items-center gap-2 text-gray-500 hover:text-orange-600 transition-colors font-bold">
           <ArrowLeft className="w-5 h-5" /> Retour à la liste
         </button>
@@ -556,6 +970,14 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           </div>
 
           <div className="flex gap-4">
+            <button
+              onClick={handleSaveGrades}
+              disabled={isSavingGrades}
+              className="bg-indigo-600 text-white font-black px-8 py-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 flex items-center gap-2 disabled:opacity-50"
+            >
+              {isSavingGrades ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+              Enregistrer les points
+            </button>
             <button className="bg-orange-50 text-orange-700 font-black px-8 py-4 rounded-2xl hover:bg-orange-100 transition-all shadow-sm flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5" />
               Publier tous les points
@@ -610,7 +1032,8 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                       <td className="px-8 py-5">
                         <input
                           type="number"
-                          defaultValue={selectedExam?.points === "Saisis" || isPublished ? student.grade : ""}
+                          value={tempGrades[student.id] || ""}
+                          onChange={(e) => setTempGrades({ ...tempGrades, [student.id]: e.target.value })}
                           placeholder="-"
                           disabled={isPublished || course.role === 'Assistant'}
                           className={`w-20 p-3 bg-gray-50 border border-gray-100 rounded-xl font-black text-gray-900 focus:ring-2 focus:ring-orange-500/20 outline-none text-center placeholder:text-gray-300 ${(isPublished || course.role === 'Assistant') ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
@@ -828,13 +1251,15 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
 
   if (activeSubView === 'performance') {
     const examStats = [
-      { id: 0, title: "Vue Globale (Semestre)", success: 78, failure: 22, avg: 12.4, total: 124, enrolled: 128 },
-      { id: 1, title: "Interrogation 1", success: 85, failure: 15, avg: 14.2, total: 122, enrolled: 128 },
-      { id: 2, title: "Interrogation 2", success: 62, failure: 38, avg: 10.8, total: 118, enrolled: 128 },
-      { id: 3, title: "TP Minéralogie", success: 94, failure: 6, avg: 16.5, total: 124, enrolled: 128 },
+      { id: 0, title: "Vue Globale (Semestre)", success: 0, failure: 0, avg: 0, total: 0, enrolled: course.studentsCount || 0 },
     ];
 
     const currentStats = examStats.find(s => s.id === selectedExamId) || examStats[0];
+
+    // Avoid division by zero
+    const successRate = currentStats.enrolled > 0 ? Math.round((currentStats.success / currentStats.enrolled) * 100) : 0;
+    const failureRate = currentStats.enrolled > 0 ? Math.round((currentStats.failure / currentStats.enrolled) * 100) : 0;
+    const absenceRate = currentStats.enrolled > 0 ? Math.round(((currentStats.enrolled - currentStats.total) / currentStats.enrolled) * 100) : 0;
 
     return (
       <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300">
@@ -967,22 +1392,44 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-black text-gray-700 mb-2 ml-1">Titre du devoir</label>
-                  <input type="text" placeholder="Ex: Rapport de sortie géologique - Kolwezi" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20" />
+                  <input
+                    type="text"
+                    placeholder="Ex: Rapport de sortie géologique - Kolwezi"
+                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20"
+                    value={assignmentData.title}
+                    onChange={(e) => setAssignmentData({ ...assignmentData, title: e.target.value })}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-black text-gray-700 mb-2 ml-1">Consignes / Instructions</label>
-                  <textarea rows={4} placeholder="Décrivez les attentes, le format attendu (PDF uniquement), etc." className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20 resize-none"></textarea>
+                  <textarea
+                    rows={4}
+                    placeholder="Décrivez les attentes, le format attendu (PDF uniquement), etc."
+                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20 resize-none"
+                    value={assignmentData.instructions}
+                    onChange={(e) => setAssignmentData({ ...assignmentData, instructions: e.target.value })}
+                  ></textarea>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-black text-gray-700 mb-2 ml-1">Date d'échéance</label>
-                    <input type="date" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20" />
+                    <input
+                      type="date"
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20"
+                      value={assignmentData.dueDate}
+                      onChange={(e) => setAssignmentData({ ...assignmentData, dueDate: e.target.value })}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-black text-gray-700 mb-2 ml-1">Heure limite</label>
-                    <input type="time" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20" />
+                    <input
+                      type="time"
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20"
+                      value={assignmentData.dueTime}
+                      onChange={(e) => setAssignmentData({ ...assignmentData, dueTime: e.target.value })}
+                    />
                   </div>
                 </div>
 
@@ -996,7 +1443,13 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   </div>
                 </div>
 
-                <button className="w-full bg-[#3C096C] text-white py-5 rounded-2xl font-black text-xl hover:bg-[#5A189A] transition-all shadow-xl shadow-fuchsia-900/10 active:scale-95">Lancer le travail</button>
+                <button
+                  onClick={handleLaunchAssignment}
+                  disabled={isLaunchingAssignment || !assignmentData.title}
+                  className="w-full bg-[#3C096C] text-white py-5 rounded-2xl font-black text-xl hover:bg-[#5A189A] transition-all shadow-xl shadow-fuchsia-900/10 active:scale-95 disabled:opacity-50"
+                >
+                  {isLaunchingAssignment ? 'Lancement...' : 'Lancer le travail'}
+                </button>
               </div>
             </div>
           </div>
@@ -1005,56 +1458,56 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           <div className="w-full lg:w-[400px] space-y-6">
             <h2 className="text-xl font-black text-gray-900 px-2 mt-2">Dépôts en cours</h2>
 
-            <div className="bg-[#10002B] rounded-[40px] p-8 text-white relative overflow-hidden shadow-2xl">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/10 rounded-bl-full -mr-12 -mt-12"></div>
-
-              <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest mb-4">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-                Actif
-              </div>
-
-              <h3 className="text-xl font-bold mb-2">TP Pétrographie</h3>
-              <p className="text-gray-400 text-sm mb-6">Termine dans : <span className="text-fuchsia-400 font-black">2j 14h 05m</span></p>
-
-              <div className="space-y-4 mb-8">
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-400 font-bold">Progression des dépôts</span>
-                  <span className="text-white font-black">45 / 124</span>
+            {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) > new Date()).map(assignment => (
+              <div key={assignment.id} className="bg-[#10002B] rounded-[40px] p-8 text-white relative overflow-hidden shadow-2xl group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/10 rounded-bl-full -mr-12 -mt-12 group-hover:bg-fuchsia-500/20 transition-all"></div>
+                <div className="relative z-10">
+                  <h3 className="text-xl font-bold mb-2 pr-8">{assignment.title}</h3>
+                  <div className="flex items-center gap-2 text-fuchsia-400 text-sm font-black uppercase tracking-widest mb-4">
+                    <Calendar className="w-4 h-4" />
+                    Échéance : {new Date(assignment.dueDate).toLocaleDateString()} à {new Date(assignment.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-2xl font-black">{assignment.submissions?.length || 0}</span>
+                      <span className="text-[10px] text-gray-400 uppercase font-black">Dépôts reçus</span>
+                    </div>
+                    <button
+                      onClick={() => setSelectedAssignmentForSubmissions(assignment)}
+                      className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-fuchsia-500 w-[36%]"></div>
-                </div>
               </div>
+            ))}
 
-              <button className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-2xl transition-all border border-white/5">
-                Voir les copies (45)
-              </button>
-            </div>
+            {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) > new Date()).length === 0 && (
+              <div className="bg-[#10002B] rounded-[40px] p-8 text-white relative overflow-hidden shadow-2xl flex flex-col items-center justify-center min-h-[200px]">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/10 rounded-bl-full -mr-12 -mt-12"></div>
+                <p className="text-gray-400 italic font-medium">Aucun travail en cours</p>
+              </div>
+            )}
 
             <div className="bg-white border border-gray-100 rounded-[32px] p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <Settings2 className="w-5 h-5 text-gray-400" />
-                <h3 className="text-lg font-black text-gray-900">Historique</h3>
+                <h3 className="text-lg font-black text-gray-900">Historique des TP</h3>
               </div>
               <div className="space-y-4">
-                {[
-                  { title: "Examen de terrain", date: "12 Oct 2025", count: 118 },
-                  { title: "Étude sismique", date: "05 Oct 2025", count: 124 }
-                ].map((past, idx) => (
-                  <div key={idx} className="group p-4 bg-gray-50/50 rounded-2xl border border-transparent hover:border-fuchsia-100 hover:bg-white transition-all">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-black text-gray-900 line-clamp-1">{past.title}</div>
-                      <div className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-black uppercase">Fermé</div>
+                {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) < new Date()).map(old => (
+                  <div key={old.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-all">
+                    <div className="overflow-hidden pr-2">
+                      <p className="font-bold text-gray-900 truncate text-sm">{old.title}</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(old.date).toLocaleDateString()}</p>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400 font-bold">{past.count} copies • {past.date}</span>
-                      <button className="flex items-center gap-1.5 text-xs font-black text-fuchsia-600 hover:text-fuchsia-700 transition-colors bg-fuchsia-50 px-3 py-1.5 rounded-xl">
-                        <Download className="w-3.5 h-3.5" />
-                        ZIP
-                      </button>
-                    </div>
+                    <span className="bg-gray-100 text-gray-600 text-[10px] font-black px-2 py-1 rounded-lg">FINI</span>
                   </div>
                 ))}
+                {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) < new Date()).length === 0 && (
+                  <p className="text-gray-400 italic text-sm text-center py-4">Historique vide</p>
+                )}
               </div>
             </div>
           </div>
@@ -1066,6 +1519,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   if (activeSubView === 'modif-history') {
     return (
       <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in slide-in-from-right-8 duration-300">
+        <GlobalComponents />
         <button onClick={() => setActiveSubView('main')} className="flex items-center gap-2 text-gray-500 font-bold hover:text-teal-600 transition-colors">
           <ArrowLeft className="w-5 h-5" /> Retour
         </button>
@@ -1204,6 +1658,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   if (activeSubView === 'documents') {
     return (
       <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in slide-in-from-right-8 duration-300">
+        <GlobalComponents />
         <button onClick={() => setActiveSubView('main')} className="flex items-center gap-2 text-gray-500 font-bold hover:text-teal-600 transition-colors">
           <ArrowLeft className="w-5 h-5" /> Retour
         </button>
@@ -1214,24 +1669,59 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-            <div key={i} className="bg-white border border-gray-100 p-6 rounded-3xl hover:shadow-2xl hover:translate-y-[-4px] transition-all cursor-pointer group border-b-4 border-b-gray-50 hover:border-b-teal-500">
-              <div className="flex items-start justify-between mb-6">
-                <div className="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center transition-colors group-hover:bg-blue-600">
-                  <FileText className="w-7 h-7 text-blue-600 group-hover:text-white transition-colors" />
-                </div>
-                <div className="flex gap-2">
-                  <button className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-900 transition-all"><Download className="w-5 h-5" /></button>
-                </div>
-              </div>
-              <h3 className="font-black text-gray-900 text-lg mb-2 line-clamp-1">Chapitre {i} - Minéralogie.pdf</h3>
-              <div className="flex items-center gap-3 text-xs text-gray-400 font-bold uppercase tracking-widest">
-                <span>PDF</span>
-                <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
-                <span>2.4 MB</span>
-              </div>
+          {loadingResources ? (
+            <div className="col-span-full text-center py-12">
+              <Loader2 className="w-8 h-8 text-teal-600 animate-spin mx-auto mb-4" />
+              <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Chargement des documents...</p>
             </div>
-          ))}
+          ) : resources.length > 0 ? (
+            resources.map((res: any) => (
+              <div
+                key={res.id}
+                className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-xl hover:-translate-y-1 transition-all group relative"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <a
+                    href={res.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-all"
+                  >
+                    <FileText className="w-6 h-6" />
+                  </a>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDeleteResource(res.id);
+                    }}
+                    className="p-2 text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <a
+                  href={res.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <h3 className="font-bold text-gray-900 mb-1 truncate">{res.title}</h3>
+                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                    {new Date(res.uploadedAt).toLocaleDateString()}
+                  </p>
+                </a>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-16 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-gray-900 font-bold text-lg mb-2">Aucun document</h3>
+              <p className="text-gray-500 max-w-sm mx-auto">
+                Vous n'avez pas encore téléversé de documents pour ce cours. Utilisez le bouton "Soumettre un document" pour commencer.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1442,29 +1932,93 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
-          {[1, 2].map(i => (
-            <div key={i} className="flex items-center justify-between p-6 bg-white border border-gray-100 rounded-3xl hover:shadow-xl hover:border-teal-100 transition-all cursor-pointer group">
-              <div className="flex items-center gap-5">
-                <div className="bg-red-50 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:bg-red-500 group-hover:rotate-6 transition-all">
-                  <FileText className="w-8 h-8 text-red-500 group-hover:text-white transition-colors" />
+        <div className="relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {resources.slice(0, 3).map((res: any) => (
+              <a
+                key={res.id}
+                href={res.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-teal-200 hover:bg-white transition-all group"
+              >
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-teal-600 shadow-sm group-hover:bg-teal-600 group-hover:text-white transition-all">
+                  <FileText className="w-5 h-5" />
                 </div>
-                <div>
-                  <div className="font-black text-gray-900 text-lg group-hover:text-teal-700 transition-colors">Support_Géologie_2025_{i}.pdf</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-2 py-0.5 rounded">PDF</span>
-                    <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-2 py-0.5 rounded">2.4 MB</span>
-                  </div>
+                <div className="overflow-hidden">
+                  <p className="font-bold text-gray-900 truncate">{res.title}</p>
+                  <p className="text-[10px] text-gray-400 font-black uppercase">{new Date(res.uploadedAt).toLocaleDateString()}</p>
                 </div>
+              </a>
+            ))}
+            {resources.length === 0 && (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-400 italic">Aucun document récent</p>
               </div>
-              <div className="bg-teal-50 p-3 rounded-xl text-teal-600 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                <Download className="w-6 h-6" />
-              </div>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Submissions View Modal */}
+      {selectedAssignmentForSubmissions && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#0B011D]/80 backdrop-blur-xl" onClick={() => setSelectedAssignmentForSubmissions(null)}></div>
+          <div className="bg-white w-full max-w-4xl rounded-[40px] overflow-hidden shadow-2xl relative z-10 animate-in zoom-in-95 duration-200">
+            <div className="p-10">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-3xl font-black text-gray-900">{selectedAssignmentForSubmissions.title}</h2>
+                  <p className="text-gray-500 font-bold uppercase tracking-widest text-xs mt-1">
+                    {selectedAssignmentForSubmissions.submissions?.length || 0} Soumissions reçues
+                  </p>
+                </div>
+                <button onClick={() => setSelectedAssignmentForSubmissions(null)} className="p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all">
+                  <X className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {selectedAssignmentForSubmissions.submissions?.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    {selectedAssignmentForSubmissions.submissions.map((sub: any) => (
+                      <div key={sub.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-[28px] hover:bg-gray-100 transition-all group">
+                        <div className="flex items-center gap-5">
+                          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm font-black">
+                            {sub.student?.name?.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-black text-gray-900 text-lg">{sub.student?.name}</p>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Posté le {new Date(sub.submittedAt).toLocaleDateString()} à {new Date(sub.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <a
+                            href={sub.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-white text-gray-900 px-5 py-3 rounded-xl font-bold text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2"
+                          >
+                            <Download className="w-4 h-4" /> Voir PDF
+                          </a>
+                          <button className="bg-indigo-600 text-white px-5 py-3 rounded-xl font-bold text-sm shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all">
+                            Noter
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20">
+                    <History className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+                    <p className="text-gray-400 font-bold">Aucune soumission pour le moment</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

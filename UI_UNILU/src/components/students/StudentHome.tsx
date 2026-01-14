@@ -1,8 +1,14 @@
+
 import { useState, useEffect } from "react";
-import { Calendar, BookOpen, Clock, MapPin, User as UserIcon, Megaphone, TrendingUp, CheckCircle, ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { Calendar, BookOpen, Clock, MapPin, User as UserIcon, Megaphone, CheckCircle, ChevronRight, X, QrCode, Loader2, SignalHigh, SignalLow } from "lucide-react";
+import { motion } from "motion/react";
 import { StudentPage } from "./StudentSidebar";
 import welcomeImage from '../../assets/slide1.png';
+import { studentService } from "../../services/student";
+import { attendanceService } from "../../services/attendance";
+import { DashboardSkeleton } from "../Skeleton";
+import { Html5QrcodeScanner } from "html5-qrcode";
+import { toast } from "sonner";
 
 interface StudentDashboardProps {
   onNavigate: (page: StudentPage) => void;
@@ -10,6 +16,52 @@ interface StudentDashboardProps {
 
 export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
   const [messageIndex, setMessageIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
+  const [selectedCourseDetail, setSelectedCourseDetail] = useState<any>(null);
+
+  // Scanner States
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      // Synchroniser les scans en attente
+      syncOfflineScans();
+    };
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const syncOfflineScans = async () => {
+    const offlineScans = JSON.parse(localStorage.getItem('offline_attendance_scans') || '[]');
+    if (offlineScans.length === 0) return;
+
+    toast.info(`Synchronisation de ${offlineScans.length} présence(s) hors-ligne...`);
+
+    const remainingScans = [];
+    for (const scan of offlineScans) {
+      try {
+        await attendanceService.scanQR(scan.token, scan.lat, scan.lon);
+      } catch (_error) {
+        remainingScans.push(scan);
+      }
+    }
+
+    localStorage.setItem('offline_attendance_scans', JSON.stringify(remainingScans));
+    if (remainingScans.length === 0) {
+      toast.success("Toutes les présences ont été synchronisées !");
+    } else {
+      toast.error(`${remainingScans.length} présence(s) n'ont pas pu être synchronisées.`);
+    }
+  };
 
   const geologyMessages = [
     "Ce semestre, vous explorerez la géologie, une science aux applications vastes : mines, génie civil, environnement et hydrogéologie.",
@@ -19,41 +71,95 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
   ];
 
   useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const dashboardData = await studentService.getDashboard();
+        console.log('Dashboard data loaded:', dashboardData);
+        setData(dashboardData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+        // Keep loading state to show skeleton instead of crashing
+        setLoading(false);
+        setData({
+          stats: { attendance: 0, courseCount: 0 },
+          todaySchedule: [],
+          announcements: []
+        });
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       setMessageIndex((prev) => (prev + 1) % geologyMessages.length);
     }, 8000);
     return () => clearInterval(timer);
   }, []);
 
-  const upcomingCourses = [
-    { id: '1', title: 'Pétrographie', time: '10:00 - 12:00', room: 'Amphi A', professor: 'Dr. Mukendi', type: 'Cours Magistral', color: 'bg-blue-500' },
-    { id: '2', title: 'Stratigraphie', time: '14:00 - 16:00', room: 'Salle 203', professor: 'Pr. Kabeya', type: 'Travaux Pratiques', color: 'bg-emerald-500' },
-    { id: '3', title: 'Géomorphologie', time: '16:30 - 18:30', room: 'Amphi B', professor: 'Dr. Tshimanga', type: 'Cours Magistral', color: 'bg-indigo-500' },
-  ];
+  useEffect(() => {
+    let scanner: Html5QrcodeScanner | null = null;
+    if (showScanner) {
+      scanner = new Html5QrcodeScanner("reader", {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+      }, false);
 
-  const announcements = [
-    {
-      id: '1',
-      title: 'Sortie terrain - Formation des Kundelungu',
-      content: 'Inscription obligatoire avant le 22 décembre pour la sortie terrain du 24 décembre.',
-      date: 'Aujourd\'hui',
-      type: 'Sortie',
-      color: 'text-blue-600 bg-blue-50 border-blue-100'
-    },
-    {
-      id: '2',
-      title: 'Examen de mi-session - Minéralogie',
-      content: 'L\'examen aura lieu le 18 janvier 2026. Révision conseillée des chapitres 1 à 5.',
-      date: 'Hier',
-      type: 'Examen',
-      color: 'text-amber-600 bg-amber-50 border-amber-100'
-    },
-  ];
+      scanner.render(onScanSuccess, onScanFailure);
+    }
+    return () => {
+      if (scanner) {
+        scanner.clear().catch(console.error);
+      }
+    };
+  }, [showScanner]);
+
+  const onScanSuccess = async (decodedText: string) => {
+    setScanning(true);
+    // Demander la position immédiatement lors du scan réussi
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+
+          if (isOffline) {
+            // Sauvegarde locale pour synchronisation ultérieure (Simulation)
+            const offlineScans = JSON.parse(localStorage.getItem('offline_attendance_scans') || '[]');
+            offlineScans.push({ token: decodedText, lat: latitude, lon: longitude, time: new Date() });
+            localStorage.setItem('offline_attendance_scans', JSON.stringify(offlineScans));
+            toast.warning("Mode Hors-Ligne : Présence sauvegardée localement. Elle sera transmise dès le retour de la connexion.");
+            setShowScanner(false);
+          } else {
+            const result = await attendanceService.scanQR(decodedText, latitude, longitude);
+            toast.success(result.message);
+            setShowScanner(false);
+          }
+        } catch (error: any) {
+          toast.error(error.message || "Erreur lors de la validation");
+        } finally {
+          setScanning(false);
+        }
+      },
+      (_error) => {
+        toast.error("Géolocalisation requise pour valider la présence.");
+        setScanning(false);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const onScanFailure = (_error: any) => {
+    // console.warn(`Code scan error = ${_error}`);
+  };
+
+  const upcomingCourses = data?.todaySchedule || [];
+  const announcements = data?.announcements || [];
 
   const stats = [
-    { label: 'Moyenne Générale', value: '7.6', sub: '/ 10', icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Assiduité', value: '94', sub: '%', icon: CheckCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Matières en cours', value: '6', sub: 'Cours', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Assiduité', value: data?.stats?.attendance || '-', sub: '%', icon: CheckCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Matières en cours', value: data?.stats?.courseCount || '-', sub: 'Cours', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' },
   ];
 
   const container = {
@@ -70,6 +176,8 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 }
   };
+
+  if (loading) return <DashboardSkeleton />;
 
   return (
     <motion.div
@@ -94,7 +202,7 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
             transition={{ delay: 0.3 }}
           >
             <h1 className="text-white text-5xl font-black mb-4 tracking-tight">
-              Bonjour, <span className="text-teal-400">Mohamed</span> 👋
+              Bonjour, <span className="text-blue-400">{JSON.parse(sessionStorage.getItem('user') || '{}').name?.split(' ')[0] || 'Étudiant'}</span> 👋
             </h1>
             <div className="h-20">
               <motion.p
@@ -109,10 +217,10 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
             </div>
           </motion.div>
         </div>
-        <div className="absolute bottom-10 right-10">
+        <div className="absolute bottom-10 right-10 flex gap-4">
           <button
             onClick={() => onNavigate('grades')}
-            className="px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-3 shadow-xl"
+            className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-3 shadow-xl shadow-blue-600/30"
           >
             Voir mes résultats <ChevronRight className="w-5 h-5" />
           </button>
@@ -120,7 +228,7 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {stats.map((stat, i) => (
           <motion.div
             key={i}
@@ -153,37 +261,53 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h3 className="text-2xl font-black text-gray-900 tracking-tight">Planning du jour</h3>
-              <p className="text-gray-400 text-sm font-bold">Lundi 23 Décembre 2025</p>
+              <p className="text-gray-400 text-sm font-bold">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
             <button
               onClick={() => onNavigate('planning')}
-              className="flex items-center gap-2 text-teal-600 font-black text-xs uppercase tracking-widest hover:bg-teal-50 px-5 py-3 rounded-2xl transition-all"
+              className="flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-widest hover:bg-blue-50 px-5 py-3 rounded-2xl transition-all"
             >
               Voir le planning complet <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
           <div className="space-y-6 relative before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-0.5 before:bg-gray-50">
-            {upcomingCourses.map((course, idx) => (
-              <div key={idx} className="relative pl-12 group">
-                <div className={`absolute left-0 top-1.5 w-10 h-10 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center z-10 group-hover:border-teal-500 transition-colors`}>
-                  <div className={`w-2.5 h-2.5 rounded-full ${course.color}`} />
+            {upcomingCourses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6">
+                  <Calendar className="w-10 h-10 text-gray-300" />
                 </div>
-                <div className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-gray-50/50 rounded-3xl border border-transparent hover:border-gray-100 hover:bg-white transition-all">
-                  <div className="mb-4 md:mb-0">
+                <p className="text-xl font-bold text-gray-400 italic">Aucun cours aujourd'hui</p>
+                <p className="text-sm text-gray-400 mt-2">Profitez de cette journée pour réviser vos cours</p>
+              </div>
+            ) : upcomingCourses.map((course: any, idx: number) => (
+              <div key={idx} className="relative pl-12 group">
+                <div className="absolute left-0 top-1.5 w-10 h-10 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center z-10 group-hover:border-blue-500 transition-colors">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: course.colorHex }} />
+                </div>
+                <div
+                  onClick={() => setSelectedCourseDetail(course)}
+                  className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-gray-50/50 rounded-3xl border border-transparent hover:border-gray-100 hover:bg-white transition-all cursor-pointer group/card"
+                >
+                  <div className="mb-4 md:mb-0 flex-1 min-w-0 pr-4">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-xs font-black text-teal-600 bg-teal-50 px-3 py-1 rounded-lg uppercase tracking-wider">{course.type}</span>
-                      <span className="text-sm font-bold text-gray-400 flex items-center gap-1.5 text-end italic">
+                      <span className="text-xs font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg uppercase tracking-wider shrink-0">{course.type}</span>
+                      <span className="text-sm font-bold text-gray-400 flex items-center gap-1.5 text-end italic shrink-0">
                         <Clock className="w-3.5 h-3.5" /> {course.time}
                       </span>
                     </div>
-                    <h4 className="text-xl font-black text-gray-900 mb-1">{course.title}</h4>
-                    <div className="flex items-center gap-4 text-sm text-gray-500 font-bold">
-                      <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-gray-300" /> {course.room}</span>
-                      <span className="flex items-center gap-1.5"><UserIcon className="w-4 h-4 text-gray-300" /> {course.professor}</span>
+                    <h4 className={`font-black text-gray-900 mb-1 group-hover/card:text-blue-600 transition-colors uppercase tracking-tight truncate ${course.title.length > 40 ? 'text-base' :
+                      course.title.length > 25 ? 'text-lg' : 'text-xl'
+                      }`}>{course.title}</h4>
+                    <div className="flex items-center gap-4 text-[11px] text-gray-500 font-bold uppercase tracking-widest overflow-hidden">
+                      <span className="flex items-center gap-1.5 shrink-0"><MapPin className="w-4 h-4 text-gray-300" /> {course.room}</span>
+                      <span className="flex items-center gap-1.5 truncate"><UserIcon className="w-4 h-4 text-gray-300" /> {course.professor}</span>
                     </div>
                   </div>
-                  <button className="px-6 py-3 bg-white border border-gray-200 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all active:scale-95">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setSelectedCourseDetail(course); }}
+                    className="px-6 py-3 bg-white border border-gray-200 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all active:scale-95 shadow-sm"
+                  >
                     Détails
                   </button>
                 </div>
@@ -212,15 +336,16 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
             </div>
 
             <div className="space-y-4">
-              {announcements.map((ann, i) => (
+              {announcements.length === 0 ? <p className="text-gray-400 text-sm">Aucune annonce récente</p> : announcements.map((ann: any, i: number) => (
                 <div key={i} className="p-5 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group">
                   <div className="flex items-center justify-between mb-3">
-                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${ann.color.split(' ')[0]} ${ann.color.split(' ')[1]}`}>
+                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full bg-gradient-to-r ${ann.color} text-white`}>
                       {ann.type}
                     </span>
-                    <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{ann.date}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{new Date(ann.date).toLocaleDateString()}</span>
                   </div>
-                  <h4 className="text-sm font-bold mb-2 group-hover:text-teal-400 transition-colors">{ann.title}</h4>
+                  <h4 className="text-sm font-bold mb-1 group-hover:text-blue-400 transition-colors">{ann.title}</h4>
+                  <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.1em] mb-2">Par {ann.author}</p>
                   <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{ann.content}</p>
                 </div>
               ))}
@@ -232,8 +357,8 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
             className="grid grid-cols-2 gap-4"
           >
             {[
-              { label: 'Documents', icon: BookOpen, color: 'bg-indigo-50 text-indigo-600', page: 'courses' },
-              { label: 'Planning', icon: Calendar, color: 'bg-emerald-50 text-emerald-600', page: 'planning' },
+              { label: 'Ressources', icon: BookOpen, color: 'bg-blue-50 text-blue-600', page: 'courses' },
+              { label: 'Planning', icon: Calendar, color: 'bg-purple-50 text-purple-600', page: 'planning' },
             ].map((action, i) => (
               <button
                 key={i}
@@ -247,8 +372,174 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
               </button>
             ))}
           </motion.div>
+
+          {/* Recent Attendance - New Section connected to API */}
+          {data?.recentAttendance?.length > 0 && (
+            <motion.div
+              variants={item}
+              className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm"
+            >
+              <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-blue-600" />
+                Dernières Présences
+              </h3>
+              <div className="space-y-4">
+                {data.recentAttendance.map((record: any) => (
+                  <div key={record.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-gray-100 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${record.status === 'PRESENT' ? 'bg-green-500' : 'bg-orange-500'}`} />
+                      <div>
+                        <p className="text-xs font-black text-gray-900 uppercase truncate max-w-[150px]">{record.courseName}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{record.date ? new Date(record.date).toLocaleDateString() : 'Aujourd\'hui'}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black text-gray-400 bg-white px-3 py-1 rounded-lg border border-gray-100 italic">
+                      {record.status === 'LATE' ? 'En retard' : 'Présent'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
+
+      {/* QR Scanner Modal */}
+      {showScanner && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-xl animate-in fade-in duration-300">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden relative"
+          >
+            <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-teal-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+                  <QrCode className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-gray-900">Scanner de Présence</h3>
+                  <div className="flex items-center gap-2">
+                    {isOffline ? (
+                      <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
+                        <SignalLow className="w-3 h-3" /> Hors-ligne
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        <SignalHigh className="w-3 h-3" /> Connecté
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowScanner(false)}
+                className="p-3 bg-gray-200 hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all active:scale-90"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-8">
+              <div id="reader" className="overflow-hidden rounded-3xl border-4 border-gray-100 bg-black aspect-square"></div>
+
+              <div className="mt-8 space-y-4">
+                <div className="p-6 bg-teal-50 border border-teal-100 rounded-[32px] flex items-center gap-4">
+                  <div className="w-10 h-10 bg-teal-500/10 text-teal-600 rounded-xl flex items-center justify-center shrink-0">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs text-teal-800 font-bold leading-relaxed">
+                    Votre position sera vérifiée par rapport à celle du professeur (Limite : 200m).
+                  </p>
+                </div>
+
+                {scanning && (
+                  <div className="flex items-center justify-center gap-3 py-4 text-teal-600 font-bold animate-pulse">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Validation de la présence en cours...
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-8 bg-gray-50 flex flex-col gap-3">
+              <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest font-black">
+                Pointez votre caméra vers le QR Code affiché par le professeur
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Course Detail Modal */}
+      {selectedCourseDetail && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl border border-gray-100 overflow-hidden relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header with Dynamic Color */}
+            <div className="h-32 relative flex items-end p-8" style={{ background: selectedCourseDetail.colorHex || '#3b82f6' }}>
+              <div
+                className="absolute inset-0 opacity-40"
+                style={{ background: `linear-gradient(to bottom right, rgba(0,0,0,0.1), rgba(0,0,0,0.3))` }}
+              />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 -mr-16 -mt-16 rounded-full blur-2xl" />
+              <div className="relative z-10 w-full">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Détails de la séance</span>
+                <h3 className="text-2xl font-black uppercase tracking-tight text-white line-clamp-1">{selectedCourseDetail.title}</h3>
+              </div>
+              <button
+                onClick={() => setSelectedCourseDetail(null)}
+                className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-8 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-6 bg-gray-50 rounded-[32px] border border-gray-100">
+                  <div className="flex items-center gap-3 text-blue-600 mb-2">
+                    <Clock className="w-5 h-5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Horaire</span>
+                  </div>
+                  <div className="text-lg font-black text-gray-900">{selectedCourseDetail.time}</div>
+                </div>
+
+                <div className="p-6 bg-gray-50 rounded-[32px] border border-gray-100">
+                  <div className="flex items-center gap-3 text-purple-600 mb-2">
+                    <MapPin className="w-5 h-5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Salle / Local</span>
+                  </div>
+                  <div className="text-lg font-black text-gray-900">{selectedCourseDetail.room}</div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-gray-50 rounded-[32px] border border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-4 w-full">
+                  <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center shrink-0">
+                    <UserIcon className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Professeur Responsable</div>
+                    <div className="text-gray-900 font-black truncate">{selectedCourseDetail.professor}</div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedCourseDetail(null)}
+                className="w-full py-4 bg-gray-900 text-white font-black rounded-[24px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                Fermer
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 }

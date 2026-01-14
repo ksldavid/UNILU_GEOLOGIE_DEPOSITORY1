@@ -6,7 +6,7 @@
             "ES2020"
         ],
         "outDir": "./dist",
-        "rootDir": "./src",
+        "rootDir": "./",
         "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
@@ -16,10 +16,15 @@
         "declarationMap": true,
         "sourceMap": true,
         "moduleResolution": "node",
-        "allowSyntheticDefaultImports": true
+        "allowSyntheticDefaultImports": true,
+        "types": [
+            "node"
+        ]
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "prisma/**/*",
+        "*.ts"
     ],
     "exclude": [
         "node_modules",

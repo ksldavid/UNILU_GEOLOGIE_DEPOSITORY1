@@ -4,9 +4,11 @@ import { UserData } from "../../App";
 interface StudentHeaderProps {
   studentData: UserData;
   onMenuClick: () => void;
+  hasUnreadAnnouncements?: boolean;
+  onBellClick?: () => void;
 }
 
-export function StudentHeader({ studentData, onMenuClick }: StudentHeaderProps) {
+export function StudentHeader({ studentData, onMenuClick, hasUnreadAnnouncements, onBellClick }: StudentHeaderProps) {
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -50,9 +52,14 @@ export function StudentHeader({ studentData, onMenuClick }: StudentHeaderProps) 
             </span>
           </div>
 
-          <button className="relative p-2 hover:bg-gray-50 rounded-lg transition-colors">
-            <Bell className="w-5 h-5 text-gray-700" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          <button
+            onClick={onBellClick}
+            className={`relative p-2 hover:bg-gray-50 rounded-lg transition-all duration-300 ${hasUnreadAnnouncements ? 'text-teal-600' : 'text-gray-700'}`}
+          >
+            <Bell className={`w-5 h-5 ${hasUnreadAnnouncements ? 'animate-bell' : ''}`} />
+            {hasUnreadAnnouncements && (
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse-red"></span>
+            )}
           </button>
 
           <div className="flex items-center gap-3 pl-2 md:pl-6 border-l border-gray-200">
@@ -60,7 +67,7 @@ export function StudentHeader({ studentData, onMenuClick }: StudentHeaderProps) 
               <div className="font-semibold text-gray-900">{studentData.name}</div>
               <div className="text-sm text-gray-500">{studentData.class}</div>
             </div>
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
               <span className="text-white font-semibold text-sm md:text-base">{getInitials(studentData.name)}</span>
             </div>
           </div>

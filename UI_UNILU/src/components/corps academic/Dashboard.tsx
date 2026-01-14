@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { BookOpen, FileCheck, Clock, Users, Megaphone, X, Send, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { BookOpen, Clock, Users, Megaphone, X, Send, Search } from "lucide-react";
 import type { Page } from "../../App";
+import { professorService } from "../../services/professor";
 
 interface DashboardProps {
   onNavigate: (page: Page) => void;
@@ -11,57 +12,161 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [announcementType, setAnnouncementType] = useState('all_courses');
   const [announcementText, setAnnouncementText] = useState("");
   const [targetStudent, setTargetStudent] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
+  const [targetLevel, setTargetLevel] = useState("");
+  const [allStudents, setAllStudents] = useState<any[]>([]);
+  const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
+  const [selectedStudentLabel, setSelectedStudentLabel] = useState("");
 
-  const todaysCourses = [
-    {
-      title: "Géologie Structurale",
-      code: "Amph B - L2 Géologie",
-      time: "Aujourd'hui",
-      timeDetail: "08:30",
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const dashboardData = await professorService.getDashboard();
+        setData(dashboardData);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  const getCourseStyles = (title: string) => {
+    const hash = title.split('').reduce((acc, char) => char.charCodeAt(0) + acc, 0);
+    const colors = [
+      { bg: "bg-blue-100", text: "text-blue-600" },
+      { bg: "bg-purple-100", text: "text-purple-600" },
+      { bg: "bg-teal-100", text: "text-teal-600" },
+      { bg: "bg-orange-100", text: "text-orange-600" },
+      { bg: "bg-pink-100", text: "text-pink-600" },
+      { bg: "bg-indigo-100", text: "text-indigo-600" }
+    ];
+    return colors[hash % colors.length];
+  };
+
+  const todaysCourses = data?.todaySchedule ? data.todaySchedule.map((c: any) => {
+    const styles = getCourseStyles(c.title);
+    return {
+      title: c.title,
+      code: c.code,
+      time: c.time,
+      timeDetail: c.timeDetail,
       icon: BookOpen,
-      iconBg: "bg-blue-100",
-      iconColor: "text-blue-600"
-    },
-    {
-      title: "Correction Examens",
-      code: "Minéralogie - 45 copies restantes",
-      time: "Urgent",
-      timeDetail: "",
-      icon: FileCheck,
-      iconBg: "bg-amber-100",
-      iconColor: "text-amber-600"
-    }
-  ];
+      iconBg: styles.bg,
+      iconColor: styles.text
+    };
+  }) : [];
+
+  // Fallback if no courses
+  if (todaysCourses.length === 0 && !loading) {
+    // Optional: Display a message or leave empty.
+  }
 
   const stats = [
-    { label: "Étudiants", value: "124", change: "" },
-    { label: "Cours Actifs", value: "3", change: "En cours" }
+    { label: "Étudiants", value: data?.stats.studentCount || '0', change: "Total" },
+    { label: "Cours Actifs", value: data?.stats.courseCount || '0', change: "En charge" }
   ];
 
-  const handleSendAnnouncement = () => {
-    // Logic to send announcement would go here
-    alert(`Annonce envoyée aux: ${announcementType}${targetStudent ? ' (' + targetStudent + ')' : ''}`);
-    setShowAnnouncementModal(false);
-    setAnnouncementText("");
-    setTargetStudent("");
+  const handleSendAnnouncement = async () => {
+    if (!announcementText) return;
+    try {
+      setLoading(true);
+      const payload: any = {
+        title: `Annonce de ${data?.professorName || 'votre professeur'}`,
+        content: announcementText,
+        type: 'GENERAL',
+        target: announcementType === 'all_courses' ? 'ALL_STUDENTS' : (announcementType === 'specific_class' ? 'ACADEMIC_LEVEL' : 'SPECIFIC_USER'),
+      };
+
+      if (announcementType === 'specific_class') {
+        const selectedLevel = data?.myLevels?.find((l: any) => l.name === targetLevel);
+        payload.academicLevelId = selectedLevel?.id;
+      }
+      if (announcementType === 'specific_student') {
+        payload.targetUserId = targetStudent;
+      }
+
+      await professorService.createAnnouncement(payload);
+
+      alert("Annonce diffusée avec succès !");
+      setShowAnnouncementModal(false);
+      setAnnouncementText("");
+      setTargetStudent("");
+      setTargetLevel("");
+      setSelectedStudentLabel("");
+
+      // Refresh dashboard to see new announcement if needed
+      const dashboardData = await professorService.getDashboard();
+      setData(dashboardData);
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de la diffusion de l'annonce");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const fetchStudentsForSearch = async () => {
+    try {
+      const students = await professorService.getStudents();
+      setAllStudents(students);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    if (showAnnouncementModal && allStudents.length === 0) {
+      fetchStudentsForSearch();
+    }
+  }, [showAnnouncementModal]);
+
+  const handleStudentSearch = (query: string) => {
+    setTargetStudent(query);
+    if (query.length > 1) {
+      const filtered = allStudents.filter(s =>
+        s.name.toLowerCase().includes(query.toLowerCase()) ||
+        s.id.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 5);
+      setFilteredStudents(filtered);
+    } else {
+      setFilteredStudents([]);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div className="w-2 h-2 bg-teal-600 rounded-full"></div>
+          </div>
+        </div>
+        <p className="mt-4 text-gray-500 font-medium animate-pulse">Chargement du tableau de bord...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-teal-600 via-teal-700 to-cyan-700 rounded-2xl p-12 mb-8 relative overflow-hidden shadow-lg">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute right-32 bottom-0 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl"></div>
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-teal-800 to-cyan-700 rounded-3xl p-10 mb-10 relative overflow-hidden shadow-2xl">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute left-0 bottom-0 w-64 h-64 bg-teal-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
 
         <div className="relative z-10">
-          <h1 className="text-white text-4xl font-semibold mb-3">
-            Espace Enseignant,
+          <h1 className="text-white text-3xl md:text-5xl font-bold mb-2 tracking-tight">
+            Espace Enseignant
           </h1>
-          <h2 className="text-white text-4xl font-semibold mb-6">
+          <h2 className="text-teal-100 text-2xl md:text-3xl font-light mb-6 opacity-90">
             Faculté de Géologie
           </h2>
-          <p className="text-teal-50 text-lg max-w-2xl">
-            Gérez vos cours, consultez vos horaires et communiquez avec vos étudiants.
+          <p className="text-teal-50 text-lg max-w-2xl leading-relaxed opacity-80">
+            Bienvenue sur votre tableau de bord académique. Gérez vos cours, consultez vos horaires et communiquez avec vos étudiants en toute simplicité.
           </p>
         </div>
       </div>
@@ -72,7 +177,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-semibold text-gray-900">Cours de la journée</h3>
-            <button className="text-teal-600 hover:text-teal-700 font-medium flex items-center gap-2 transition-colors">
+            <button
+              onClick={() => onNavigate('planning')}
+              className="text-teal-600 hover:text-teal-700 font-medium flex items-center gap-2 transition-colors"
+            >
               Voir l'agenda
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -81,7 +189,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </div>
 
           <div className="space-y-4">
-            {todaysCourses.map((course, index) => {
+            {todaysCourses.length === 0 ? (
+              <div className="bg-white border border-gray-200 rounded-xl p-6 text-gray-500">
+                Aucun cours aujourd'hui
+              </div>
+            ) : todaysCourses.map((course: any, index: number) => {
               const Icon = course.icon;
               return (
                 <div
@@ -114,69 +226,102 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </div>
 
           {/* Faculty Announcements */}
-          <div className="mt-8 bg-blue-600 rounded-xl p-6 text-white">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium mb-3">
-                  Annonces Faculté
+          <div className="mt-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+              <Megaphone className="w-5 h-5 text-blue-600" />
+              Annonces Récentes
+            </h3>
+
+            <div className="space-y-4">
+              {data?.announcements?.length > 0 ? (
+                data.announcements.map((ann: any) => (
+                  <div key={ann.id} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
+                    <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${ann.target === 'ALL_STUDENTS' ? 'bg-indigo-500' : 'bg-pink-500'}`}></div>
+                    <div className="flex items-start justify-between mb-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ann.target === 'ALL_STUDENTS' ? 'bg-indigo-50 text-indigo-700' : 'bg-pink-50 text-pink-700'
+                        }`}>
+                        {ann.target === 'ALL_STUDENTS' ? 'Annonce Générale' : 'Annonce Faculté'}
+                      </span>
+                      <span className="text-xs text-gray-400 font-medium">
+                        {new Date(ann.date).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <h4 className="font-bold text-gray-900 text-lg mb-2 group-hover:text-teal-700 transition-colors">{ann.title}</h4>
+                    <p className="text-gray-600 leading-relaxed text-sm">
+                      {ann.content}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="bg-gray-50 rounded-xl p-8 text-center text-gray-500 border border-dashed border-gray-200">
+                  <Megaphone className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+                  <p>Aucune annonce pour le moment</p>
                 </div>
-                <h4 className="font-semibold text-lg mb-2">Réunion départementale</h4>
-                <p className="text-blue-50">
-                  La prochaine réunion du département de géologie aura lieu le 24 Novembre à 14h00 en salle des professeurs.
-                </p>
-              </div>
-              <div className="text-sm text-blue-100 ml-4 whitespace-nowrap">
-                Il y a 2h
-              </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Stats Sidebar */}
-        <div className="lg:col-span-1">
-          <h3 className="text-2xl font-semibold text-gray-900 mb-6">Statistiques Rapides</h3>
+        {/* Stats Sidebar */}
+        <div className="lg:col-span-1 space-y-8">
 
           <div className="space-y-4">
-            {stats.map((stat, index) => (
-              <div key={index} className="bg-white border border-gray-200 rounded-xl p-6">
-                <div className="text-5xl font-bold text-teal-600 mb-2">{stat.value}</div>
-                <div className="text-gray-900 font-semibold mb-1">{stat.label}</div>
-                <div className="text-gray-500 text-sm">{stat.change}</div>
-              </div>
-            ))}
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-5 h-5 text-teal-600" />
+              Statistiques
+            </h3>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
+              {stats.map((stat, index) => (
+                <div key={index} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600 mb-2">{stat.value}</div>
+                  <div className="text-gray-900 font-semibold mb-1">{stat.label}</div>
+                  <div className="text-gray-500 text-sm font-medium bg-gray-50 inline-block px-2 py-1 rounded-md">{stat.change}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="mt-8 bg-white border border-gray-200 rounded-xl p-6">
-            <h4 className="font-semibold text-gray-900 mb-4">Actions rapides</h4>
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <h4 className="font-bold text-gray-900 mb-5 text-lg">Actions rapides</h4>
             <div className="space-y-3">
               <button
                 onClick={() => onNavigate('courses')}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition-colors"
+                className="w-full group flex items-center gap-4 px-4 py-3.5 bg-gray-50 hover:bg-teal-50 text-gray-700 hover:text-teal-700 rounded-xl transition-all border border-transparent hover:border-teal-100"
               >
-                <Clock className="w-5 h-5" />
-                <span className="font-medium">Gérer mes cours</span>
+                <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">
+                  <Clock className="w-5 h-5 text-teal-600" />
+                </div>
+                <span className="font-semibold text-sm">Gérer mes cours</span>
               </button>
               <button
                 onClick={() => onNavigate('planning')}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                className="w-full group flex items-center gap-4 px-4 py-3.5 bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 rounded-xl transition-all border border-transparent hover:border-blue-100"
               >
-                <BookOpen className="w-5 h-5" />
-                <span className="font-medium">Voir mon planning</span>
+                <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">
+                  <BookOpen className="w-5 h-5 text-blue-600" />
+                </div>
+                <span className="font-semibold text-sm">Voir mon planning</span>
               </button>
               <button
                 onClick={() => onNavigate('students')}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                className="w-full group flex items-center gap-4 px-4 py-3.5 bg-gray-50 hover:bg-purple-50 text-gray-700 hover:text-purple-700 rounded-xl transition-all border border-transparent hover:border-purple-100"
               >
-                <Users className="w-5 h-5" />
-                <span className="font-medium">Voir étudiants</span>
+                <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">
+                  <Users className="w-5 h-5 text-purple-600" />
+                </div>
+                <span className="font-semibold text-sm">Voir étudiants</span>
               </button>
               <button
                 onClick={() => setShowAnnouncementModal(true)}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                className="w-full group flex items-center gap-4 px-4 py-3.5 bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-orange-700 rounded-xl transition-all border border-transparent hover:border-orange-100"
               >
-                <Megaphone className="w-5 h-5" />
-                <span className="font-medium">Faire une annonce</span>
+                <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">
+                  <Megaphone className="w-5 h-5 text-orange-600" />
+                </div>
+                <span className="font-semibold text-sm">Faire une annonce</span>
               </button>
             </div>
           </div>
@@ -227,15 +372,23 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 </div>
               </div>
 
-              {(announcementType === 'specific_class') && (
+              {announcementType === 'specific_class' && (
                 <div className="animate-in slide-in-from-top-2 duration-200">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Sélectionnez la/les classe(s)</label>
-                  <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-sm">
-                    <option>Licence 1 - Géologie</option>
-                    <option>Licence 2 - Géologie</option>
-                    <option>Licence 3 - Géologie</option>
-                    <option>Master 1 - Géologie</option>
-                    <option>Master 2 - Géologie</option>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Sélectionnez la classe</label>
+                  <select
+                    value={targetLevel}
+                    onChange={(e) => setTargetLevel(e.target.value)}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-sm font-medium"
+                  >
+                    <option value="">Choisir une classe...</option>
+                    {data?.myLevels?.map((level: any) => (
+                      <option key={level.id} value={level.name}>
+                        {level.displayName || level.name}
+                      </option>
+                    ))}
+                    {(!data?.myLevels || data.myLevels.length === 0) && (
+                      <option disabled>Aucune classe trouvée</option>
+                    )}
                   </select>
                 </div>
               )}
@@ -248,10 +401,31 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     <input
                       type="text"
                       placeholder="Nom ou Matricule..."
-                      value={targetStudent}
-                      onChange={(e) => setTargetStudent(e.target.value)}
+                      value={selectedStudentLabel || targetStudent}
+                      onChange={(e) => {
+                        setSelectedStudentLabel("");
+                        handleStudentSearch(e.target.value);
+                      }}
                       className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-sm"
                     />
+                    {filteredStudents.length > 0 && !selectedStudentLabel && (
+                      <div className="absolute z-[60] left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                        {filteredStudents.map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => {
+                              setTargetStudent(s.id);
+                              setSelectedStudentLabel(`${s.name} (${s.id})`);
+                              setFilteredStudents([]);
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-teal-50 border-b border-gray-50 last:border-0 transition-colors"
+                          >
+                            <p className="text-sm font-bold text-gray-900">{s.name}</p>
+                            <p className="text-[11px] text-gray-500 font-medium font-mono">{s.id} • {s.academicLevel}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

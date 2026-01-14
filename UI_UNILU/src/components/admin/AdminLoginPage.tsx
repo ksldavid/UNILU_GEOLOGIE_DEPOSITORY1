@@ -23,9 +23,14 @@ export function AdminLoginPage({ onLogin, onBack }: AdminLoginPageProps) {
     if (userId.trim() && password.trim()) {
       setIsLoading(true);
       try {
-        const success = await onLogin(userId, password, activeRole);
-        if (!success) {
-          setError('Identifiant ou mot de passe incorrect.');
+        const result = await onLogin(userId.trim(), password.trim(), activeRole);
+
+        if (result === 'ROLE_MISMATCH') {
+          setError("Cet identifiant n'appartient pas à cet onglet (vérifiez si vous êtes au Service Technique ou Académique).");
+        } else if (result === 'AUTH_FAILED') {
+          setError("L'identifiant ou le mot de passe est incorrect.");
+        } else if (result === false) {
+          setError("L'identifiant ou le mot de passe est incorrect.");
         }
       } catch (error) {
         setError('Une erreur est survenue lors de la connexion.');

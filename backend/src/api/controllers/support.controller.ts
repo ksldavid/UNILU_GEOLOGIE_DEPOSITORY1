@@ -144,3 +144,61 @@ export const markNotificationRead = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Erreur serveur' })
     }
 }
+
+// --- ADMIN / SUPPORT FUNCTIONS ---
+
+// Récupérer TOUS les tickets (Admin uniquement)
+export const getAllTickets = async (req: Request, res: Response) => {
+    try {
+        const tickets = await prisma.supportTicket.findMany({
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        email: true,
+                        systemRole: true
+                    }
+                },
+                messages: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        })
+        res.json(tickets)
+    } catch (error) {
+        console.error('Erreur getAllTickets:', error)
+        res.status(500).json({ message: 'Erreur serveur' })
+    }
+}
+
+// Mettre à jour le statut d'un ticket
+export const updateTicketStatus = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params
+        const { status } = req.body
+
+        const ticket = await prisma.supportTicket.update({
+            where: { id },
+            data: { status },
+            include: { user: true }
+        })
+
+        // On peut notifier l'utilisateur du changement de statut
+        await prisma.notification.create({
+            data: {
+                userId: ticket.userId,
+                title: 'Mise à jour de votre ticket',
+                message: `Le statut de votre ticket "${ticket.subject}" est passé à : ${status}`,
+                type: 'SUPPORT',
+                linkTo: '/dashboard/support'
+            }
+        })
+
+        res.json(ticket)
+    } catch (error) {
+        console.error('Erreur updateTicketStatus:', error)
+        res.status(500).json({ message: 'Erreur serveur' })
+    }
+}

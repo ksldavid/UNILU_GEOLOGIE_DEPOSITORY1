@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, ChevronRight, UserPlus, BookOpen, FileText, CheckCircle, X, Ban, MessageCircle, AlertTriangle, School, Trash2, GraduationCap, Users, Copy, Eye, EyeOff, Lock } from 'lucide-react';
+import { Search, ChevronRight, UserPlus, BookOpen, FileText, CheckCircle, X, Ban, MessageCircle, AlertTriangle, School, Trash2, GraduationCap, Users, Copy, Eye, EyeOff, Lock, Hash, Key } from 'lucide-react';
 import { userService } from '../../../../services/user';
 
 // Types definitons
@@ -229,6 +229,33 @@ export function InscriptionsManager() {
     idNumber: '',
     password: ''
   });
+
+  const fetchSuggestions = async () => {
+    if (!formData.nom && !formData.prenom) return;
+    try {
+      const token = sessionStorage.getItem('token');
+      const fullName = `${formData.nom} ${formData.prenom}`;
+      const res = await fetch(`http://localhost:3001/api/admin/credentials/suggest?role=${newUserType === 'student' ? 'student' : 'prof'}&name=${encodeURIComponent(fullName)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFormData(prev => ({
+          ...prev,
+          idNumber: data.id,
+          password: data.password
+        }));
+      }
+    } catch (error) {
+      console.error("Erreur suggestions:", error);
+    }
+  };
+
+  const handleNameBlur = () => {
+    if (!formData.idNumber || !formData.password) {
+      fetchSuggestions();
+    }
+  };
 
   const resetForm = () => {
     setNewUserType(null);
@@ -796,9 +823,10 @@ export function InscriptionsManager() {
               </div>
             )}
 
-          </div >
-        </div >
+          </div>
+        </div>
       )}
+
       {/* Add User Modal */}
       {
         isAddModalOpen && (
@@ -855,6 +883,7 @@ export function InscriptionsManager() {
                           type="text"
                           value={formData.nom}
                           onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                          onBlur={handleNameBlur}
                           className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[12px] outline-none focus:border-[#1B4332] transition-colors"
                           placeholder="Ex: Kabeya"
                         />
@@ -879,6 +908,7 @@ export function InscriptionsManager() {
                             type="text"
                             value={formData.prenom}
                             onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
+                            onBlur={handleNameBlur}
                             className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[12px] outline-none focus:border-[#1B4332] transition-colors"
                             placeholder="Ex: Jean"
                           />
@@ -941,6 +971,35 @@ export function InscriptionsManager() {
                           className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[12px] outline-none focus:border-[#1B4332] transition-colors"
                           placeholder="exemple@unilu.cd"
                         />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-[#1B4332] mb-1">Identifiant Suggéré</label>
+                        <div className="relative">
+                          <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#52796F]" />
+                          <input
+                            type="text"
+                            value={formData.idNumber}
+                            onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
+                            className="w-full pl-10 p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[12px] outline-none focus:border-[#1B4332] transition-colors font-bold text-blue-600"
+                            placeholder="Généré automatiquement..."
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[#1B4332] mb-1">Mot de passe Suggéré</label>
+                        <div className="relative">
+                          <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#52796F]" />
+                          <input
+                            type="text"
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            className="w-full pl-10 p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[12px] outline-none focus:border-[#1B4332] transition-colors font-mono font-bold text-emerald-600"
+                            placeholder="Généré automatiquement..."
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1453,174 +1512,178 @@ export function InscriptionsManager() {
       }
 
       {/* Credentials Modal - Optimized & Smaller Version */}
-      {isCredentialsModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[24px] w-full max-w-[360px] shadow-2xl border border-[#1B4332]/10 overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="bg-[#1B4332] p-5 text-white relative">
-              <button
-                onClick={() => {
-                  setIsCredentialsModalOpen(false);
-                  setShowPassword(false);
-                }}
-                className="absolute top-4 right-4 p-1.5 hover:bg-white/10 rounded-full transition-colors"
-                title="Fermer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-                  <Lock className="w-5 h-5 text-[#74C69D]" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Identifiants</h3>
-                  <p className="text-white/60 text-[10px] uppercase tracking-wider font-medium">Personnel Académique</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-5 space-y-5">
-              {/* Profile Bio Small */}
-              <div className="flex items-center gap-3 p-3 bg-[#F1F8F4] rounded-xl border border-[#1B4332]/5">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm ${selectedUser.avatarColor}`}>
-                  {selectedUser.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-[#1B4332] leading-tight">{selectedUser.name}</p>
-                  <p className="text-[10px] text-[#52796F]">{selectedUser.title || 'Enseignant'}</p>
-                </div>
-              </div>
-
-              {/* Credentials Fields Compact */}
-              <div className="space-y-3">
-                {/* ID (Login) */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#52796F] uppercase tracking-wider ml-1">Matricule (Login)</label>
-                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-100 group">
-                    <span className="flex-1 font-mono text-sm font-bold text-[#1B4332]">{selectedUser.id}</span>
-                    <button
-                      onClick={() => handleCopy(selectedUser.id, 'id')}
-                      className="p-1.5 hover:bg-[#1B4332]/10 rounded-lg transition-colors text-[#52796F]"
-                    >
-                      {copiedField === 'id' ? <CheckCircle className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
+      {
+        isCredentialsModalOpen && selectedUser && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[24px] w-full max-w-[360px] shadow-2xl border border-[#1B4332]/10 overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="bg-[#1B4332] p-5 text-white relative">
+                <button
+                  onClick={() => {
+                    setIsCredentialsModalOpen(false);
+                    setShowPassword(false);
+                  }}
+                  className="absolute top-4 right-4 p-1.5 hover:bg-white/10 rounded-full transition-colors"
+                  title="Fermer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-[#74C69D]" />
                   </div>
-                </div>
-
-                {/* Email */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#52796F] uppercase tracking-wider ml-1">Email</label>
-                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-100 group">
-                    <span className="flex-1 text-[12px] font-medium text-[#1B4332] truncate">{selectedUser.id.toLowerCase()}@unilu.cd</span>
-                    <button
-                      onClick={() => handleCopy(`${selectedUser.id.toLowerCase()}@unilu.cd`, 'email')}
-                      className="p-1.5 hover:bg-[#1B4332]/10 rounded-lg transition-colors text-[#52796F]"
-                    >
-                      {copiedField === 'email' ? <CheckCircle className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Password Placeholder */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#52796F] uppercase tracking-wider ml-1">Mot de passe</label>
-                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-100 group">
-                    <span className="flex-1 text-[12px] font-medium text-[#1B4332]">
-                      {showPassword ? '••••••••' : '********'}
-                    </span>
-                    <button
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="p-1.5 hover:bg-[#1B4332]/10 rounded-lg transition-colors text-[#52796F]"
-                    >
-                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
+                  <div>
+                    <h3 className="text-lg font-bold">Identifiants</h3>
+                    <p className="text-white/60 text-[10px] uppercase tracking-wider font-medium">Personnel Académique</p>
                   </div>
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  setIsCredentialsModalOpen(false);
-                  setShowPassword(false);
-                }}
-                className="w-full bg-[#1B4332] text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-[#14332a] transition-all active:scale-[0.97]"
-              >
-                Fermer
-              </button>
+              <div className="p-5 space-y-5">
+                {/* Profile Bio Small */}
+                <div className="flex items-center gap-3 p-3 bg-[#F1F8F4] rounded-xl border border-[#1B4332]/5">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm ${selectedUser.avatarColor}`}>
+                    {selectedUser.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[#1B4332] leading-tight">{selectedUser.name}</p>
+                    <p className="text-[10px] text-[#52796F]">{selectedUser.title || 'Enseignant'}</p>
+                  </div>
+                </div>
+
+                {/* Credentials Fields Compact */}
+                <div className="space-y-3">
+                  {/* ID (Login) */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-[#52796F] uppercase tracking-wider ml-1">Matricule (Login)</label>
+                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-100 group">
+                      <span className="flex-1 font-mono text-sm font-bold text-[#1B4332]">{selectedUser.id}</span>
+                      <button
+                        onClick={() => handleCopy(selectedUser.id, 'id')}
+                        className="p-1.5 hover:bg-[#1B4332]/10 rounded-lg transition-colors text-[#52796F]"
+                      >
+                        {copiedField === 'id' ? <CheckCircle className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-[#52796F] uppercase tracking-wider ml-1">Email</label>
+                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-100 group">
+                      <span className="flex-1 text-[12px] font-medium text-[#1B4332] truncate">{selectedUser.id.toLowerCase()}@unilu.cd</span>
+                      <button
+                        onClick={() => handleCopy(`${selectedUser.id.toLowerCase()}@unilu.cd`, 'email')}
+                        className="p-1.5 hover:bg-[#1B4332]/10 rounded-lg transition-colors text-[#52796F]"
+                      >
+                        {copiedField === 'email' ? <CheckCircle className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Password Placeholder */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-[#52796F] uppercase tracking-wider ml-1">Mot de passe</label>
+                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-100 group">
+                      <span className="flex-1 text-[12px] font-medium text-[#1B4332]">
+                        {showPassword ? '••••••••' : '********'}
+                      </span>
+                      <button
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="p-1.5 hover:bg-[#1B4332]/10 rounded-lg transition-colors text-[#52796F]"
+                      >
+                        {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setIsCredentialsModalOpen(false);
+                    setShowPassword(false);
+                  }}
+                  className="w-full bg-[#1B4332] text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-[#14332a] transition-all active:scale-[0.97]"
+                >
+                  Fermer
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Edit Professor Modal */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[24px] w-full max-w-md shadow-2xl border border-[#1B4332]/10 overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="bg-[#1B4332] p-5 text-white flex justify-between items-center">
-              <h3 className="text-lg font-bold">Modifier les informations</h3>
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="p-1 hover:bg-white/10 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#52796F] uppercase tracking-wider ml-1">Nom Complet</label>
-                <input
-                  type="text"
-                  value={editFormData.name}
-                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  className="w-full bg-gray-50 p-3 rounded-xl border border-gray-100 outline-none focus:border-[#1B4332]/30 text-[#1B4332] font-medium"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#52796F] uppercase tracking-wider ml-1">Email</label>
-                <input
-                  type="email"
-                  value={editFormData.email}
-                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                  className="w-full bg-gray-50 p-3 rounded-xl border border-gray-100 outline-none focus:border-[#1B4332]/30 text-[#1B4332] font-medium"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#52796F] uppercase tracking-wider ml-1">Titre Académique</label>
-                <select
-                  value={editFormData.title}
-                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
-                  className="w-full bg-gray-50 p-3 rounded-xl border border-gray-100 outline-none focus:border-[#1B4332]/30 text-[#1B4332] font-medium"
-                >
-                  <option value="Enseignant">Enseignant</option>
-                  <option value="PhD">PhD (Docteur)</option>
-                  <option value="Professeur">Professeur</option>
-                  <option value="Prof. Associé">Prof. Associé</option>
-                  <option value="Prof. Emérite">Prof. Emérite</option>
-                  <option value="Chef de Travaux">Chef de Travaux</option>
-                  <option value="Assistant">Assistant</option>
-                </select>
-              </div>
-
-              <div className="pt-4 flex gap-3">
+      {
+        isEditModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[24px] w-full max-w-md shadow-2xl border border-[#1B4332]/10 overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="bg-[#1B4332] p-5 text-white flex justify-between items-center">
+                <h3 className="text-lg font-bold">Modifier les informations</h3>
                 <button
                   onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 bg-gray-100 text-[#52796F] py-3 rounded-xl font-bold hover:bg-gray-200 transition-all"
+                  className="p-1 hover:bg-white/10 rounded-full transition-colors"
                 >
-                  Annuler
+                  <X className="w-5 h-5" />
                 </button>
-                <button
-                  onClick={handleEditSubmit}
-                  className="flex-1 bg-[#1B4332] text-white py-3 rounded-xl font-bold shadow-lg hover:bg-[#14332a] transition-all"
-                >
-                  Enregistrer
-                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#52796F] uppercase tracking-wider ml-1">Nom Complet</label>
+                  <input
+                    type="text"
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                    className="w-full bg-gray-50 p-3 rounded-xl border border-gray-100 outline-none focus:border-[#1B4332]/30 text-[#1B4332] font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#52796F] uppercase tracking-wider ml-1">Email</label>
+                  <input
+                    type="email"
+                    value={editFormData.email}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                    className="w-full bg-gray-50 p-3 rounded-xl border border-gray-100 outline-none focus:border-[#1B4332]/30 text-[#1B4332] font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#52796F] uppercase tracking-wider ml-1">Titre Académique</label>
+                  <select
+                    value={editFormData.title}
+                    onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                    className="w-full bg-gray-50 p-3 rounded-xl border border-gray-100 outline-none focus:border-[#1B4332]/30 text-[#1B4332] font-medium"
+                  >
+                    <option value="Enseignant">Enseignant</option>
+                    <option value="PhD">PhD (Docteur)</option>
+                    <option value="Professeur">Professeur</option>
+                    <option value="Prof. Associé">Prof. Associé</option>
+                    <option value="Prof. Emérite">Prof. Emérite</option>
+                    <option value="Chef de Travaux">Chef de Travaux</option>
+                    <option value="Assistant">Assistant</option>
+                  </select>
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="flex-1 bg-gray-100 text-[#52796F] py-3 rounded-xl font-bold hover:bg-gray-200 transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleEditSubmit}
+                    className="flex-1 bg-[#1B4332] text-white py-3 rounded-xl font-bold shadow-lg hover:bg-[#14332a] transition-all"
+                  >
+                    Enregistrer
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div >
+        )
+      }
+    </div>
   );
 }

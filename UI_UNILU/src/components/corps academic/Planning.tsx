@@ -1,9 +1,26 @@
 import { ChevronLeft, ChevronRight, Clock, Filter } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { professorService } from "../../services/professor";
 
 export function Planning() {
-  const [currentWeek] = useState("25 Nov - 1 Déc 2025");
+  const [currentWeek] = useState("Semaine actuelle");
   const [filterDay, setFilterDay] = useState<string | null>(null);
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSchedule = async () => {
+      try {
+        const data = await professorService.getSchedule();
+        setSchedules(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSchedule();
+  }, []);
 
   const daysOfWeek = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 
@@ -13,58 +30,33 @@ export function Planning() {
   };
 
   const weekSchedule: Record<string, any[]> = {
-    Lundi: [
-      {
-        title: "Géologie Structurale",
-        location: "Amphi B - L2 Géologie",
-        time: "08:30 - 10:30",
-        color: "text-blue-600"
-      },
-      {
-        title: "Heures de bureau",
-        location: "Bureau du Doyen",
-        time: "14:00 - 16:00",
-        color: "text-teal-600"
-      }
-    ],
-    Mardi: [],
-    Mercredi: [
-      {
-        title: "Géologie Structurale",
-        location: "Amphi B - L2 Géologie",
-        time: "08:30 - 10:30",
-        color: "text-blue-600"
-      },
-      {
-        title: "Réunion du département",
-        location: "Salle de conférence",
-        time: "11:00 - 12:00",
-        color: "text-red-600"
-      }
-    ],
-    Jeudi: [
-      {
-        title: "Minéralogie",
-        location: "Labo 3 - L1 Géologie",
-        time: "13:00 - 15:00",
-        color: "text-purple-600"
-      }
-    ],
-    Vendredi: [
-      {
-        title: "Heures de bureau",
-        location: "Bureau du Doyen",
-        time: "10:00 - 12:00",
-        color: "text-teal-600"
-      }
-    ],
-    Samedi: [],
-    Dimanche: []
+    Lundi: [], Mardi: [], Mercredi: [], Jeudi: [], Vendredi: [], Samedi: [], Dimanche: []
   };
+
+  schedules.forEach(s => {
+    const day = s.day.charAt(0).toUpperCase() + s.day.slice(1).toLowerCase(); // Ensure capitalization matches keys
+    if (weekSchedule[day]) {
+      weekSchedule[day].push({
+        title: s.title,
+        location: s.location,
+        time: `${s.startTime} - ${s.endTime}`,
+        color: s.color || "text-blue-600"
+      });
+    }
+  });
 
   const displayedSchedule = filterDay
     ? Object.entries(weekSchedule).filter(([day]) => day === filterDay)
     : Object.entries(weekSchedule);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-500 font-medium">Synchronisation de l'agenda...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto animate-in fade-in duration-500">

@@ -20,8 +20,8 @@ interface ScheduledCourse extends Course {
 
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 const TIME_SLOTS = [
-    '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
-    '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'
+    '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30',
+    '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'
 ];
 interface ScheduleManagerProps {
     onModifiedChange?: (isModified: boolean) => void;
@@ -57,6 +57,11 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
     const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
     const [pendingSchedule, setPendingSchedule] = useState<{ course: Course; day: string } | null>(null);
     const [timeForm, setTimeForm] = useState({ startTime: '08:00', endTime: '10:00', room: '' });
+
+    const toMinutes = (time: string) => {
+        const [h, m] = time.split(':').map(Number);
+        return h * 60 + m;
+    };
 
     const [searchQuery, setSearchQuery] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -226,11 +231,11 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
     };
 
     const getCoursesForDayAndTime = (day: string, time: string) => {
+        const slotMin = toMinutes(time);
         return scheduledCourses.filter(sc => {
-            const courseStart = parseInt(sc.startTime.split(':')[0]);
-            const courseEnd = parseInt(sc.endTime.split(':')[0]);
-            const slotTime = parseInt(time.split(':')[0]);
-            return sc.day === day && slotTime >= courseStart && slotTime < courseEnd;
+            const courseStart = toMinutes(sc.startTime);
+            const courseEnd = toMinutes(sc.endTime);
+            return sc.day === day && slotMin >= courseStart && slotMin < courseEnd;
         });
     };
 
@@ -395,14 +400,14 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                                                         className="h-[85px] bg-white rounded-2xl border border-[#1B4332]/5 hover:border-[#1B4332]/20 hover:bg-white transition-all relative group/slot shadow-sm"
                                                     >
                                                         {isFirstSlot && coursesAtSlot.map(course => {
-                                                            const duration = parseInt(course.endTime.split(':')[0]) - parseInt(course.startTime.split(':')[0]);
+                                                            const durationSlots = (toMinutes(course.endTime) - toMinutes(course.startTime)) / 30;
                                                             return (
                                                                 <div
                                                                     key={`${course.id}-${course.startTime}`}
                                                                     className="absolute inset-[1px] p-3 rounded-2xl text-white shadow-lg animate-in zoom-in-95 duration-500 z-10 group/course flex flex-col"
                                                                     style={{
                                                                         backgroundColor: course.color,
-                                                                        height: `${duration * 85 + (duration - 1) * 8 - 2}px`,
+                                                                        height: `${durationSlots * 85 + (durationSlots - 1) * 8 - 2}px`,
                                                                         background: `linear-gradient(135deg, ${course.color}, ${course.color}dd)`,
                                                                         boxShadow: `0 8px 20px -5px ${course.color}66`
                                                                     }}

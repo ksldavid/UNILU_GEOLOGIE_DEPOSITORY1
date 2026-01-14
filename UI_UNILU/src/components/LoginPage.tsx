@@ -11,25 +11,25 @@ import slide4 from '../assets/slide4.png';
 const slides = [
     {
         image: slide1,
-        title: "Faculté des sciences et technologies : Departement de géologie",
+        title: "Faculté de Science et Technologie : Département de Géologie",
         subtitle: "Portail Professeur, Assistant et Étudiant",
         quote: "À la découverte de la force de la terre."
     },
     {
         image: slide2,
-        title: "Faculté des sciences et technologies : Departement de géologie",
+        title: "Faculté de Science et Technologie : Département de Géologie",
         subtitle: "Portail Professeur, Assistant et Étudiant",
         quote: "La géologie : lire dans le livre ouvert de la nature."
     },
     {
         image: slide3,
-        title: "Faculté des sciences et technologies : Departement de géologie",
+        title: "Faculté de Science et Technologie : Département de Géologie",
         subtitle: "Portail Professeur, Assistant et Étudiant",
         quote: "Le temps est le meilleur architecte de la terre."
     },
     {
         image: slide4,
-        title: "Faculté des sciences et technologies : Departement de géologie",
+        title: "Faculté de Science et Technologie : Département de Géologie",
         subtitle: "Portail Professeur, Assistant et Étudiant",
         quote: "Étudier le passé de la terre pour construire son futur."
     }
@@ -69,7 +69,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
 
             try {
                 const targetRole = activeTab === 'student' ? 'STUDENT' : 'USER';
-                const result = await onLogin(studentId, password, targetRole);
+                const result = await onLogin(studentId.trim(), password.trim(), targetRole);
 
                 if (result === 'ROLE_MISMATCH') {
                     setRoleMismatch(true);
@@ -128,7 +128,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                     </div>
 
                     {/* Text content at bottom left - MORE RAISED */}
-                    <div className="mb-48">
+                    <div className="mb-80">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={currentSlide}
@@ -170,8 +170,8 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
             </div>
 
             {/* Right Section - Login Form */}
-            <div className={`flex-1 split-form flex flex-col items-center p-8 bg-white relative transition-all duration-500 ${showContactModal ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                <div className="w-full max-w-sm flex flex-col min-h-full pt-4 pb-12">
+            <div className={`flex-1 split-form flex flex-col items-center px-8 bg-white relative transition-all duration-500 ${showContactModal ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                <div className="w-full max-w-sm flex flex-col min-h-full -mt-2 pb-12 justify-center">
                     {/* Welcome Text at Top */}
                     <div className="text-center mb-4">
                         <h2 className="text-6xl font-bold mb-4 text-slate-900 tracking-tight" style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>
@@ -180,7 +180,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                         <h3 className="text-xl font-bold text-teal-600 mb-2 tracking-wide uppercase" style={{ fontFamily: "'Outfit', sans-serif" }}>
                             UNIVERSITE DE LUBUMBASHI
                         </h3>
-                        <p className="text-gray-500 text-sm font-medium">Portail de la Faculté de Géologie</p>
+                        <p className="text-gray-500 text-sm font-medium">Portail de la Faculté de Science et Technologie : Département de Géologie</p>
                     </div>
 
                     <div className="flex-1 flex flex-col pt-4">
@@ -215,7 +215,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                     : 'text-gray-400 hover:text-gray-600'
                                     }`}
                             >
-                                Corps Académique
+                                Corps académique et scientifique
                             </button>
                         </div>
 
@@ -228,7 +228,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                             {/* Student ID Field */}
                             <div>
                                 <label className="block text-sm font-bold text-slate-800 mb-2.5 ml-1">
-                                    {activeTab === 'student' ? 'Numéro Étudiant' : 'Identifiant Personnel'}
+                                    {activeTab === 'student' ? 'Numéro Étudiant' : 'Identifiant Professionnel'}
                                 </label>
                                 <div className="relative">
                                     <User className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${error ? 'text-red-400' : 'text-gray-400'}`} />

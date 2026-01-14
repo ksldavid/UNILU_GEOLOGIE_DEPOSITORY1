@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     LayoutDashboard, Users, ClipboardCheck, FileText, Calendar,
     GraduationCap, Search, Bell, ChevronDown, LogOut,
@@ -56,6 +56,8 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
     const [notifications, setNotifications] = useState<any[]>([]);
     const [supportTickets, setSupportTickets] = useState<any[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [announcementMessage, setAnnouncementMessage] = useState("");
+    const [isPublishing, setIsPublishing] = useState(false);
 
     // Navigation Guard for Planning
     const [isPlanningModified, setIsPlanningModified] = useState(false);
@@ -91,82 +93,82 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
         { label: "Nombre de Cours", value: "...", change: "Total catalogue", trend: "neutral", icon: Calendar, bgColor: "bg-purple-50", iconColor: "text-purple-500" },
     ]);
 
+    const fetchDashboardData = useCallback(async () => {
+        try {
+            // Fetch Stats
+            const statsData = await userService.getAcademicStats();
+            setStats([
+                {
+                    label: "Effectif étudiants",
+                    value: statsData.studentCount.toLocaleString(),
+                    change: "Total inscrits",
+                    trend: "neutral",
+                    icon: Users,
+                    bgColor: "bg-green-50",
+                    iconColor: "text-[#1B4332]"
+                },
+                {
+                    label: "Rectifications",
+                    value: statsData.pendingGradeChangeRequests.toString(),
+                    change: statsData.pendingGradeChangeRequests > 0 ? "Actions requises" : "À jour",
+                    trend: statsData.pendingGradeChangeRequests > 0 ? "urgent" : "neutral",
+                    icon: FileCheck,
+                    bgColor: "bg-orange-50",
+                    iconColor: "text-orange-500"
+                },
+                {
+                    label: "Effectif Académique",
+                    value: statsData.professorCount.toLocaleString(),
+                    change: "Professeurs & Ass.",
+                    trend: "neutral",
+                    icon: GraduationCap,
+                    bgColor: "bg-blue-50",
+                    iconColor: "text-blue-500"
+                },
+                {
+                    label: "Nombre de Cours",
+                    value: statsData.courseCount.toString(),
+                    change: "Total catalogue",
+                    trend: "neutral",
+                    icon: Calendar,
+                    bgColor: "bg-purple-50",
+                    iconColor: "text-purple-500"
+                },
+            ]);
+
+            // Fetch real pending note requests
+            const { gradeService } = await import("../../../services/grade");
+            const requests = await gradeService.getGradeChangeRequests();
+            setRealNoteRequests(requests.filter((r: any) => r.status === 'pending').slice(0, 3));
+
+            // Fetch Recent Activities
+            const activities = await userService.getRecentActivities();
+            setRealRecentActivities(activities);
+
+            // Fetch Attendance Stats
+            const attStats = await userService.getAttendanceStats();
+            setAllAttendanceStats(attStats);
+            setAttendanceData(attStats.slice(0, 8)); // Par défaut 8 mois
+
+            // Fetch Support and Notifications
+            const [notifs, tickets] = await Promise.all([
+                supportService.getNotifications(),
+                supportService.getMyTickets()
+            ]);
+            setNotifications(notifs);
+            setSupportTickets(tickets);
+        } catch (error) {
+            console.error("Erreur chargement dashboard:", error);
+        } finally {
+            setNotesLoading(false);
+            setActivitiesLoading(false);
+        }
+    }, []);
+
     // Chargement des données réelles
     useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                // Fetch Stats
-                const statsData = await userService.getAcademicStats();
-                setStats([
-                    {
-                        label: "Effectif étudiants",
-                        value: statsData.studentCount.toLocaleString(),
-                        change: "Total inscrits",
-                        trend: "neutral",
-                        icon: Users,
-                        bgColor: "bg-green-50",
-                        iconColor: "text-[#1B4332]"
-                    },
-                    {
-                        label: "Rectifications",
-                        value: statsData.pendingGradeChangeRequests.toString(),
-                        change: statsData.pendingGradeChangeRequests > 0 ? "Actions requises" : "À jour",
-                        trend: statsData.pendingGradeChangeRequests > 0 ? "urgent" : "neutral",
-                        icon: FileCheck,
-                        bgColor: "bg-orange-50",
-                        iconColor: "text-orange-500"
-                    },
-                    {
-                        label: "Effectif Académique",
-                        value: statsData.professorCount.toLocaleString(),
-                        change: "Professeurs & Ass.",
-                        trend: "neutral",
-                        icon: GraduationCap,
-                        bgColor: "bg-blue-50",
-                        iconColor: "text-blue-500"
-                    },
-                    {
-                        label: "Nombre de Cours",
-                        value: statsData.courseCount.toString(),
-                        change: "Total catalogue",
-                        trend: "neutral",
-                        icon: Calendar,
-                        bgColor: "bg-purple-50",
-                        iconColor: "text-purple-500"
-                    },
-                ]);
-
-                // Fetch real pending note requests
-                const { gradeService } = await import("../../../services/grade");
-                const requests = await gradeService.getGradeChangeRequests();
-                setRealNoteRequests(requests.filter((r: any) => r.status === 'pending').slice(0, 3));
-
-                // Fetch Recent Activities
-                const activities = await userService.getRecentActivities();
-                setRealRecentActivities(activities);
-
-                // Fetch Attendance Stats
-                const attStats = await userService.getAttendanceStats();
-                setAllAttendanceStats(attStats);
-                setAttendanceData(attStats.slice(0, 8)); // Par défaut 8 mois
-
-                // Fetch Support and Notifications
-                const [notifs, tickets] = await Promise.all([
-                    supportService.getNotifications(),
-                    supportService.getMyTickets()
-                ]);
-                setNotifications(notifs);
-                setSupportTickets(tickets);
-            } catch (error) {
-                console.error("Erreur chargement dashboard:", error);
-            } finally {
-                setNotesLoading(false);
-                setActivitiesLoading(false);
-            }
-        };
-
         fetchDashboardData();
-    }, []);
+    }, [fetchDashboardData]);
 
     const formatActivityTime = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -187,6 +189,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
             case 'GRADE': return { icon: FileText, color: 'text-green-500', bg: 'bg-green-50' };
             case 'SCHEDULE': return { icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-50' };
             case 'ATTENDANCE': return { icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50' };
+            case 'ANNOUNCEMENT': return { icon: Megaphone, color: 'text-pink-500', bg: 'bg-pink-50' };
             default: return { icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50' };
         }
     };
@@ -829,8 +832,9 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                         <option value="profs_assistants">Professeurs & Assistants</option>
                                     </optgroup>
                                     <optgroup label="Autre">
+                                        <option value="all_students">Tous les étudiants</option>
                                         <option value="student_specific">Étudiant spécifique</option>
-                                        <option value="global">Toute l'Université</option>
+                                        <option value="global">Toute l'Université (Tous)</option>
                                     </optgroup>
                                 </select>
                             </div>
@@ -856,27 +860,78 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                 <textarea
                                     rows={4}
                                     placeholder="Écrivez votre annonce ici..."
+                                    value={announcementMessage}
+                                    onChange={(e) => setAnnouncementMessage(e.target.value)}
                                     className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[16px] outline-none focus:border-[#1B4332] transition-colors text-[#1B4332] resize-none"
                                 ></textarea>
                             </div>
 
                             <div className="flex justify-end gap-3 pt-2">
                                 <button
-                                    onClick={() => setShowAnnouncementModal(false)}
+                                    onClick={() => {
+                                        setShowAnnouncementModal(false);
+                                        setAnnouncementMessage("");
+                                    }}
                                     className="px-4 py-2 text-[#52796F] hover:bg-[#F1F8F4] rounded-[12px] font-medium transition-colors"
+                                    disabled={isPublishing}
                                 >
                                     Annuler
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        // Ici irait la logique d'envoi
-                                        setShowAnnouncementModal(false);
-                                        alert("Annonce envoyée avec succès !");
+                                    onClick={async () => {
+                                        if (!announcementMessage.trim()) return;
+
+                                        setIsPublishing(true);
+                                        try {
+                                            let target = 'ALL_STUDENTS';
+                                            let levelId: number | undefined = undefined;
+
+                                            if (announcementTarget === 'global') target = 'GLOBAL';
+                                            else if (announcementTarget === 'all_students') target = 'ALL_STUDENTS';
+                                            else if (announcementTarget === 'profs' || announcementTarget === 'profs_assistants') target = 'ALL_PROFESSORS';
+                                            else if (announcementTarget === 'student_specific') target = 'SPECIFIC_USER';
+                                            else {
+                                                target = 'ACADEMIC_LEVEL';
+                                                // Map to real DB IDs found in AcademicLevel table
+                                                if (announcementTarget === 'prescience') levelId = 0;
+                                                else if (announcementTarget === 'bac1') levelId = 1;
+                                                else if (announcementTarget === 'bac2') levelId = 2;
+                                                else if (announcementTarget === 'bac3') levelId = 3;
+                                                // Master IDs vary by specialty, we might need a more robust mapping for them
+                                                // defaulting to common IDs if they match
+                                                else if (announcementTarget === 'master1') levelId = 4;
+                                                else if (announcementTarget === 'master2') levelId = 7;
+                                            }
+
+                                            await userService.createAnnouncement({
+                                                title: "Information Académique",
+                                                content: announcementMessage,
+                                                type: 'GENERAL',
+                                                target: target as any,
+                                                academicLevelId: levelId,
+                                                targetUserId: announcementTarget === 'student_specific' ? specificTarget : undefined
+                                            });
+
+                                            setShowAnnouncementModal(false);
+                                            setAnnouncementMessage("");
+                                            alert("Annonce envoyée avec succès !");
+                                            // Rafraîchir les données pour voir l'annonce dans l'historique
+                                            fetchDashboardData();
+                                        } catch (error) {
+                                            alert("Erreur lors de l'envoi");
+                                        } finally {
+                                            setIsPublishing(false);
+                                        }
                                     }}
-                                    className="px-6 py-2 bg-[#1B4332] hover:bg-[#2D6A4F] text-white rounded-[12px] font-medium flex items-center gap-2 transition-colors shadow-lg shadow-[#1B4332]/20"
+                                    disabled={isPublishing || !announcementMessage.trim()}
+                                    className="px-6 py-2 bg-[#1B4332] hover:bg-[#2D6A4F] text-white rounded-[12px] font-medium flex items-center gap-2 transition-colors shadow-lg shadow-[#1B4332]/20 disabled:opacity-50"
                                 >
-                                    <Send className="w-4 h-4" />
-                                    Publier
+                                    {isPublishing ? (
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <Send className="w-4 h-4" />
+                                    )}
+                                    {isPublishing ? "Publication..." : "Publier"}
                                 </button>
                             </div>
                         </div>

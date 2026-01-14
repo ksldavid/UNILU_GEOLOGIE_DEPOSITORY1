@@ -1,17 +1,13 @@
+
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main() {
-    const levels = await prisma.academicLevel.findMany({
-        orderBy: { order: 'asc' }
-    })
-    console.log("--- ACADEMIC LEVELS ---")
-    levels.forEach(l => {
-        console.log(`ID: ${l.id} | Code: ${l.code} | Name: ${l.name} | Order: ${l.order}`)
-    })
+    const levels = await prisma.academicLevel.findMany()
+    console.log(JSON.stringify(levels, null, 2))
 }
 
 main()
-    .catch(console.error)
+    .catch(e => console.error(e))
     .finally(() => prisma.$disconnect())

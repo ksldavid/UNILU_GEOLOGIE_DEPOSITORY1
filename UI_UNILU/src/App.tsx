@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import LoginPage from './components/LoginPage';
 import { AdminLoginPage } from './components/admin/AdminLoginPage';
 import { StudentDashboard } from './components/students/StudentHome';
@@ -8,6 +8,7 @@ import { StudentGrades } from './components/students/StudentGrades';
 import { StudentAnnouncements } from './components/students/StudentAnnouncements';
 import { StudentSidebar, StudentPage } from './components/students/StudentSidebar';
 import { StudentHeader } from './components/students/StudentHeader';
+import { StudentPath } from './components/students/StudentPath';
 import { Dashboard } from "./components/corps academic/Dashboard";
 import { CourseList } from "./components/corps academic/CourseList";
 import { CourseManagement } from "./components/corps academic/CourseManagement";
@@ -16,12 +17,15 @@ import { Planning } from "./components/corps academic/Planning";
 import { Students } from "./components/corps academic/Students";
 import { Sidebar } from "./components/corps academic/Sidebar";
 import { Header } from "./components/corps academic/Header";
+import { MyAnnouncements } from "./components/corps academic/MyAnnouncements";
 import { TechnicalDashboard } from './components/admin/administrateur-technique/TechnicalDashboard';
 import { AcademicServiceDashboard } from './components/admin/service-academique/AcademicServiceDashboard';
 import { authService } from './services/auth';
+import { studentService } from './services/student';
+import { professorService } from './services/professor';
 
 
-export type Page = 'dashboard' | 'courses' | 'planning' | 'students' | 'course-detail' | 'attendance';
+export type Page = 'dashboard' | 'courses' | 'planning' | 'students' | 'course-detail' | 'attendance' | 'announcements';
 export type UserRole = 'STUDENT' | 'USER' | 'ADMIN' | 'ACADEMIC_OFFICE';
 
 export interface Course {
@@ -33,6 +37,7 @@ export interface Course {
   location: string;
   color: string;
   role?: "Professeur" | "Assistant";
+  studentsCount?: number;
 }
 
 export interface UserData {
@@ -49,10 +54,81 @@ export default function App() {
   const [currentView, setCurrentView] = useState<AppView>('student-login');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
-  const [studentCurrentPage, setStudentCurrentPage] = useState<StudentPage>('dashboard');
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    return (sessionStorage.getItem('currentPage') as Page) || 'dashboard';
+  });
+  const [studentCurrentPage, setStudentCurrentPage] = useState<StudentPage>(() => {
+    return (sessionStorage.getItem('studentCurrentPage') as StudentPage) || 'dashboard';
+  });
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasUnreadAnnouncements, setHasUnreadAnnouncements] = useState(false);
+  const [hasUnreadProfAnnouncements, setHasUnreadProfAnnouncements] = useState(false);
+
+  // Vérifier les nouvelles annonces pour le point rouge et la cloche (Étudiant)
+  useEffect(() => {
+    if (userData?.role === 'STUDENT' && isLoggedIn) {
+      const checkAnnouncements = async () => {
+        try {
+          const announcements = await studentService.getAnnouncements();
+          const lastRead = sessionStorage.getItem('lastAnnouncementsCheck') || '0';
+          const hasUnread = announcements.some((ann: any) => new Date(ann.date).getTime() > parseInt(lastRead));
+          setHasUnreadAnnouncements(hasUnread);
+        } catch (err) {
+          console.error("Erreur check annonces étudiant:", err);
+        }
+      };
+
+      checkAnnouncements();
+      const interval = setInterval(checkAnnouncements, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [userData, isLoggedIn]);
+
+  // Vérifier les nouvelles annonces pour le point rouge et la cloche (Professeur)
+  useEffect(() => {
+    if (userData?.role === 'USER' && isLoggedIn) {
+      const checkProfAnnouncements = async () => {
+        try {
+          const data = await professorService.getDashboard();
+          const lastRead = sessionStorage.getItem('lastProfAnnouncementsCheck') || '0';
+          const hasUnread = data.announcements?.some((ann: any) => new Date(ann.date).getTime() > parseInt(lastRead));
+          setHasUnreadProfAnnouncements(hasUnread);
+        } catch (err) {
+          console.error("Erreur check annonces prof:", err);
+        }
+      };
+
+      checkProfAnnouncements();
+      const interval = setInterval(checkProfAnnouncements, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [userData, isLoggedIn]);
+
+  // Marquer comme lu quand on arrive sur la page des annonces (Étudiant)
+  useEffect(() => {
+    if (studentCurrentPage === 'announcements') {
+      sessionStorage.setItem('lastAnnouncementsCheck', Date.now().toString());
+      setHasUnreadAnnouncements(false);
+    }
+  }, [studentCurrentPage]);
+
+  // Marquer comme lu quand on arrive sur le tableau de bord (Professeur - les annonces y sont affichées)
+  useEffect(() => {
+    if (currentPage === 'dashboard' && userData?.role === 'USER') {
+      sessionStorage.setItem('lastProfAnnouncementsCheck', Date.now().toString());
+      setHasUnreadProfAnnouncements(false);
+    }
+  }, [currentPage, userData]);
+
+  // Sync pages to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('currentPage', currentPage);
+  }, [currentPage]);
+
+  useEffect(() => {
+    sessionStorage.setItem('studentCurrentPage', studentCurrentPage);
+  }, [studentCurrentPage]);
 
 
   const handleLogin = async (id: string, password: string, role: UserRole): Promise<'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'> => {
@@ -64,33 +140,56 @@ export default function App() {
 
         // VÉRIFICATION DE LA COHÉRENCE ENTRE L'ONGLET ET LE RÔLE RÉEL
         if (role === 'STUDENT' && actualRole !== 'STUDENT') {
-          return 'ROLE_MISMATCH'; // Authentification réussie, mais mauvais rôle
+          return 'ROLE_MISMATCH';
         }
-        if (role === 'USER' && (actualRole as string) !== 'USER') { // Note: USER = Professeur/Académique ici
-          // On accepte aussi les admins sur l'interface prof pour tester si besoin, ou on restreint strictement.
-          // Pour l'instant, soyons stricts comme demandé :
-          if ((actualRole as string) !== 'USER' && actualRole !== 'ADMIN' && actualRole !== 'ACADEMIC_OFFICE') {
+        if (role === 'USER' && actualRole !== 'USER') {
+          // On autorise l'admin à accéder à l'interface prof pour gestion/test
+          if (actualRole !== 'ADMIN' && actualRole !== 'ACADEMIC_OFFICE') {
             return 'ROLE_MISMATCH';
           }
-          // Si un Admin se connecte côté Prof, on peut le laisser passer ou le rediriger.
-          // Ici, laissons le blocage simple : Si on est sur l'onglet "Corps Académique" (role='USER'),
-          // on accepte généralement les Profs (USER). Si c'est un étudiant, c'est non.
-          if (actualRole === 'STUDENT') {
-            return 'ROLE_MISMATCH';
-          }
+        }
+        if (role === 'ADMIN' && actualRole !== 'ADMIN') {
+          return 'ROLE_MISMATCH';
+        }
+        if (role === 'ACADEMIC_OFFICE' && actualRole !== 'ACADEMIC_OFFICE') {
+          return 'ROLE_MISMATCH';
         }
 
         // Si tout est bon, on connecte
+        // Pour les étudiants, récupérer leur niveau académique
+        let studentClass = undefined;
+        if (actualRole === 'STUDENT') {
+          try {
+            const dashboardData = await fetch('http://localhost:3001/api/student/dashboard', {
+              headers: {
+                'Authorization': `Bearer ${response.token}`
+              }
+            }).then(r => r.json());
+            studentClass = dashboardData.student?.level || 'Étudiant';
+          } catch (err) {
+            console.error('Error fetching student level:', err);
+            studentClass = 'Étudiant';
+          }
+        }
+
         setUserData({
           name: user.name,
           role: actualRole,
           id: user.id,
-          class: actualRole === 'STUDENT' ? 'Département de Géologie' : undefined,
+          class: actualRole === 'STUDENT' ? studentClass : undefined,
           title: actualRole !== 'STUDENT' ? 'Membre du Personnel' : undefined,
         });
 
         setIsLoggedIn(true);
         setCurrentView('logged-in');
+
+        // S'assurer que l'étudiant arrive sur le tableau de bord par défaut
+        if (actualRole === 'STUDENT') {
+          setStudentCurrentPage('dashboard');
+        } else if (actualRole === 'USER') {
+          setCurrentPage('dashboard');
+        }
+
         return 'SUCCESS';
       } catch (error) {
         console.error("Erreur de connexion:", error);
@@ -101,6 +200,9 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    authService.logout();
+    sessionStorage.removeItem('currentPage');
+    sessionStorage.removeItem('studentCurrentPage');
     setIsLoggedIn(false);
     setUserData(null);
     setCurrentPage('dashboard');
@@ -109,7 +211,6 @@ export default function App() {
     setCurrentView('student-login');
     setIsMobileMenuOpen(false);
   };
-
   const handleCourseSelect = (course: Course) => {
     setSelectedCourse(course);
     setCurrentPage('course-detail');
@@ -160,6 +261,8 @@ export default function App() {
           <StudentHeader
             studentData={{ ...userData, role: 'student' as any }}
             onMenuClick={() => setIsMobileMenuOpen(true)}
+            hasUnreadAnnouncements={hasUnreadAnnouncements}
+            onBellClick={() => setStudentCurrentPage('announcements')}
           />
           <main className="flex-1 overflow-y-auto">
             {studentCurrentPage === 'dashboard' && <StudentDashboard onNavigate={setStudentCurrentPage} />}
@@ -167,6 +270,7 @@ export default function App() {
             {studentCurrentPage === 'planning' && <StudentPlanning />}
             {studentCurrentPage === 'grades' && <StudentGrades />}
             {studentCurrentPage === 'announcements' && <StudentAnnouncements />}
+            {studentCurrentPage === 'settings' && <StudentPath />}
           </main>
         </div>
       </div>
@@ -199,6 +303,8 @@ export default function App() {
             userData={{ ...userData, role: 'academic' as any }}
             onLogout={handleLogout}
             onMenuClick={() => setIsMobileMenuOpen(true)}
+            hasUnreadAnnouncements={hasUnreadProfAnnouncements}
+            onBellClick={() => setCurrentPage('dashboard')}
           />
           <main className="flex-1 overflow-y-auto">
             {currentPage === 'dashboard' && <Dashboard onNavigate={setCurrentPage} />}
@@ -218,6 +324,7 @@ export default function App() {
             )}
             {currentPage === 'planning' && <Planning />}
             {currentPage === 'students' && <Students />}
+            {currentPage === 'announcements' && <MyAnnouncements />}
           </main>
         </div>
       </div>

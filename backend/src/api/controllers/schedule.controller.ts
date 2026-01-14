@@ -39,7 +39,7 @@ export const getSchedule = async (req: Request, res: Response) => {
         })
 
         // Formater pour le front
-        const formattedSchedules = schedules.map(s => ({
+        const formattedSchedules = (schedules as any[]).map(s => ({
             id: s.id.toString(),
             courseCode: s.courseCode,
             name: s.course.name,
