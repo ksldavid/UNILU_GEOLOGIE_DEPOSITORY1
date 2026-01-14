@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getProfessorDashboard, getProfessorCourses, getProfessorStudents, getProfessorSchedule, saveAttendance, getStudentPerformance, unenrollStudent, searchStudents, enrollStudent, createAssessment, getCourseAssessments, saveGrades, uploadCourseResource, getCourseResources, deleteCourseResource } from '../controllers/professor.controller'
+import { getProfessorDashboard, getProfessorCourses, getProfessorStudents, getProfessorSchedule, saveAttendance, getStudentPerformance, unenrollStudent, searchStudents, enrollStudent, createAssessment, getCourseAssessments, saveGrades, uploadCourseResource, getCourseResources, deleteCourseResource, deleteAssessment, publishAssessment, requestGradeChange, getCoursePerformance } from '../controllers/professor.controller'
 import { getProfessorAttendanceHistory } from '../controllers/professor-history.controller'
 import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 import { upload } from '../middleware/upload.middleware'
@@ -18,9 +18,13 @@ router.post('/unenroll-student', authenticateToken, authorizeRole(['USER', 'ADMI
 router.get('/search-students', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), searchStudents)
 router.post('/enroll-student', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), enrollStudent)
 router.post('/assessments', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), createAssessment)
+router.delete('/assessments/:id', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), deleteAssessment)
 router.post('/save-grades', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), saveGrades)
 router.get('/courses/:courseCode/assessments', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), getCourseAssessments)
+router.post('/assessments/:id/publish', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), publishAssessment)
 router.get('/attendance/history', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), getProfessorAttendanceHistory)
+router.post('/grade-change-request', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), upload.single('file'), requestGradeChange)
+router.get('/courses/:courseCode/performance', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), getCoursePerformance)
 
 // Ressource management
 router.post('/upload-resource', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), upload.single('file'), uploadCourseResource)

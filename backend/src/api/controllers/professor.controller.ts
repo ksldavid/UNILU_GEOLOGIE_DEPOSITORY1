@@ -8,20 +8,24 @@ import { uploadToCloudinary, deleteFromCloudinary } from '../../utils/cloudinary
 export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
+        const { courseCode } = req.query;
 
         // 1. Get courses taught by professor
         const taughtCourses = await prisma.courseEnrollment.findMany({
-            where: { userId },
+            where: {
+                userId,
+                ...(courseCode ? { courseCode: String(courseCode) } : {})
+            },
             select: { courseCode: true, course: { select: { name: true } } }
         });
 
-        const courseCodes = taughtCourses.map(tc => tc.courseCode);
+        const filterCourseCodes = taughtCourses.map(tc => tc.courseCode);
         const courseMap = new Map(taughtCourses.map(tc => [tc.courseCode, tc.course.name] as [string, string]));
 
         // 2. Get students enrolled in these courses
         const studentEnrollments = await prisma.studentCourseEnrollment.findMany({
             where: {
-                courseCode: { in: courseCodes },
+                courseCode: { in: filterCourseCodes },
                 isActive: true
             },
             include: {
@@ -40,7 +44,24 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        // 3. Get today's attendance records for all courses
+        // 3. Get Attendance Stats
+        const sessions = await prisma.attendanceSession.findMany({
+            where: { courseCode: { in: filterCourseCodes } },
+            select: { id: true, courseCode: true }
+        });
+        const sessionIds = sessions.map(s => s.id);
+
+        const attendanceRecords = await prisma.attendanceRecord.findMany({
+            where: { sessionId: { in: sessionIds } }
+        });
+
+        // 4. Get Grades
+        const grades = await prisma.grade.findMany({
+            where: { assessment: { courseCode: { in: filterCourseCodes } } },
+            include: { assessment: true }
+        });
+
+        // 5. Get today's attendance records for all courses
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
@@ -49,7 +70,7 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
         const todayAttendance = await prisma.attendanceRecord.findMany({
             where: {
                 session: {
-                    courseCode: { in: courseCodes },
+                    courseCode: { in: filterCourseCodes },
                     date: {
                         gte: today,
                         lt: tomorrow
@@ -65,28 +86,55 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        // Create a map of studentId -> attendance status
-        const attendanceMap = new Map<string, { status: string, courseCode: string }>();
+        // Create a map of studentId -> attendance status for today
+        const todayAttendanceMap = new Map<string, { status: string, courseCode: string }>();
         todayAttendance.forEach(record => {
-            attendanceMap.set(record.studentId, {
+            todayAttendanceMap.set(record.studentId, {
                 status: record.status,
                 courseCode: record.session.courseCode
             });
         });
 
-        // 4. Format response with attendance status
+        // 6. Format response with stats
         const students = studentEnrollments.map(enrollment => {
+            const studentId = enrollment.user.id;
+            const cCode = enrollment.courseCode;
+
+            // Attendance for this student/course
+            const courseSessions = sessions.filter(s => s.courseCode === cCode);
+            const courseSessionIds = courseSessions.map(s => s.id);
+            const studentRecords = attendanceRecords.filter(r =>
+                r.studentId === studentId && courseSessionIds.includes(r.sessionId)
+            );
+            const presentCount = studentRecords.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length;
+            const attendanceRate = courseSessions.length > 0
+                ? Math.round((presentCount / courseSessions.length) * 100)
+                : 0;
+
+            // Average grade for this student/course (normalized to 10)
+            const studentGrades = grades.filter(g =>
+                g.studentId === studentId && g.assessment.courseCode === cCode
+            );
+            let averageGrade = 0;
+            if (studentGrades.length > 0) {
+                const totalNormalized = studentGrades.reduce((acc, g) => acc + (g.score / g.assessment.maxPoints) * 10, 0);
+                averageGrade = parseFloat((totalNormalized / studentGrades.length).toFixed(1));
+            }
+
             const level = enrollment.course.academicLevels[0]?.name || 'Niveau Inconnu';
-            const attendance = attendanceMap.get(enrollment.user.id);
+            const todayStatus = todayAttendanceMap.get(studentId);
 
             return {
-                id: enrollment.user.id, // Matricule/Student ID
+                id: studentId,
                 name: enrollment.user.name,
-                courseCode: enrollment.courseCode,
-                courseName: courseMap.get(enrollment.courseCode) || enrollment.courseCode,
+                courseCode: cCode,
+                courseName: courseMap.get(cCode) || cCode,
                 academicLevel: level,
-                // Add today's attendance status if exists
-                todayStatus: attendance?.courseCode === enrollment.courseCode ? attendance.status.toLowerCase() : null
+                attendance: attendanceRate,
+                grade: averageGrade,
+                totalSessions: courseSessions.length,
+                presentCount,
+                todayStatus: todayStatus?.courseCode === cCode ? todayStatus.status.toLowerCase() : null
             };
         });
 
@@ -142,6 +190,12 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
         if (!userId) {
             return res.status(401).json({ message: 'Utilisateur non authentifié' })
         }
+
+        // 0. Récupérer les infos du professeur
+        const professor = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true }
+        });
 
         // 1. Récupérer les cours enseignés par ce professeur
         const taughtCourses = await prisma.courseEnrollment.findMany({
@@ -205,7 +259,25 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
             orderBy: { createdAt: 'desc' }
         });
 
-        // 5. Get Unique Academic Levels for these courses
+        // 5. Récupérer les devoirs qui viennent de se terminer (derniers 7 jours)
+        const recentlyExpiredAssignments = await prisma.assessment.findMany({
+            where: {
+                courseCode: { in: courseCodes },
+                type: { in: ['TP', 'TD'] },
+                dueDate: {
+                    lt: new Date(),
+                    gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // 7 jours
+                }
+            },
+            include: {
+                course: { select: { name: true } },
+                _count: { select: { submissions: true } }
+            },
+            orderBy: { dueDate: 'desc' },
+            take: 3
+        }) as any[];
+
+        // 6. Get Unique Academic Levels for these courses
         const levelsMap = new Map();
         taughtCourses.forEach(tc => {
             tc.course.academicLevels?.forEach((al: any) => {
@@ -215,11 +287,19 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
         const myLevels = Array.from(levelsMap.values());
 
         res.json({
+            professorName: professor?.name,
             stats: {
                 studentCount: totalStudents,
                 courseCount: activeCoursesCount
             },
-            myLevels, // Added for announcement targeting
+            myLevels,
+            expiredAssignments: recentlyExpiredAssignments.map(a => ({
+                id: a.id,
+                title: a.title,
+                courseName: a.course.name,
+                expiredAt: a.dueDate,
+                submissionCount: a._count.submissions
+            })),
             todaySchedule: todaysSchedule.map(s => ({
                 id: s.id,
                 title: s.course.name,
@@ -551,7 +631,7 @@ export const enrollStudent = async (req: AuthRequest, res: Response) => {
 
 export const createAssessment = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode, title, type, maxPoints, date, weight, dueDate } = req.body;
+        const { courseCode, title, instructions, type, maxPoints, date, weight, dueDate } = req.body;
         const userId = req.user?.userId;
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
@@ -561,6 +641,7 @@ export const createAssessment = async (req: AuthRequest, res: Response) => {
                 courseCode,
                 creatorId: userId,
                 title,
+                instructions,
                 type,
                 maxPoints: parseFloat(maxPoints),
                 date: new Date(date),
@@ -739,5 +820,248 @@ export const deleteCourseResource = async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error('Erreur suppression ressource:', error);
         res.status(500).json({ message: 'Erreur lors de la suppression' });
+    }
+}
+export const deleteAssessment = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?.userId;
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        const assessment = await prisma.assessment.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!assessment) return res.status(404).json({ message: 'Évaluation non trouvée' });
+
+        // Vérifier si le professeur est le créateur
+        if (assessment.creatorId !== userId) {
+            return res.status(403).json({ message: "Vous n'êtes pas autorisé à supprimer cette évaluation." });
+        }
+
+        // 1. Récupérer tous les IDs des notes liées à cette épreuve
+        const grades = await prisma.grade.findMany({
+            where: { assessmentId: parseInt(id) },
+            select: { id: true }
+        });
+        const gradeIds = grades.map(g => g.id);
+
+        // 2. Supprimer en cascade manuellement pour éviter les erreurs de contrainte
+        await prisma.$transaction([
+            // Supprimer les demandes de modif de notes
+            prisma.gradeChangeRequest.deleteMany({
+                where: { gradeId: { in: gradeIds } }
+            }),
+            // Supprimer les notes
+            prisma.grade.deleteMany({
+                where: { assessmentId: parseInt(id) }
+            }),
+            // Supprimer les soumissions (fichiers)
+            prisma.submission.deleteMany({
+                where: { assessmentId: parseInt(id) }
+            }),
+            // Supprimer l'épreuve elle-même
+            prisma.assessment.delete({
+                where: { id: parseInt(id) }
+            })
+        ]);
+
+        res.json({ message: 'Évaluation supprimée avec succès' });
+    } catch (error) {
+        console.error('Erreur suppression évaluation:', error);
+        res.status(500).json({ message: 'Erreur lors de la suppression' });
+    }
+}
+
+export const publishAssessment = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?.userId;
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        const assessment = await prisma.assessment.findUnique({
+            where: { id: parseInt(id) },
+        });
+
+        if (!assessment) return res.status(404).json({ message: 'Évaluation non trouvée' });
+
+        // 1. Mark as published
+        await prisma.assessment.update({
+            where: { id: parseInt(id) },
+            data: { isPublished: true }
+        });
+
+        // 2. Fetch all students enrolled in the course
+        const enrollments = await prisma.studentCourseEnrollment.findMany({
+            where: {
+                courseCode: assessment.courseCode,
+                isActive: true
+            },
+            select: { userId: true }
+        });
+
+        // 3. For each student, find if they have a grade, if not, create one with 0
+        const upsertPromises = enrollments.map(e => {
+            return prisma.grade.upsert({
+                where: {
+                    assessmentId_studentId: {
+                        assessmentId: assessment.id,
+                        studentId: e.userId
+                    }
+                },
+                update: {}, // Don't change existing grades
+                create: {
+                    assessmentId: assessment.id,
+                    studentId: e.userId,
+                    score: 0,
+                    feedback: 'Note automatique (0) lors de la publication'
+                }
+            });
+        });
+
+        await Promise.all(upsertPromises);
+
+        res.json({ message: 'Évaluation publiée avec succès' });
+    } catch (error) {
+        console.error('Erreur publication épreuve:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}
+
+export const requestGradeChange = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.userId;
+        const { studentId, assessmentId, newScore, reason } = req.body;
+        const file = req.file;
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        // Trouver la note existante
+        const grade = await prisma.grade.findUnique({
+            where: {
+                assessmentId_studentId: {
+                    assessmentId: parseInt(assessmentId),
+                    studentId: studentId
+                }
+            }
+        });
+
+        if (!grade) {
+            return res.status(404).json({ message: "Note non trouvée. L'étudiant doit avoir une note avant de demander une modification." });
+        }
+
+        // Vérifier s'il y a déjà une demande en cours pour cet étudiant et cet examen
+        const existingRequest = await prisma.gradeChangeRequest.findFirst({
+            where: {
+                gradeId: grade.id,
+                status: 'PENDING'
+            }
+        });
+
+        if (existingRequest) {
+            return res.status(400).json({
+                message: "Une demande de modification est déjà en cours pour cet étudiant et cet examen."
+            });
+        }
+
+        let proofImageUrl = null;
+        if (file) {
+            const uploadResult = await uploadToCloudinary(file.buffer, `grade-proofs/${assessmentId}`, file.originalname);
+            proofImageUrl = uploadResult.secure_url;
+        }
+
+        const request = await prisma.gradeChangeRequest.create({
+            data: {
+                gradeId: grade.id,
+                requesterId: userId,
+                newScore: parseFloat(newScore),
+                reason,
+                proofImageUrl,
+                status: 'PENDING'
+            }
+        });
+
+        res.json({ message: 'Demande de modification envoyée avec succès', request });
+
+    } catch (error) {
+        console.error('Erreur demande modif grade:', error);
+        res.status(500).json({ message: 'Erreur lors de l\'envoi de la demande' });
+    }
+}
+
+export const getCoursePerformance = async (req: AuthRequest, res: Response) => {
+    try {
+        const { courseCode } = req.params;
+        const userId = req.user?.userId;
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        const hasAccess = await prisma.courseEnrollment.findFirst({
+            where: { userId, courseCode }
+        });
+
+        if (!hasAccess) {
+            return res.status(403).json({ message: "Accès refusé" });
+        }
+
+        const assessments = await prisma.assessment.findMany({
+            where: { courseCode },
+            include: {
+                grades: true
+            }
+        });
+
+        const enrolledStudentsCount = await prisma.studentCourseEnrollment.count({
+            where: { courseCode, isActive: true }
+        });
+
+        const examStats = assessments.map(exam => {
+            const totalGrades = exam.grades.length;
+            const successCount = exam.grades.filter(g => g.score >= (exam.maxPoints / 2)).length;
+            const failureCount = totalGrades - successCount;
+            const sumScores = exam.grades.reduce((sum, g) => sum + g.score, 0);
+
+            return {
+                id: exam.id,
+                title: exam.title,
+                success: totalGrades > 0 ? Math.round((successCount / totalGrades) * 100) : 0,
+                failure: totalGrades > 0 ? Math.round((failureCount / totalGrades) * 100) : 0,
+                avg: totalGrades > 0 ? parseFloat((sumScores / totalGrades).toFixed(1)) : 0,
+                total: totalGrades,
+                enrolled: enrolledStudentsCount
+            };
+        });
+
+        let globalSuccess = 0;
+        let globalFailure = 0;
+        let globalAvg = 0;
+        let globalTotal = 0;
+
+        if (examStats.length > 0) {
+            globalSuccess = Math.round(examStats.reduce((sum, s) => sum + s.success, 0) / examStats.length);
+            globalFailure = Math.round(examStats.reduce((sum, s) => sum + s.failure, 0) / examStats.length);
+            globalAvg = parseFloat((examStats.reduce((sum, s) => sum + s.avg, 0) / examStats.length).toFixed(1));
+            globalTotal = Math.round(examStats.reduce((sum, s) => sum + s.total, 0) / examStats.length);
+        }
+
+        const response = [
+            {
+                id: 0,
+                title: "Vue Globale (Semestre)",
+                success: globalSuccess,
+                failure: globalFailure,
+                avg: globalAvg,
+                total: globalTotal,
+                enrolled: enrolledStudentsCount
+            },
+            ...examStats
+        ];
+
+        res.json(response);
+    } catch (error) {
+        console.error('Erreur stats performance cours:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
     }
 }

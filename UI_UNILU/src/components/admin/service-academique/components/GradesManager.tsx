@@ -12,6 +12,7 @@ interface GradeChangeRequest {
     courseCode: string;
     oldGrade: string;
     newGrade: string;
+    maxPoints: number;
     justification: string;
     date: string;
     status: 'pending' | 'approved' | 'rejected';
@@ -296,11 +297,11 @@ export function GradesManager() {
                                 <div className="grid grid-cols-2 gap-4 mb-4">
                                     <div className="bg-red-50 p-4 rounded-xl border border-red-100">
                                         <p className="text-xs text-red-600 font-medium mb-1">Ancienne note</p>
-                                        <p className="text-2xl font-bold text-red-700">{request.oldGrade}/20</p>
+                                        <p className="text-2xl font-bold text-red-700">{request.oldGrade}/{request.maxPoints || 20}</p>
                                     </div>
                                     <div className="bg-green-50 p-4 rounded-xl border border-green-100">
                                         <p className="text-xs text-green-600 font-medium mb-1">Nouvelle note</p>
-                                        <p className="text-2xl font-bold text-green-700">{request.newGrade}/20</p>
+                                        <p className="text-2xl font-bold text-green-700">{request.newGrade}/{request.maxPoints || 20}</p>
                                     </div>
                                 </div>
 
@@ -591,7 +592,7 @@ export function GradesManager() {
                                 </div>
                                 <div className="text-right">
                                     <p className="text-xs text-orange-600 font-bold uppercase tracking-wider">Note Proposée</p>
-                                    <p className="text-2xl font-black text-orange-600">{selectedPendingRequest.newScore || selectedPendingRequest.newGrade}/20</p>
+                                    <p className="text-2xl font-black text-orange-600">{selectedPendingRequest.newScore || selectedPendingRequest.newGrade}/{selectedPendingRequest.maxPoints || 20}</p>
                                 </div>
                             </div>
 

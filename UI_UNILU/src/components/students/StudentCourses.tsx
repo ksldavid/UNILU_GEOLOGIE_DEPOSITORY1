@@ -13,6 +13,7 @@ export function StudentCourses() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeAssignmentId, setActiveAssignmentId] = useState<number | null>(null);
   const [showAllResources, setShowAllResources] = useState(false);
+  const [showAllSubmissions, setShowAllSubmissions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCourseClick = async (course: any) => {
@@ -207,8 +208,19 @@ export function StudentCourses() {
                       <Send className="w-10 h-10 text-white/20 mb-4" />
                       <p className="text-gray-400 font-bold italic">Aucun travail à remettre pour le moment</p>
                     </div>
-                  ) : selectedCourse.assignments.filter((a: any) => a.type === 'TP' || a.type === 'TD').map((assignment: any) => {
+                  ) : selectedCourse.assignments.filter((a: any) => (a.type === 'TP' || a.type === 'TD') && !a.submitted).map((assignment: any) => {
                     const isLate = assignment.dueDate && new Date() > new Date(assignment.dueDate);
+                    const getTimeRemaining = (dueDate: string) => {
+                      const diff = new Date(dueDate).getTime() - new Date().getTime();
+                      if (diff <= 0) return null;
+                      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                      if (days > 0) return `${days}j ${hours}h restants`;
+                      if (hours > 0) return `${hours}h ${minutes}m restants`;
+                      return `${minutes}m restants`;
+                    };
+                    const remaining = assignment.dueDate ? getTimeRemaining(assignment.dueDate) : null;
 
                     return (
                       <motion.div
@@ -217,26 +229,42 @@ export function StudentCourses() {
                         animate={{ opacity: 1, y: 0 }}
                         className="p-8 bg-white/5 border border-white/10 rounded-[32px] hover:bg-white/10 hover:border-white/20 transition-all relative overflow-hidden group/item"
                       >
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-                          <div className="flex-1 space-y-3">
-                            <div className="flex items-center gap-3">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
+                          <div className="flex-1 space-y-4">
+                            <div className="flex items-center gap-3 flex-wrap">
                               <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] px-3 py-1 bg-blue-400/10 rounded-lg border border-blue-400/20 italic">{assignment.type}</span>
                               {assignment.dueDate && (
                                 <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${isLate ? 'text-rose-400' : 'text-gray-400'}`}>
                                   <Clock className="w-3.5 h-3.5" />
-                                  {isLate ? 'Délai dépassé' : `Échéance : ${new Date(assignment.dueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`}
+                                  {isLate ? 'Délai dépassé' : `Échéance : ${new Date(assignment.dueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} à ${new Date(assignment.dueDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}`}
+                                </div>
+                              )}
+                              {!isLate && remaining && !assignment.submitted && (
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 px-3 py-1 rounded-lg border border-amber-400/20 animate-pulse">
+                                  {remaining}
                                 </div>
                               )}
                             </div>
-                            <h4 className="text-xl font-black group-hover/item:text-blue-400 transition-colors uppercase tracking-tight">{assignment.title}</h4>
+
+                            <div>
+                              <h4 className="text-xl font-black group-hover/item:text-blue-400 transition-colors uppercase tracking-tight mb-2">{assignment.title}</h4>
+                              {assignment.instructions ? (
+                                <p className="text-gray-400 text-sm font-medium leading-relaxed italic border-l-2 border-white/10 pl-4 py-1">
+                                  {assignment.instructions}
+                                </p>
+                              ) : (
+                                <p className="text-gray-500 text-xs italic font-medium">Aucune consigne particulière fournie.</p>
+                              )}
+                            </div>
+
                             {assignment.submitted && (
                               <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 w-fit px-3 py-1 rounded-full border border-emerald-400/20">
-                                <CheckCircle2 className="w-3 h-3" /> Remis le {new Date().toLocaleDateString()}
+                                <CheckCircle2 className="w-3 h-3" /> Remis le {new Date(assignment.submittedAt).toLocaleDateString('fr-FR')} à {new Date(assignment.submittedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                               </div>
                             )}
                           </div>
 
-                          <div className="shrink-0">
+                          <div className="shrink-0 pt-2">
                             {assignment.submitted ? (
                               <div className="flex flex-col gap-3 items-end">
                                 <div className="px-6 py-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-lg shadow-emerald-900/20">
@@ -248,7 +276,7 @@ export function StudentCourses() {
                                   rel="noopener noreferrer"
                                   className="text-[10px] text-gray-500 hover:text-white font-black uppercase tracking-widest flex items-center gap-2 transition-colors pr-2"
                                 >
-                                  Modifier le fichier <ChevronRight className="w-3 h-3" />
+                                  Voir mon dépôt <ChevronRight className="w-3 h-3" />
                                 </a>
                               </div>
                             ) : isLate ? (
@@ -274,6 +302,88 @@ export function StudentCourses() {
                       </motion.div>
                     )
                   })}
+                  {selectedCourse.assignments && selectedCourse.assignments.filter((a: any) => (a.type === 'TP' || a.type === 'TD') && !a.submitted).length === 0 && selectedCourse.assignments.some((a: any) => a.submitted) && (
+                    <div className="py-8 flex flex-col items-center justify-center bg-white/5 rounded-3xl border border-white/10 border-dashed">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-400/40 mb-3" />
+                      <p className="text-gray-400 font-bold italic text-sm text-center">Tous les travaux en cours ont été remis ! <br />Consultez l'onglet des travaux soumis ci-dessous.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Travaux Soumis */}
+            <div className="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-emerald-100/50 transition-colors duration-500"></div>
+
+              <div className="relative">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-2xl font-black text-gray-900 flex items-center gap-4">
+                    <div className="p-3 bg-emerald-50 rounded-2xl">
+                      <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+                    </div>
+                    Travaux soumis
+                  </h3>
+                  <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] px-4 py-1.5 bg-emerald-50 rounded-full italic">
+                    {selectedCourse.assignments?.filter((a: any) => a.submitted).length || 0} Remis
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {(!selectedCourse.assignments || selectedCourse.assignments.filter((a: any) => a.submitted).length === 0) ? (
+                    <div className="py-12 flex flex-col items-center justify-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                      <Send className="w-10 h-10 text-gray-300 mb-4" />
+                      <p className="text-gray-500 font-bold italic">Aucun travail soumis pour le moment</p>
+                    </div>
+                  ) : (
+                    <>
+                      {selectedCourse.assignments
+                        .filter((a: any) => a.submitted)
+                        .sort((a: any, b: any) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+                        .slice(0, showAllSubmissions ? undefined : 3)
+                        .map((assignment: any) => (
+                          <motion.div
+                            key={assignment.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="p-6 bg-gray-50/50 border border-gray-100 rounded-[28px] hover:bg-white hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 transition-all group/sub"
+                          >
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-4 flex-1 min-w-0">
+                                <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 group-hover/sub:bg-emerald-600 group-hover/sub:text-white transition-colors">
+                                  <FileText className="w-6 h-6" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-bold text-gray-900 group-hover/sub:text-emerald-600 transition-colors truncate">{assignment.title}</h4>
+                                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest flex items-center gap-2 mt-1">
+                                    <Clock className="w-3 h-3" />
+                                    Remis le {new Date(assignment.submittedAt).toLocaleDateString('fr-FR')}
+                                  </p>
+                                </div>
+                              </div>
+                              <a
+                                href={assignment.submissionUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 hover:text-emerald-600 hover:border-emerald-200 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm"
+                              >
+                                Voir <ChevronRight className="w-3 h-3" />
+                              </a>
+                            </div>
+                          </motion.div>
+                        ))}
+
+                      {selectedCourse.assignments.filter((a: any) => a.submitted).length > 3 && (
+                        <button
+                          onClick={() => setShowAllSubmissions(!showAllSubmissions)}
+                          className="w-full py-4 bg-gray-50 hover:bg-emerald-50 text-gray-500 hover:text-emerald-600 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-transparent hover:border-emerald-100 flex items-center justify-center gap-3 group"
+                        >
+                          {showAllSubmissions ? "Réduire la liste" : `Voir les ${selectedCourse.assignments.filter((a: any) => a.submitted).length - 3} autres soumissions`}
+                          <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showAllSubmissions ? "-rotate-90" : "rotate-90"}`} />
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>

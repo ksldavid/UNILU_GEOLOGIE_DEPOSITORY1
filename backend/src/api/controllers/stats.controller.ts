@@ -59,10 +59,10 @@ export const getAcademicStats = async (req: Request, res: Response) => {
         })
 
         res.json({
-            studentCount,
-            professorCount,
-            courseCount,
-            pendingGradeChangeRequests
+            studentCount: studentCount || 0,
+            professorCount: professorCount || 0,
+            courseCount: courseCount || 0,
+            pendingGradeChangeRequests: pendingGradeChangeRequests || 0
         })
 
     } catch (error) {
@@ -76,7 +76,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
     try {
         const activities: any[] = []
 
-        // 1. Nouvelles inscriptions (Derniers étudiants créés)
+        // 1. Nouvelles inscriptions
         const recentStudents = await (prisma.user.findMany({
             where: { systemRole: 'STUDENT' },
             orderBy: { createdAt: 'desc' },
@@ -103,10 +103,10 @@ export const getRecentActivities = async (req: Request, res: Response) => {
             })
         })
 
-        // 2. Rectifications de notes (Dernières demandes)
+        // 2. Rectifications de notes (Dernières demandes) - Force bypass cache if possible
         const recentGrades = await (prisma.gradeChangeRequest.findMany({
             orderBy: { createdAt: 'desc' },
-            take: 3,
+            take: 10, // Increase take to be sure we see it
             include: {
                 requester: { select: { name: true } },
                 grade: {
@@ -122,14 +122,13 @@ export const getRecentActivities = async (req: Request, res: Response) => {
         recentGrades.forEach((g: any) => {
             activities.push({
                 id: `grade-${g.id}`,
-                user: g.requester.name,
-                action: g.status === 'PENDING' ? 'Demande de rectification' : `Note ${g.status === 'APPROVED' ? 'approuvée' : 'refusée'}`,
-                detail: g.grade.assessment.course.name,
+                user: g.requester?.name || 'Inconnu',
+                action: g.status === 'PENDING' || g.status === 'pending' ? 'Demande de rectification' : `Note ${g.status === 'APPROVED' || g.status === 'approved' ? 'approuvée' : 'refusée'}`,
+                detail: g.grade?.assessment?.course?.name || 'Cours inconnu',
                 time: g.createdAt,
                 type: 'GRADE'
             })
         })
-
         // 3. Planning (Dernières modifications)
         const recentSchedules = await (prisma.schedule.findMany({
             orderBy: { updatedAt: 'desc' },
@@ -147,7 +146,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
                 id: `schedule-${sch.id}`,
                 user: 'Service Académique',
                 action: 'Modification de planning',
-                detail: `${sch.course.name} - ${sch.academicLevel.name}`,
+                detail: `${sch.course?.name || 'Cours'} - ${sch.academicLevel?.name || 'Niveau'}`,
                 time: sch.updatedAt,
                 type: 'SCHEDULE'
             })
@@ -169,11 +168,12 @@ export const getRecentActivities = async (req: Request, res: Response) => {
         }) as any)
 
         recentAttendanceRequests.forEach((ar: any) => {
+            if (!ar.attendance || !ar.attendance.student) return;
             activities.push({
                 id: `attendance-${ar.id}`,
-                user: ar.requester.name,
+                user: ar.requester?.name || 'Service Académique',
                 action: 'Demande changement présence',
-                detail: `${ar.attendance.student.name} - ${ar.attendance.session.course.name}`,
+                detail: `${ar.attendance.student.name} - ${ar.attendance.session?.course?.name || 'Cours'}`,
                 time: ar.createdAt,
                 type: 'ATTENDANCE'
             })
@@ -198,7 +198,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
 
             activities.push({
                 id: `announcement-${ann.id}`,
-                user: ann.author.name,
+                user: ann.author?.name || 'Admin',
                 action: 'Nouvelle annonce publiée',
                 detail: `${ann.title} (Cible: ${targetLabel})`,
                 time: ann.createdAt,
@@ -209,7 +209,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
         // Trier par date décroissante
         const sortedActivities = activities
             .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
-            .slice(0, 10)
+            .slice(0, 5)
 
         res.json(sortedActivities)
     } catch (error) {
@@ -222,7 +222,6 @@ export const getRecentActivities = async (req: Request, res: Response) => {
 export const getAttendanceStatsByLevel = async (req: Request, res: Response) => {
     try {
         const months = ["Janv.", "Fév.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
-        const results = [];
 
         // Niveaux ciblés : 0 (Prescience), 1 (B1), 2 (B2), 3 (B3)
         const levels = [
@@ -238,11 +237,11 @@ export const getAttendanceStatsByLevel = async (req: Request, res: Response) => 
 
         const currentYear = new Date().getFullYear();
 
-        for (let i = 0; i < months.length; i++) {
-            const monthData: any = { month: months[i] };
+        // On prépare toutes les promesses pour une exécution parallèle
+        const monthPromises = months.map(async (month, i) => {
+            const monthData: any = { month };
 
-            for (const level of levels) {
-                // Tentative de calcul réel en passant par les cours liés au niveau académique
+            const levelPromises = levels.map(async (level) => {
                 const whereClause = {
                     session: {
                         course: {
@@ -257,27 +256,33 @@ export const getAttendanceStatsByLevel = async (req: Request, res: Response) => 
                     }
                 };
 
-                const attendanceCount = await prisma.attendanceRecord.count({
-                    where: {
-                        ...whereClause,
-                        status: 'PRESENT'
-                    }
-                });
+                const [attendanceCount, totalAttempts] = await Promise.all([
+                    prisma.attendanceRecord.count({
+                        where: {
+                            ...whereClause,
+                            status: 'PRESENT'
+                        }
+                    }),
+                    prisma.attendanceRecord.count({
+                        where: whereClause
+                    })
+                ]);
 
-                const totalAttempts = await prisma.attendanceRecord.count({
-                    where: whereClause
-                });
+                return {
+                    key: level.key,
+                    value: totalAttempts === 0 ? 0 : Math.round((attendanceCount / totalAttempts) * 100)
+                };
+            });
 
-                // Si pas de données, on met 0 (Vraie donnée : pas d'assiduité enregistrée)
-                if (totalAttempts === 0) {
-                    monthData[level.key] = 0;
-                } else {
-                    monthData[level.key] = Math.round((attendanceCount / totalAttempts) * 100);
-                }
-            }
-            results.push(monthData);
-        }
+            const levelResults = await Promise.all(levelPromises);
+            levelResults.forEach(res => {
+                monthData[res.key] = res.value;
+            });
 
+            return monthData;
+        });
+
+        const results = await Promise.all(monthPromises);
         res.json(results);
     } catch (error) {
         console.error('Erreur stats présence:', error)

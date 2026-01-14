@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, Clock, Users, Megaphone, X, Send, Search } from "lucide-react";
+import { BookOpen, Clock, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck } from "lucide-react";
 import type { Page } from "../../App";
 import { professorService } from "../../services/professor";
 
@@ -15,9 +15,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [targetLevel, setTargetLevel] = useState("");
-  const [allStudents, setAllStudents] = useState<any[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
   const [selectedStudentLabel, setSelectedStudentLabel] = useState("");
+  const [dismissedReminders, setDismissedReminders] = useState<number[]>(() => {
+    const saved = localStorage.getItem('professor_dismissed_reminders');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -108,29 +111,25 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     }
   };
 
-  const fetchStudentsForSearch = async () => {
-    try {
-      const students = await professorService.getStudents();
-      setAllStudents(students);
-    } catch (error) {
-      console.error(error);
-    }
+  const handleDismissReminder = (id: number) => {
+    const updated = [...dismissedReminders, id];
+    setDismissedReminders(updated);
+    localStorage.setItem('professor_dismissed_reminders', JSON.stringify(updated));
   };
 
   useEffect(() => {
-    if (showAnnouncementModal && allStudents.length === 0) {
-      fetchStudentsForSearch();
-    }
+    // search happens on input change now
   }, [showAnnouncementModal]);
 
-  const handleStudentSearch = (query: string) => {
+  const handleStudentSearch = async (query: string) => {
     setTargetStudent(query);
     if (query.length > 1) {
-      const filtered = allStudents.filter(s =>
-        s.name.toLowerCase().includes(query.toLowerCase()) ||
-        s.id.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 5);
-      setFilteredStudents(filtered);
+      try {
+        const results = await professorService.searchStudents(query);
+        setFilteredStudents(results);
+      } catch (error) {
+        console.error("Erreur recherche:", error);
+      }
     } else {
       setFilteredStudents([]);
     }
@@ -160,7 +159,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
         <div className="relative z-10">
           <h1 className="text-white text-3xl md:text-5xl font-bold mb-2 tracking-tight">
-            Espace Enseignant
+            Pr. {data?.professorName || 'Espace Enseignant'}
           </h1>
           <h2 className="text-teal-100 text-2xl md:text-3xl font-light mb-6 opacity-90">
             Faculté de Géologie
@@ -225,6 +224,65 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             })}
           </div>
 
+          {/* Recently Expired Assignments Reminders */}
+          {data?.expiredAssignments?.filter((a: any) => !dismissedReminders.includes(a.id)).length > 0 && (
+            <div className="mb-10">
+              <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-rose-500" />
+                Devoirs Clôturés
+              </h3>
+              <div className="space-y-4">
+                {data.expiredAssignments
+                  .filter((a: any) => !dismissedReminders.includes(a.id))
+                  .map((assignment: any) => (
+                    <div
+                      key={assignment.id}
+                      className="group relative"
+                    >
+                      <div
+                        onClick={() => onNavigate('courses')}
+                        className="bg-white border-2 border-rose-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-bl-full -mr-12 -mt-12 group-hover:bg-rose-100/50 transition-colors"></div>
+
+                        <div className="flex items-center gap-4 relative z-10">
+                          <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-600 flex-shrink-0">
+                            <ClipboardCheck className="w-6 h-6" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded uppercase tracking-wider">Temps Écoulé</span>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{assignment.courseName}</span>
+                            </div>
+                            <h4 className="font-bold text-gray-900 group-hover:text-rose-600 transition-colors truncate pr-8">{assignment.title}</h4>
+                            <p className="text-sm text-gray-500 font-medium">
+                              {assignment.submissionCount} copie{assignment.submissionCount > 1 ? 's' : ''} reçue{assignment.submissionCount > 1 ? 's' : ''} • Prêt pour la correction
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Fini le</span>
+                            <span className="text-xs font-bold text-gray-900">{new Date(assignment.expiredAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Explicit Dismiss Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDismissReminder(assignment.id);
+                        }}
+                        className="absolute top-4 right-4 z-20 p-2 bg-white/80 hover:bg-rose-500 hover:text-white text-rose-500 rounded-xl border border-rose-100 shadow-sm transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
+                        title="Effacer le rappel"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
           {/* Faculty Announcements */}
           <div className="mt-8">
             <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
@@ -274,8 +332,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             </h3>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
               {stats.map((stat, index) => (
-                <div key={index} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600 mb-2">{stat.value}</div>
+                <div
+                  key={index}
+                  onClick={() => onNavigate(stat.label === 'Étudiants' ? 'students' : 'courses')}
+                  className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600 mb-2 group-hover:scale-105 transition-transform origin-left">{stat.value}</div>
                   <div className="text-gray-900 font-semibold mb-1">{stat.label}</div>
                   <div className="text-gray-500 text-sm font-medium bg-gray-50 inline-block px-2 py-1 rounded-md">{stat.change}</div>
                 </div>

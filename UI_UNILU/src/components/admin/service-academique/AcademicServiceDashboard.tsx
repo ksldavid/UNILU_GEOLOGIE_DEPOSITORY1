@@ -139,7 +139,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
             // Fetch real pending note requests
             const { gradeService } = await import("../../../services/grade");
             const requests = await gradeService.getGradeChangeRequests();
-            setRealNoteRequests(requests.filter((r: any) => r.status === 'pending').slice(0, 3));
+            setRealNoteRequests(requests.filter((r: any) => r.status?.toLowerCase() === 'pending').slice(0, 3));
 
             // Fetch Recent Activities
             const activities = await userService.getRecentActivities();

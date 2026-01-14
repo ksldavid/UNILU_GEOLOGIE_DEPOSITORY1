@@ -25,8 +25,9 @@ export const professorService = {
         return response.json();
     },
 
-    async getStudents() {
-        const response = await fetch(`${API_URL}/students`, {
+    async getStudents(courseCode?: string) {
+        const url = courseCode ? `${API_URL}/students?courseCode=${courseCode}` : `${API_URL}/students`;
+        const response = await fetch(url, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération des étudiants');
@@ -156,6 +157,22 @@ export const professorService = {
         if (!response.ok) throw new Error("Erreur lors de l'enregistrement des notes");
         return response.json();
     },
+    async deleteAssessment(assessmentId: number) {
+        const response = await fetch(`http://localhost:3001/api/professor/assessments/${assessmentId}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        if (!response.ok) throw new Error("Erreur lors de la suppression de l'épreuve");
+        return response.json();
+    },
+    async publishAssessment(assessmentId: number) {
+        const response = await fetch(`http://localhost:3001/api/professor/assessments/${assessmentId}/publish`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        if (!response.ok) throw new Error("Erreur lors de la publication des notes");
+        return response.json();
+    },
 
     async uploadResource(courseCode: string, title: string, file: File) {
         const formData = new FormData();
@@ -188,6 +205,34 @@ export const professorService = {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error("Erreur lors de la suppression du document");
+        return response.json();
+    },
+
+    async requestGradeChange(data: { studentId: string, assessmentId: string, newScore: string, reason: string }, file?: File | null) {
+        const formData = new FormData();
+        formData.append('studentId', data.studentId);
+        formData.append('assessmentId', data.assessmentId);
+        formData.append('newScore', data.newScore);
+        formData.append('reason', data.reason);
+        if (file) formData.append('file', file);
+
+        const token = sessionStorage.getItem('token');
+        const response = await fetch(`${API_URL}/grade-change-request`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        if (!response.ok) throw new Error("Erreur lors de l'envoi de la demande de modification");
+        return response.json();
+    },
+
+    async getCoursePerformance(courseCode: string) {
+        const response = await fetch(`${API_URL}/courses/${courseCode}/performance`, {
+            headers: getHeaders()
+        });
+        if (!response.ok) throw new Error("Erreur lors de la récupération des statistiques de performance");
         return response.json();
     }
 };

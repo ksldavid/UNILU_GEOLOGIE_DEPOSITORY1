@@ -164,9 +164,27 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
             include: {
                 author: { select: { name: true } }
             },
-            take: 5,
+            take: 1,
             orderBy: { createdAt: 'desc' }
         });
+
+        // 6. Récupérer les devoirs en cours (TP/TD non soumis)
+        const pendingAssignments = await prisma.assessment.findMany({
+            where: {
+                courseCode: { in: activeCourseCodes },
+                type: { in: ['TP', 'TD'] },
+                submissions: {
+                    none: { studentId: userId }
+                }
+            },
+            include: {
+                course: {
+                    select: { name: true }
+                }
+            },
+            orderBy: { dueDate: 'asc' },
+            take: 1
+        }) as any[];
 
         res.json({
             student: {
@@ -176,10 +194,18 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
             stats: {
                 attendance: overallAttendance,
                 courseCount: courseStats.length,
-                courses: courseStats
+                courses: courseStats,
+                pendingAssignmentsCount: pendingAssignments.length
             },
             todaySchedule: formattedSchedule,
             recentAttendance: formattedHistory,
+            pendingAssignments: pendingAssignments.map(a => ({
+                id: a.id,
+                title: a.title,
+                courseName: a.course?.name || 'Inconnu',
+                dueDate: a.dueDate,
+                type: a.type
+            })),
             announcements: (announcements as any[]).map(a => ({
                 id: a.id,
                 title: a.title,
@@ -238,17 +264,20 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
                             orderBy: { day: 'asc' }
                         },
                         _count: {
-                            select: {
-                                resources: true,
-                                assessments: true
+                            select: { resources: true }
+                        },
+                        assessments: {
+                            where: {
+                                type: { in: ['TP', 'TD'] },
+                                submissions: {
+                                    none: { studentId: userId }
+                                }
                             }
                         },
                         attendanceSessions: {
                             include: {
                                 records: {
-                                    where: {
-                                        studentId: userId
-                                    }
+                                    where: { studentId: userId }
                                 }
                             }
                         }
@@ -299,7 +328,7 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
                 colorTo: colorPalette.to,
                 nextSession: 'À venir',
                 materials: c._count.resources,
-                assignments: c._count.assessments,
+                assignments: c.assessments.length,
                 attendedCount: attendedSessions,
                 totalCount: totalSessions,
                 percentage: percentage,
@@ -336,7 +365,12 @@ export const getStudentCourseDetails = async (req: AuthRequest, res: Response) =
                 schedules: true,
                 resources: true,
                 assessments: {
-                    where: { isPublished: true },
+                    where: {
+                        OR: [
+                            { isPublished: true },
+                            { type: { in: ['TP', 'TD'] } }
+                        ]
+                    },
                     include: {
                         submissions: {
                             where: { studentId: userId }
@@ -405,11 +439,13 @@ export const getStudentCourseDetails = async (req: AuthRequest, res: Response) =
             assignments: course.assessments.map((a: any) => ({
                 id: a.id,
                 title: a.title,
+                instructions: a.instructions,
                 type: a.type,
                 dueDate: a.dueDate,
                 submitted: a.submissions.length > 0,
+                submittedAt: a.submissions[0]?.submittedAt,
                 submissionUrl: a.submissions[0]?.fileUrl,
-                status: 'PUBLISHED'
+                status: a.isPublished ? 'PUBLISHED' : 'LAUNCHED'
             }))
         });
 
@@ -507,57 +543,114 @@ export const getStudentSchedule = async (req: AuthRequest, res: Response) => {
 export const getStudentGrades = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
-
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
-        // 1. Fetch all grades for the student
-        const grades = await prisma.grade.findMany({
-            where: { studentId: userId },
-            include: {
-                assessment: {
-                    include: {
-                        course: true
-                    }
-                }
-            }
+        // 1. Trouver le niveau de l'étudiant
+        const currentEnrollment = await prisma.studentEnrollment.findFirst({
+            where: { userId },
+            orderBy: { enrolledAt: 'desc' },
+            select: { academicLevelId: true }
         });
 
-        // 2. Group grades by course code
-        const courseGrades: any = {};
+        if (!currentEnrollment) return res.status(404).json({ message: 'Niveau académique non trouvé' });
 
-        grades.forEach((g: any) => {
+        // 2. Récupérer tous les étudiants du même niveau
+        const peers = await prisma.studentEnrollment.findMany({
+            where: { academicLevelId: currentEnrollment.academicLevelId },
+            select: { userId: true }
+        });
+
+        const peerIds = peers.map(p => p.userId);
+
+        // 3. Récupérer TOUTES les notes publiées pour ces étudiants
+        const allGrades = await prisma.grade.findMany({
+            where: {
+                studentId: { in: peerIds },
+                assessment: { isPublished: true }
+            },
+            include: { assessment: true }
+        });
+
+        // 4. Fonction pour calculer la moyenne d'un étudiant (Base 10)
+        const calculateStudentAvg = (studentId: string) => {
+            const sGrades = allGrades.filter(g => g.studentId === studentId);
+            if (sGrades.length === 0) return 0;
+
+            const courseGrades: any = {};
+            sGrades.forEach(g => {
+                const code = g.assessment.courseCode;
+                if (!courseGrades[code]) courseGrades[code] = { tp: null, exam: null, maxPoints: g.assessment.maxPoints };
+
+                if (g.assessment.type === 'EXAM') courseGrades[code].exam = (g.score / g.assessment.maxPoints) * 10;
+                else courseGrades[code].tp = (g.score / g.assessment.maxPoints) * 10;
+            });
+
+            const finalScores = Object.values(courseGrades).map((c: any) => {
+                let sum = 0, count = 0;
+                if (c.tp !== null) { sum += c.tp; count++; }
+                if (c.exam !== null) { sum += c.exam; count++; }
+                return count > 0 ? (sum / count) : 0;
+            });
+
+            return finalScores.length > 0 ? finalScores.reduce((a, b) => a + b, 0) / finalScores.length : 0;
+        };
+
+        // 5. Calculer le classement
+        const rankings = peerIds.map(id => ({
+            id,
+            avg: calculateStudentAvg(id)
+        })).sort((a, b) => b.avg - a.avg);
+
+        const studentRank = rankings.findIndex(r => r.id === userId) + 1;
+
+        // 6. Formater les notes pour l'étudiant actuel (Même logique que l'original mais sur notes publiées)
+        const myGrades = allGrades.filter(g => g.studentId === userId);
+        const formattedGradesMap: any = {};
+
+        // Récupérer aussi les noms des cours pour être propre
+        const courses = await prisma.course.findMany({
+            where: { code: { in: myGrades.map(g => g.assessment.courseCode) } }
+        });
+
+        myGrades.forEach(g => {
             const code = g.assessment.courseCode;
-            if (!courseGrades[code]) {
-                courseGrades[code] = {
-                    code: code,
-                    course: g.assessment.course.name,
+            if (!formattedGradesMap[code]) {
+                const course = courses.find(c => c.code === code);
+                formattedGradesMap[code] = {
+                    code,
+                    course: course?.name || 'Inconnu',
                     tp: null,
                     exam: null,
                     final: 0,
-                    coefficient: 3, // Default or fetch from DB if available
-                    color: 'from-teal-500 to-teal-600'
+                    coefficient: 3,
+                    color: 'from-blue-500 to-blue-600'
                 };
             }
 
-            const c = courseGrades[code];
-            if (g.assessment.type === 'TP' || g.assessment.type === 'INTERROGATION' || g.assessment.type === 'TD') {
-                c.tp = (g.score / g.assessment.maxPoints) * 10;
-            } else if (g.assessment.type === 'EXAM') {
-                c.exam = (g.score / g.assessment.maxPoints) * 10;
+            const c = formattedGradesMap[code];
+            const score10 = (g.score / g.assessment.maxPoints) * 10;
+            if (g.assessment.type === 'EXAM') c.exam = parseFloat(score10.toFixed(2));
+            else {
+                // Si plusieurs TP, on peut faire une moyenne, ici on prend la dernière pour simplifier
+                c.tp = parseFloat(score10.toFixed(2));
             }
         });
 
-        // Finalize calculations for each course
-        const finalizedGrades = Object.values(courseGrades).map((c: any) => {
-            let final = 0;
-            let count = 0;
-            if (c.tp !== null) { final += c.tp; count++; }
-            if (c.exam !== null) { final += c.exam; count++; }
-            c.final = count > 0 ? parseFloat((final / count).toFixed(2)) : 0;
+        const finalizedGrades = Object.values(formattedGradesMap).map((c: any) => {
+            let sum = 0, count = 0;
+            if (c.tp !== null) { sum += c.tp; count++; }
+            if (c.exam !== null) { sum += c.exam; count++; }
+            c.final = count > 0 ? parseFloat((sum / count).toFixed(2)) : 0;
             return c;
         });
 
-        res.json(finalizedGrades);
+        res.json({
+            grades: finalizedGrades,
+            stats: {
+                rank: studentRank,
+                totalStudents: peerIds.length
+            }
+        });
 
     } catch (error) {
         console.error('Erreur notes étudiant:', error);

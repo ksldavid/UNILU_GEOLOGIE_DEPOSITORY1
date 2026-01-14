@@ -5,13 +5,15 @@ import { Skeleton } from "../Skeleton";
 
 export function StudentGrades() {
   const [grades, setGrades] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchGrades = async () => {
       try {
-        const data = await studentService.getGrades();
-        setGrades(data);
+        const response = await studentService.getGrades();
+        setGrades(response.grades || []);
+        setStats(response.stats || null);
       } catch (error) {
         console.error(error);
       } finally {
@@ -104,10 +106,12 @@ export function StudentGrades() {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center mb-4">
-            <Award className="w-6 h-6 text-purple-600" />
+            < Award className="w-6 h-6 text-purple-600" />
           </div>
-          <p className="text-sm text-gray-600 mb-1">Classement (Simulé)</p>
-          <p className="text-3xl text-gray-900 font-bold">---<span className="text-lg text-gray-500">/--</span></p>
+          <p className="text-sm text-gray-600 mb-1">Classement Réel</p>
+          <p className="text-3xl text-gray-900 font-bold">
+            {stats?.rank || '--'}<span className="text-lg text-gray-500">/{stats?.totalStudents || '--'}</span>
+          </p>
           <p className="text-xs text-gray-500 mt-2">Licence 3 - Géologie</p>
         </div>
       </div>

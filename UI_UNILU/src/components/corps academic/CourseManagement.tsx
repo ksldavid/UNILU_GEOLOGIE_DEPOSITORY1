@@ -2,9 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import {
   ArrowLeft, FileText, Users, ClipboardList, UserPlus, FilePlus,
   Settings2, BarChart3, UploadCloud, ChevronRight, Loader2, CheckCircle2,
-  Search, Filter, Plus, Calendar, Trophy, Download, Trash2, Eye, Mail,
+  Search, Plus, Calendar, Download, Trash2, Eye, Mail,
   AlertTriangle, X, UserCheck, Send, History, Save
 } from "lucide-react";
+import { toast } from 'sonner';
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
 
@@ -40,15 +43,19 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
 
   const [students, setStudents] = useState<any[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const [modifHistory, setModifHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedStudentPerformance, setSelectedStudentPerformance] = useState<any | null>(null);
   const [performanceData, setPerformanceData] = useState<any>(null);
   const [loadingPerformance, setLoadingPerformance] = useState(false);
   const [exams, setExams] = useState<any[]>([]);
   const [loadingExams, setLoadingExams] = useState(false);
+  const [courseStats, setCourseStats] = useState<any[]>([]);
+  const [loadingCourseStats, setLoadingCourseStats] = useState(false);
   const [newExamData, setNewExamData] = useState({
     title: "",
-    type: "Interrogation",
-    maxPoints: "20",
+    type: "INTERROGATION",
+    maxPoints: "10",
     date: new Date().toISOString().split('T')[0],
     weight: "1"
   });
@@ -56,6 +63,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   const [isSavingGrades, setIsSavingGrades] = useState(false);
   const [resources, setResources] = useState<any[]>([]);
   const [loadingResources, setLoadingResources] = useState(false);
+  const [sortBy, setSortBy] = useState<'name' | 'attendance' | 'matricule'>('name');
   const [assignmentData, setAssignmentData] = useState({
     title: "",
     instructions: "",
@@ -64,6 +72,44 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   });
   const [isLaunchingAssignment, setIsLaunchingAssignment] = useState(false);
   const [selectedAssignmentForSubmissions, setSelectedAssignmentForSubmissions] = useState<any>(null);
+
+  const handleDownloadAllAsZip = async (assignment: any) => {
+    if (!assignment.submissions || assignment.submissions.length === 0) {
+      alert("Aucune soumission à télécharger.");
+      return;
+    }
+
+    const zip = new JSZip();
+    const folderName = `${course.name}_${assignment.title}`.replace(/[\/\\?%*:|"<>]/g, '_');
+    const folder = zip.folder(folderName);
+
+    if (!folder) return;
+
+    alert(`Préparation du dossier compressé...\n${assignment.submissions.length} fichier(s) en cours de traitement.\nLe téléchargement démarrera automatiquement.`);
+
+    try {
+      const downloadPromises = assignment.submissions.map(async (sub: any) => {
+        try {
+          const response = await fetch(sub.fileUrl);
+          if (!response.ok) throw new Error("Échec du téléchargement");
+          const blob = await response.blob();
+          const fileName = `${sub.student?.name || 'Etudiant'}_${assignment.title}.pdf`.replace(/[\/\\?%*:|"<>]/g, '_');
+          folder.file(fileName, blob);
+        } catch (err) {
+          console.error(`Erreur sur le fichier de ${sub.student?.name}:`, err);
+        }
+      });
+
+      await Promise.all(downloadPromises);
+
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `${folderName}.zip`);
+    } catch (error) {
+      console.error("Erreur ZIP:", error);
+      alert("Une erreur est survenue lors de la création du ZIP. Veuillez réessayer ou télécharger les fichiers individuellement.");
+    }
+  };
+
 
   useEffect(() => {
     if (selectedStudentPerformance) {
@@ -87,21 +133,16 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   const fetchStudents = async () => {
     setLoadingStudents(true);
     try {
-      // We fetch all students for the professor, then filter by this course
-      // Ideally we'd have a specific endpoint /course/:id/students
-      const allStudents = await professorService.getStudents();
-      // Filter where courseCode matches our course.code (or id if we had it mapped)
-      // The course object from App.tsx has 'code' like 'GEO301'. 
-      // The backend returns courseCode.
-      const courseStudents = allStudents.filter((s: any) => s.courseCode === course.code || s.courseName === course.name);
+      const courseStudents = await professorService.getStudents(course.code);
 
-      // Map to expected format (add default attendance/grade if missing from backend)
       const formattedStudents = courseStudents.map((s: any) => ({
         id: s.id,
         name: s.name,
-        matricule: s.id, // ID is matricule
-        attendance: 0, // Default 0 as we don't have this data linked yet
-        grade: 0 // Default 0
+        matricule: s.id,
+        attendance: s.attendance || 0,
+        grade: s.grade || 0,
+        totalSessions: s.totalSessions || 0,
+        presentCount: s.presentCount || 0
       }));
       setStudents(formattedStudents);
     } catch (error) {
@@ -136,7 +177,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   };
 
   useEffect(() => {
-    if (activeSubView === 'students') {
+    if (activeSubView === 'students' || activeSubView === 'exam-details') {
       fetchStudents();
     }
   }, [activeSubView, course.code, course.name]);
@@ -154,6 +195,24 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   }, [activeSubView, course.code]);
 
   useEffect(() => {
+    if (activeSubView === 'performance') {
+      const fetchCoursePerformance = async () => {
+        setLoadingCourseStats(true);
+        try {
+          const data = await professorService.getCoursePerformance(course.code);
+          setCourseStats(data);
+        } catch (error) {
+          console.error(error);
+          toast.error("Impossible de charger les statistiques de performance");
+        } finally {
+          setLoadingCourseStats(false);
+        }
+      };
+      fetchCoursePerformance();
+    }
+  }, [activeSubView, course.code]);
+
+  useEffect(() => {
     if (selectedExam && selectedExam.grades) {
       const gradesMap: Record<string, string> = {};
       selectedExam.grades.forEach((g: any) => {
@@ -167,31 +226,80 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
     if (!selectedExam) return;
     setIsSavingGrades(true);
     try {
-      const gradesArray = Object.entries(tempGrades).map(([studentId, score]) => ({
-        studentId,
-        score
-      }));
+      const gradesArray = Object.entries(tempGrades).map(([studentId, score]) => {
+        if (score === "") return null;
+        const s = parseFloat(score);
+        if (s > (selectedExam.maxPoints || 20)) {
+          throw new Error(`La note (${s}) dépasse le maximum autorisé pour cette évaluation (${selectedExam.maxPoints}).`);
+        }
+        return {
+          studentId,
+          score: s
+        };
+      }).filter(g => g !== null);
       await professorService.saveGrades(selectedExam.id, gradesArray);
       alert("Notes enregistrées avec succès !");
-    } catch (error) {
+      fetchExams(); // Pour être sûr d'avoir les données à jour
+    } catch (error: any) {
       console.error(error);
-      alert("Erreur lors de l'enregistrement des notes");
+      alert(error.message || "Erreur lors de l'enregistrement des notes");
     } finally {
       setIsSavingGrades(false);
     }
   };
 
+  const handlePublishAllGrades = async () => {
+    if (!selectedExam) return;
+    if (!window.confirm("Êtes-vous sûr de vouloir publier ces points ? Une fois publiés, les étudiants pourront les voir. Les étudiants n'ayant pas de points se verront attribuer un 0 par défaut.")) return;
+
+    try {
+      await professorService.publishAssessment(selectedExam.id);
+      alert("Points publiés avec succès !");
+      // Update local state to reflect change
+      setSelectedExam({ ...selectedExam, isPublished: true });
+      fetchExams(); // Refresh lists
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de la publication");
+    }
+  };
+
   const handleCreateExam = async () => {
+    if (!newExamData.title.trim()) {
+      alert("Veuillez donner un titre à l'évaluation");
+      return;
+    }
     try {
       await professorService.createAssessment({
         ...newExamData,
         courseCode: course.code
       });
       alert("Évaluation créée avec succès !");
+      setNewExamData({
+        title: "",
+        type: "INTERROGATION",
+        maxPoints: "20",
+        date: new Date().toISOString().split('T')[0],
+        weight: "1"
+      });
       setActiveSubView('manage-exams');
     } catch (error) {
       console.error(error);
       alert("Erreur lors de la création");
+    }
+  };
+
+  const handleDeleteExam = async (e: React.MouseEvent, examId: number) => {
+    e.stopPropagation(); // Empêcher d'ouvrir les détails
+    if (!window.confirm("Voulez-vous vraiment supprimer cette épreuve ? Cette action est irréversible et supprimera toutes les notes associées.")) return;
+
+    try {
+      await professorService.deleteAssessment(examId);
+      alert("Épreuve supprimée avec succès.");
+      fetchExams(); // Rafraîchir la liste
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de la suppression de l'épreuve.");
     }
   };
 
@@ -266,7 +374,24 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
 
 
 
-  const modifHistory: any[] = [];
+  useEffect(() => {
+    if (activeSubView === 'modif-history') {
+      const fetchHistory = async () => {
+        setLoadingHistory(true);
+        try {
+          const { gradeService } = await import("../../services/grade");
+          const data = await gradeService.getMyRequests();
+          setModifHistory(data);
+        } catch (error) {
+          console.error(error);
+          toast.error("Impossible de charger l'historique");
+        } finally {
+          setLoadingHistory(false);
+        }
+      };
+      fetchHistory();
+    }
+  }, [activeSubView]);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -477,6 +602,85 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           </div>
         </div>
       )}
+
+      {/* Submissions View Modal */}
+      {selectedAssignmentForSubmissions && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#0B011D]/80 backdrop-blur-xl" onClick={() => setSelectedAssignmentForSubmissions(null)}></div>
+          <div className="bg-white w-full max-w-4xl rounded-[40px] overflow-hidden shadow-2xl relative z-10 animate-in zoom-in-95 duration-200">
+            <div className="p-10">
+              <div className="bg-gradient-to-r from-[#10002B] via-[#240046] to-[#3C096C] -m-10 p-10 mb-10 text-white flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-black">{selectedAssignmentForSubmissions.title}</h2>
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className="text-fuchsia-400 font-bold uppercase tracking-widest text-[10px] bg-fuchsia-500/10 px-3 py-1 rounded-full border border-fuchsia-500/20">
+                      {selectedAssignmentForSubmissions.submissions?.length || 0} Soumissions reçues
+                    </p>
+                    <span className="text-white/20">|</span>
+                    <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">{course.name}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  {selectedAssignmentForSubmissions.submissions?.length > 0 && (
+                    <button
+                      onClick={() => handleDownloadAllAsZip(selectedAssignmentForSubmissions)}
+                      className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 px-6 py-4 rounded-2xl font-black text-sm flex items-center gap-2 transition-all shadow-xl active:scale-95 group"
+                    >
+                      <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+                      Tout télécharger (ZIP)
+                    </button>
+                  )}
+                  <button onClick={() => setSelectedAssignmentForSubmissions(null)} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-all border border-white/10">
+                    <X className="w-6 h-6 text-white" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {selectedAssignmentForSubmissions.submissions?.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    {selectedAssignmentForSubmissions.submissions.map((sub: any) => (
+                      <div key={sub.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-[28px] hover:bg-gray-100 transition-all group">
+                        <div className="flex items-center gap-5">
+                          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm font-black">
+                            {sub.student?.name?.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-black text-gray-900 text-lg">{sub.student?.name}</p>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Posté le {new Date(sub.submittedAt).toLocaleDateString()} à {new Date(sub.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <a
+                            href={sub.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-gray-100 text-gray-700 px-4 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition-all flex items-center gap-2"
+                          >
+                            <Eye className="w-4 h-4" /> Voir
+                          </a>
+                          <a
+                            href={sub.fileUrl}
+                            download={`${sub.student?.name || 'Etudiant'}_${selectedAssignmentForSubmissions.title}.pdf`}
+                            className="bg-white text-gray-900 px-4 py-3 rounded-xl font-bold text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2 hover:bg-gray-50 border border-gray-200"
+                          >
+                            <Download className="w-4 h-4" /> Télécharger
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20">
+                    <History className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+                    <p className="text-gray-400 font-bold">Aucune soumission pour le moment</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 
@@ -501,9 +705,26 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           <div className="p-6 border-b border-gray-50 flex gap-4 bg-gray-50/30">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input type="text" placeholder="Rechercher par nom ou matricule..." className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-teal-500/20 transition-all outline-none" />
+              <input
+                type="text"
+                placeholder="Rechercher par nom ou matricule..."
+                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-teal-500/20 transition-all outline-none"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            <button className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-all font-bold"><Filter className="w-4 h-4" /> Filtres</button>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:block">Trier par:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-4 py-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-all font-bold text-sm outline-none focus:ring-2 focus:ring-teal-500/20"
+              >
+                <option value="name">Nom (A-Z)</option>
+                <option value="matricule">Matricule</option>
+                <option value="attendance">Taux de présence</option>
+              </select>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -517,49 +738,90 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {students.map((student) => (
-                  <tr key={student.id} className="hover:bg-gray-50/80 transition-colors group">
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 font-bold">
-                          {student.name.charAt(0)}
-                        </div>
-                        <span className="font-bold text-gray-900">{student.name}</span>
+                {loadingStudents ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-16">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="w-12 h-12 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-500 font-black uppercase tracking-widest text-xs">Chargement des étudiants...</p>
                       </div>
-                    </td>
-                    <td className="px-8 py-5 text-gray-500 font-bold">{student.matricule}</td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 bg-gray-100 h-2 rounded-full overflow-hidden min-w-[100px]">
-                          <div
-                            className={`h-full transition-all duration-1000 ${student.attendance > 80 ? 'bg-emerald-500' : student.attendance > 70 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                            style={{ width: `${student.attendance}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-bold text-gray-600">{student.attendance}%</span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className="px-3 py-1 bg-teal-50 text-teal-700 rounded-lg font-bold">
-                        {student.grade}/20
-                      </span>
-                    </td>
-                    <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => setSelectedStudentPerformance(student)}
-                        className="p-2.5 hover:bg-teal-50 rounded-xl text-teal-600 transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => setStudentToDelete(student)}
-                        className="p-2.5 hover:bg-red-50 rounded-xl text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
                     </td>
                   </tr>
-                ))}
+                ) : students.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-16">
+                      <div className="text-center">
+                        <p className="text-gray-400 font-bold text-sm italic">Aucun étudiant inscrit pour ce cours</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : students.filter(s =>
+                  s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  s.matricule?.toLowerCase().includes(searchQuery.toLowerCase())
+                ).length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-16">
+                      <div className="text-center">
+                        <p className="text-gray-400 font-bold text-sm italic">Aucun résultat trouvé pour "{searchQuery}"</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  students
+                    .filter(s =>
+                      s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      s.matricule?.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .sort((a, b) => {
+                      if (sortBy === 'name') return (a.name || "").localeCompare(b.name || "");
+                      if (sortBy === 'matricule') return (a.matricule || "").localeCompare(b.matricule || "");
+                      if (sortBy === 'attendance') return (b.attendance || 0) - (a.attendance || 0);
+                      return 0;
+                    })
+                    .map((student) => (
+                      <tr key={student.id} className="hover:bg-gray-50/80 transition-colors group">
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 font-bold">
+                              {student.name.charAt(0)}
+                            </div>
+                            <span className="font-bold text-gray-900">{student.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-5 text-gray-500 font-bold">{student.matricule}</td>
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 bg-gray-100 h-2 rounded-full overflow-hidden min-w-[100px]">
+                              <div
+                                className={`h-full transition-all duration-1000 ${student.attendance > 80 ? 'bg-emerald-500' : student.attendance > 70 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                style={{ width: `${student.attendance}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm font-bold text-gray-600">{student.attendance}%</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-5">
+                          <span className="px-3 py-1 bg-teal-50 text-teal-700 rounded-lg font-bold">
+                            {student.grade}/10
+                          </span>
+                        </td>
+                        <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setSelectedStudentPerformance(student)}
+                            className="p-2.5 hover:bg-teal-50 rounded-xl text-teal-600 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => setStudentToDelete(student)}
+                            className="p-2.5 hover:bg-red-50 rounded-xl text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                )}
               </tbody>
             </table>
           </div>
@@ -740,7 +1002,12 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
 
             {searchQuery.length >= 2 && !selectedStudentToAdd && (
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-300">
-                {filteredGlobalStudents.length > 0 ? (
+                {isSearchingGlobal ? (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <div className="w-10 h-10 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+                    <p className="mt-4 text-gray-500 font-bold uppercase tracking-widest text-[10px]">Recherche en cours...</p>
+                  </div>
+                ) : filteredGlobalStudents.length > 0 ? (
                   filteredGlobalStudents.map(s => (
                     <div
                       key={s.id}
@@ -856,7 +1123,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   type="number"
                   value={newExamData.maxPoints}
                   onChange={(e) => setNewExamData({ ...newExamData, maxPoints: e.target.value })}
-                  placeholder="20"
+                  placeholder="10"
                   className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-orange-500"
                 />
               </div>
@@ -913,7 +1180,10 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   setSelectedExam(exam);
                   setActiveSubView('exam-details');
                 }}
-                className="bg-white border border-gray-100 rounded-[32px] p-6 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex items-center justify-between"
+                className={`rounded-[32px] p-6 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex items-center justify-between border ${exam.isPublished
+                  ? 'bg-emerald-50/50 border-emerald-200'
+                  : 'bg-white border-gray-100'
+                  }`}
               >
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all">
@@ -928,11 +1198,24 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   </div>
                 </div>
                 <div className="flex items-center gap-8">
-                  <div className="text-right">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Moyenne</p>
-                    <p className="text-lg font-black text-gray-900">--/20</p>
+                  <div className="hidden md:block">
+                    <span className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${exam.isPublished
+                      ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                      : 'bg-amber-50 text-amber-600 border-amber-100'
+                      }`}>
+                      {exam.isPublished ? 'Points Publiés' : 'Brouillon'}
+                    </span>
                   </div>
-                  <ChevronRight className="w-6 h-6 text-gray-300 group-hover:text-orange-600" />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => handleDeleteExam(e, exam.id)}
+                      className="p-3 bg-red-50 text-red-500 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-95"
+                      title="Supprimer l'épreuve"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    <ChevronRight className="w-6 h-6 text-gray-300 group-hover:text-orange-600" />
+                  </div>
                 </div>
               </div>
             ))
@@ -978,9 +1261,13 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
               {isSavingGrades ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
               Enregistrer les points
             </button>
-            <button className="bg-orange-50 text-orange-700 font-black px-8 py-4 rounded-2xl hover:bg-orange-100 transition-all shadow-sm flex items-center gap-2">
+            <button
+              onClick={handlePublishAllGrades}
+              disabled={selectedExam?.isPublished}
+              className="bg-orange-50 text-orange-700 font-black px-8 py-4 rounded-2xl hover:bg-orange-100 transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
+            >
               <CheckCircle2 className="w-5 h-5" />
-              Publier tous les points
+              {selectedExam?.isPublished ? 'Déjà publié' : 'Publier tous les points'}
             </button>
           </div>
         </div>
@@ -989,7 +1276,13 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           <div className="p-6 border-b border-gray-50 flex gap-4 bg-gray-50/30">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input type="text" placeholder="Rechercher un étudiant..." className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500/20 transition-all outline-none" />
+              <input
+                type="text"
+                placeholder="Rechercher un étudiant..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500/20 transition-all outline-none"
+              />
             </div>
           </div>
 
@@ -998,7 +1291,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
               <thead>
                 <tr className="bg-gray-50/50 text-xs font-bold text-gray-400 uppercase tracking-widest">
                   <th className="px-8 py-5">Étudiant</th>
-                  <th className="px-8 py-5">Points / 20</th>
+                  <th className="px-8 py-5">Points / {selectedExam?.maxPoints || 10}</th>
                   <th className="px-8 py-5">Status</th>
                   <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
@@ -1014,83 +1307,100 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                     </td>
                   </tr>
                 )}
-                {students.map((student) => {
-                  const isPublished = selectedExam?.status === 'Publié';
-                  return (
-                    <tr key={student.id} className="hover:bg-gray-50/80 transition-all group">
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center text-orange-600 font-bold">
-                            {student.name.charAt(0)}
+                {students
+                  .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.matricule.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((student) => {
+                    const isPublished = selectedExam?.isPublished;
+                    return (
+                      <tr key={student.id} className="hover:bg-gray-50/80 transition-all group">
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center text-orange-600 font-bold">
+                              {student.name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-bold text-gray-900">{student.name}</div>
+                              <div className="text-xs text-gray-400 font-bold uppercase">{student.matricule}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="font-bold text-gray-900">{student.name}</div>
-                            <div className="text-xs text-gray-400 font-bold uppercase">{student.matricule}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5">
-                        <input
-                          type="number"
-                          value={tempGrades[student.id] || ""}
-                          onChange={(e) => setTempGrades({ ...tempGrades, [student.id]: e.target.value })}
-                          placeholder="-"
-                          disabled={isPublished || course.role === 'Assistant'}
-                          className={`w-20 p-3 bg-gray-50 border border-gray-100 rounded-xl font-black text-gray-900 focus:ring-2 focus:ring-orange-500/20 outline-none text-center placeholder:text-gray-300 ${(isPublished || course.role === 'Assistant') ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
-                        />
-                      </td>
-                      <td className="px-8 py-5">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-black px-3 py-1 rounded-full uppercase tracking-tighter ${isPublished ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${isPublished ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
-                          {isPublished ? 'Publié' : 'Brouillon'}
-                        </span>
-                      </td>
-                      <td className="px-8 py-5 text-right flex items-center justify-end gap-3">
-                        {isPublished ? (
-                          <button
-                            onClick={() => {
-                              if (course.role === 'Assistant') {
-                                alert("Action refusée : En tant qu'assistant, vous ne pouvez pas introduire de demande de modification.");
+                        </td>
+                        <td className="px-8 py-5">
+                          <input
+                            type="number"
+                            value={tempGrades[student.id] || ""}
+                            onChange={(e) => {
+                              const valStr = e.target.value;
+                              if (valStr === "") {
+                                setTempGrades({ ...tempGrades, [student.id]: "" });
                                 return;
                               }
-                              setSelectedStudentForModif(student);
-                              setShowModifModal(true);
+                              const val = parseFloat(valStr);
+                              const max = selectedExam?.maxPoints || 10;
+                              if (val > max) {
+                                alert(`Impossible de dépasser la note maximale de ${max}`);
+                                return;
+                              }
+                              setTempGrades({ ...tempGrades, [student.id]: valStr });
                             }}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all border active:scale-95 ${course.role === 'Assistant'
-                              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                              : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100'
-                              }`}
-                          >
-                            <Settings2 className="w-3.5 h-3.5" />
-                            Faire une demande de modification
-                          </button>
-                        ) : (
-                          <>
+                            placeholder="-"
+                            max={selectedExam?.maxPoints || 10}
+                            min="0"
+                            disabled={isPublished || course.role === 'Assistant'}
+                            className={`w-20 p-3 bg-gray-50 border border-gray-100 rounded-xl font-black text-gray-900 focus:ring-2 focus:ring-orange-500/20 outline-none text-center placeholder:text-gray-300 ${(isPublished || course.role === 'Assistant') ? 'opacity-70 cursor-not-allowed bg-gray-100' : ''}`}
+                          />
+                        </td>
+                        <td className="px-8 py-5">
+                          <span className={`inline-flex items-center gap-1.5 text-xs font-black px-3 py-1 rounded-full uppercase tracking-tighter ${isPublished ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${isPublished ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                            {isPublished ? 'Publié' : 'Brouillon'}
+                          </span>
+                        </td>
+                        <td className="px-8 py-5 text-right flex items-center justify-end gap-3">
+                          {isPublished ? (
                             <button
-                              disabled={course.role === 'Assistant'}
-                              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all shadow-lg active:scale-95 ${course.role === 'Assistant'
-                                ? 'bg-gray-100 text-gray-400 shadow-none cursor-not-allowed'
-                                : 'bg-orange-600 text-white hover:bg-orange-700 shadow-orange-200'
+                              onClick={() => {
+                                if (course.role === 'Assistant') {
+                                  alert("Action refusée : En tant qu'assistant, vous ne pouvez pas introduire de demande de modification.");
+                                  return;
+                                }
+                                setSelectedStudentForModif(student);
+                                setShowModifModal(true);
+                              }}
+                              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all border active:scale-95 ${course.role === 'Assistant'
+                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100'
                                 }`}
                             >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              Publier
+                              <Settings2 className="w-3.5 h-3.5" />
+                              Faire une demande de modification
                             </button>
-                            <button
-                              disabled={course.role === 'Assistant'}
-                              className={`p-2.5 rounded-xl transition-colors ${course.role === 'Assistant'
-                                ? 'text-gray-300 cursor-not-allowed'
-                                : 'hover:bg-red-50 text-red-500'
-                                }`}
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                          ) : (
+                            <>
+                              <button
+                                disabled={course.role === 'Assistant'}
+                                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all shadow-lg active:scale-95 ${course.role === 'Assistant'
+                                  ? 'bg-gray-100 text-gray-400 shadow-none cursor-not-allowed'
+                                  : 'bg-orange-600 text-white hover:bg-orange-700 shadow-orange-200'
+                                  }`}
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                Publier
+                              </button>
+                              <button
+                                disabled={course.role === 'Assistant'}
+                                className={`p-2.5 rounded-xl transition-colors ${course.role === 'Assistant'
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'hover:bg-red-50 text-red-500'
+                                  }`}
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
@@ -1136,7 +1446,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Note actuelle</label>
                     <div className="p-2.5 bg-gray-50 rounded-xl font-bold text-gray-500 border border-gray-100 text-sm">
-                      {selectedStudentForModif?.grade} / 20
+                      {selectedStudentForModif?.grade} / {selectedExam?.maxPoints || 10}
                     </div>
                   </div>
                 </div>
@@ -1145,11 +1455,24 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nouvelle note à attribuer</label>
                   <input
                     type="number"
-                    max="20"
+                    max={selectedExam?.maxPoints || 10}
                     placeholder="Entrez la nouvelle note..."
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-gray-900 text-sm"
                     value={newGrade}
-                    onChange={(e) => setNewGrade(e.target.value)}
+                    onChange={(e) => {
+                      const valStr = e.target.value;
+                      if (valStr === "") {
+                        setNewGrade("");
+                        return;
+                      }
+                      const val = parseFloat(valStr);
+                      const max = selectedExam?.maxPoints || 10;
+                      if (val > max) {
+                        alert(`Impossible de dépasser la note maximale de ${max}`);
+                        return;
+                      }
+                      setNewGrade(valStr);
+                    }}
                   />
                 </div>
 
@@ -1215,16 +1538,29 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   Annuler
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    if (!selectedStudentForModif || !selectedExam) return;
                     setIsSubmittingModif(true);
-                    setTimeout(() => {
-                      alert("Demande de modification transmise au service académique avec succès.");
-                      setIsSubmittingModif(false);
+                    try {
+                      await professorService.requestGradeChange({
+                        studentId: selectedStudentForModif.id,
+                        assessmentId: selectedExam.id.toString(),
+                        newScore: newGrade,
+                        reason: modifReason
+                      }, modifFile);
+
+                      toast.success("Demande de modification transmise au service académique avec succès.");
+
+                      // Reset and Close
                       setShowModifModal(false);
                       setModifFile(null);
                       setModifReason("");
                       setNewGrade("");
-                    }, 1500);
+                    } catch (error: any) {
+                      toast.error(error.message || "Erreur lors de l'envoi de la demande");
+                    } finally {
+                      setIsSubmittingModif(false);
+                    }
                   }}
                   disabled={!newGrade || !modifReason || isSubmittingModif}
                   className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none text-xs uppercase tracking-widest"
@@ -1250,16 +1586,20 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   }
 
   if (activeSubView === 'performance') {
-    const examStats = [
+    const examStats = courseStats.length > 0 ? courseStats : [
       { id: 0, title: "Vue Globale (Semestre)", success: 0, failure: 0, avg: 0, total: 0, enrolled: course.studentsCount || 0 },
     ];
 
     const currentStats = examStats.find(s => s.id === selectedExamId) || examStats[0];
 
-    // Avoid division by zero
-    const successRate = currentStats.enrolled > 0 ? Math.round((currentStats.success / currentStats.enrolled) * 100) : 0;
-    const failureRate = currentStats.enrolled > 0 ? Math.round((currentStats.failure / currentStats.enrolled) * 100) : 0;
-    const absenceRate = currentStats.enrolled > 0 ? Math.round(((currentStats.enrolled - currentStats.total) / currentStats.enrolled) * 100) : 0;
+    if (loadingCourseStats) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <Loader2 className="w-12 h-12 text-teal-600 animate-spin mb-4" />
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Analyse des performances en cours...</p>
+        </div>
+      );
+    }
 
     return (
       <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300">
@@ -1291,14 +1631,14 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -mr-10 -mt-10"></div>
             <h3 className="text-gray-400 mb-2 uppercase text-[10px] tracking-widest relative z-10 font-black">Réussite</h3>
             <div className="text-4xl font-black text-emerald-600 relative z-10">{currentStats.success}%</div>
-            <p className="text-[10px] text-emerald-600 font-bold mt-4 relative z-10">Admission ≥ 10/20</p>
+            <p className="text-[10px] text-emerald-600 font-bold mt-4 relative z-10">Moyenne ≥ 50%</p>
           </div>
 
           <div className="bg-white p-6 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-bl-full -mr-10 -mt-10"></div>
             <h3 className="text-gray-400 mb-2 uppercase text-[10px] tracking-widest relative z-10 font-black">Échec</h3>
             <div className="text-4xl font-black text-rose-500 relative z-10">{currentStats.failure}%</div>
-            <p className="text-[10px] text-rose-500 font-bold mt-4 relative z-10">Échecs {"<"} 10/20</p>
+            <p className="text-[10px] text-rose-500 font-bold mt-4 relative z-10">Moyenne {"<"} 50%</p>
           </div>
 
           <div className="bg-white p-6 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group">
@@ -1319,7 +1659,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
             <div className="absolute top-0 right-0 w-24 h-24 bg-fuchsia-50 rounded-bl-full -mr-10 -mt-10"></div>
             <h3 className="text-gray-400 mb-2 uppercase text-[10px] tracking-widest relative z-10 font-black">Absents</h3>
             <div className="text-4xl font-black text-fuchsia-600 relative z-10">
-              {Math.round(((currentStats.enrolled - currentStats.total) / currentStats.enrolled) * 100)}%
+              {currentStats.enrolled > 0 ? Math.round(((currentStats.enrolled - currentStats.total) / currentStats.enrolled) * 100) : 0}%
             </div>
             <p className="text-[10px] text-fuchsia-600 font-bold mt-4 relative z-10">Taux d'absence</p>
           </div>
@@ -1375,6 +1715,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   if (activeSubView === 'assignments') {
     return (
       <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in slide-in-from-bottom-8 duration-500">
+        <GlobalComponents />
         <button onClick={() => setActiveSubView('main')} className="flex items-center gap-2 text-gray-500 hover:text-fuchsia-600 transition-colors font-bold">
           <ArrowLeft className="w-5 h-5" /> Retour
         </button>
@@ -1497,12 +1838,25 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
               </div>
               <div className="space-y-4">
                 {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) < new Date()).map(old => (
-                  <div key={old.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-all">
-                    <div className="overflow-hidden pr-2">
+                  <div key={old.id} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-all group">
+                    <div className="overflow-hidden pr-2 flex-1">
                       <p className="font-bold text-gray-900 truncate text-sm">{old.title}</p>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(old.date).toLocaleDateString()}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(old.dueDate).toLocaleDateString()}</p>
+                        <span className="text-[10px] text-gray-300">•</span>
+                        <p className="text-[10px] text-fuchsia-600 font-black uppercase">{old.submissions?.length || 0} soumission{(old.submissions?.length || 0) !== 1 ? 's' : ''}</p>
+                      </div>
                     </div>
-                    <span className="bg-gray-100 text-gray-600 text-[10px] font-black px-2 py-1 rounded-lg">FINI</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedAssignmentForSubmissions(old)}
+                        className="p-2 hover:bg-fuchsia-50 rounded-lg text-fuchsia-600 transition-all opacity-0 group-hover:opacity-100"
+                        title="Voir les soumissions"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <span className="bg-gray-100 text-gray-600 text-[10px] font-black px-2 py-1 rounded-lg">FINI</span>
+                    </div>
                   </div>
                 ))}
                 {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) < new Date()).length === 0 && (
@@ -1541,46 +1895,63 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {modifHistory.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-8 py-5">
-                      <div>
-                        <div className="font-bold text-gray-900">{item.studentName}</div>
-                        <div className="text-xs text-indigo-500 font-bold">{item.examTitle}</div>
+                {loadingHistory ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-16">
+                      <div className="flex flex-col items-center justify-center">
+                        <Loader2 className="w-10 h-10 text-teal-600 animate-spin mb-4" />
+                        <p className="text-gray-400 font-black uppercase tracking-widest text-[10px]">Chargement des données...</p>
                       </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-2 font-black text-sm">
-                        <span className="text-gray-400">{item.oldGrade}</span>
-                        <ArrowLeft className="w-3 h-3 text-gray-300 rotate-180" />
-                        <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">{item.newGrade}</span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5 text-sm font-bold text-gray-500">
-                      {item.date}
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className={`inline-flex items-center gap-1.5 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${item.status === 'Validé' ? 'text-emerald-600 bg-emerald-50' :
-                        item.status === 'Refusé' ? 'text-red-600 bg-red-50' :
-                          'text-amber-600 bg-amber-50'
-                        }`}>
-                        <div className={`w-1 h-1 rounded-full ${item.status === 'Validé' ? 'bg-emerald-500' :
-                          item.status === 'Refusé' ? 'bg-red-500' :
-                            'bg-amber-500'
-                          }`}></div>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5 text-right">
-                      <button
-                        onClick={() => setSelectedHistoryItem(item)}
-                        className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-900 transition-all border border-transparent hover:border-gray-200"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
                     </td>
                   </tr>
-                ))}
+                ) : modifHistory.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-16 text-center">
+                      <p className="text-gray-400 font-bold italic">Aucune demande de modification enregistrée</p>
+                    </td>
+                  </tr>
+                ) : (
+                  modifHistory.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
+                      <td className="px-8 py-5">
+                        <div>
+                          <div className="font-bold text-gray-900">{item.studentName}</div>
+                          <div className="text-xs text-indigo-500 font-bold">{item.examTitle}</div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-2 font-black text-sm">
+                          <span className="text-gray-400">{item.oldGrade}</span>
+                          <ArrowLeft className="w-3 h-3 text-gray-300 rotate-180" />
+                          <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">{item.newGrade}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5 text-sm font-bold text-gray-500">
+                        {item.date}
+                      </td>
+                      <td className="px-8 py-5">
+                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${item.status === 'Validé' ? 'text-emerald-600 bg-emerald-50' :
+                          item.status === 'Refusé' ? 'text-red-600 bg-red-50' :
+                            'text-amber-600 bg-amber-50'
+                          }`}>
+                          <div className={`w-1 h-1 rounded-full ${item.status === 'Validé' ? 'bg-emerald-500' :
+                            item.status === 'Refusé' ? 'bg-red-500' :
+                              'bg-amber-500'
+                            }`}></div>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <button
+                          onClick={() => setSelectedHistoryItem(item)}
+                          className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-900 transition-all border border-transparent hover:border-gray-200"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -1960,65 +2331,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         </div>
       </div>
 
-      {/* Submissions View Modal */}
-      {selectedAssignmentForSubmissions && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#0B011D]/80 backdrop-blur-xl" onClick={() => setSelectedAssignmentForSubmissions(null)}></div>
-          <div className="bg-white w-full max-w-4xl rounded-[40px] overflow-hidden shadow-2xl relative z-10 animate-in zoom-in-95 duration-200">
-            <div className="p-10">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-3xl font-black text-gray-900">{selectedAssignmentForSubmissions.title}</h2>
-                  <p className="text-gray-500 font-bold uppercase tracking-widest text-xs mt-1">
-                    {selectedAssignmentForSubmissions.submissions?.length || 0} Soumissions reçues
-                  </p>
-                </div>
-                <button onClick={() => setSelectedAssignmentForSubmissions(null)} className="p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all">
-                  <X className="w-6 h-6 text-gray-400" />
-                </button>
-              </div>
-
-              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                {selectedAssignmentForSubmissions.submissions?.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4">
-                    {selectedAssignmentForSubmissions.submissions.map((sub: any) => (
-                      <div key={sub.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-[28px] hover:bg-gray-100 transition-all group">
-                        <div className="flex items-center gap-5">
-                          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm font-black">
-                            {sub.student?.name?.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-black text-gray-900 text-lg">{sub.student?.name}</p>
-                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Posté le {new Date(sub.submittedAt).toLocaleDateString()} à {new Date(sub.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <a
-                            href={sub.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-white text-gray-900 px-5 py-3 rounded-xl font-bold text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2"
-                          >
-                            <Download className="w-4 h-4" /> Voir PDF
-                          </a>
-                          <button className="bg-indigo-600 text-white px-5 py-3 rounded-xl font-bold text-sm shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all">
-                            Noter
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-20">
-                    <History className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                    <p className="text-gray-400 font-bold">Aucune soumission pour le moment</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Submissions View Modal is now in GlobalComponents */}
     </div>
   );
 }

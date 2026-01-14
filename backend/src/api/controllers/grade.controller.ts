@@ -1,7 +1,8 @@
 import { Request, Response } from 'express'
 import prisma from '../../lib/prisma'
+import { AuthRequest } from '../middleware/auth.middleware'
 
-// Récupérer toutes les demandes de changement de notes
+// Récupérer toutes les demandes de changement de notes (pour le service académique)
 export const getGradeChangeRequests = async (req: Request, res: Response) => {
     try {
         const { status } = req.query
@@ -40,26 +41,78 @@ export const getGradeChangeRequests = async (req: Request, res: Response) => {
         })
 
         // On formate pour le frontend
-        const formattedRequests = requests.map(req => ({
-            id: req.id.toString(),
-            professor: req.requester.name,
-            professorInitials: req.requester.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2),
-            student: req.grade.student.name,
-            course: req.grade.assessment.course.name,
-            courseCode: req.grade.assessment.course.code,
-            oldGrade: req.grade.score.toString(),
-            newScore: req.newScore.toString(), // Note: Frontend use newGrade, but model use newScore
-            newGrade: req.newScore.toString(),
-            justification: req.reason,
-            date: req.createdAt.toISOString().split('T')[0],
-            status: req.status.toLowerCase(),
-            rejectionReason: req.status === 'REJECTED' ? 'Refusé par le service académique' : undefined // Basic status label
+        const formattedRequests = (requests as any[]).map(request => ({
+            id: request.id.toString(),
+            professor: request.requester?.name || 'Inconnu',
+            professorInitials: (request.requester?.name || '??').split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2),
+            student: request.grade?.student?.name || 'Inconnu',
+            course: request.grade?.assessment?.course?.name || 'Inconnu',
+            courseCode: request.grade?.assessment?.course?.code || '',
+            oldGrade: request.grade?.score?.toString() || '0',
+            newScore: request.newScore.toString(), // Note: Frontend use newGrade, but model use newScore
+            newGrade: request.newScore.toString(),
+            maxPoints: request.grade?.assessment?.maxPoints || 20,
+            justification: request.reason,
+            date: request.createdAt.toISOString().split('T')[0],
+            status: request.status.toLowerCase(),
+            rejectionReason: request.status === 'REJECTED' ? 'Refusé par le service académique' : undefined // Basic status label
         }))
 
         res.json(formattedRequests)
     } catch (error) {
         console.error('Erreur lors de la récupération des demandes de notes:', error)
         res.status(500).json({ message: 'Erreur serveur' })
+    }
+}
+
+// Récupérer les demandes de changement de notes de l'utilisateur connecté (Professeur)
+export const getMyGradeChangeRequests = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Non autorisé' });
+        }
+
+        const requests = await prisma.gradeChangeRequest.findMany({
+            where: { requesterId: userId },
+            include: {
+                grade: {
+                    include: {
+                        student: {
+                            select: { name: true }
+                        },
+                        assessment: {
+                            select: {
+                                title: true,
+                                course: {
+                                    select: { name: true }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        const formatted = (requests as any[]).map(request => ({
+            id: request.id.toString(),
+            studentName: request.grade?.student?.name || 'Inconnu',
+            examTitle: `${request.grade?.assessment?.title || 'Examen'} (${request.grade?.assessment?.course?.name || 'Cours'})`,
+            oldGrade: request.grade?.score?.toString() || '0',
+            newGrade: request.newScore.toString(),
+            date: request.createdAt.toISOString().split('T')[0],
+            status: request.status === 'APPROVED' ? 'Validé' : request.status === 'REJECTED' ? 'Refusé' : 'En cours',
+            reason: request.reason,
+            adminNote: request.status === 'REJECTED' ? 'Refusé par le service académique' :
+                request.status === 'APPROVED' ? 'Validé par le service académique' : 'En attente de traitement'
+        }));
+
+        res.json(formatted);
+    } catch (error) {
+        console.error('Erreur getMyGradeChangeRequests:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
     }
 }
 
@@ -114,7 +167,7 @@ export const getGradesStats = async (req: Request, res: Response) => {
         });
 
         // Pour avoir les noms des cours, on doit faire une requête complémentaire ou un join manuel
-        const detailedStats = await Promise.all(stats.map(async (item) => {
+        const detailedStats = await Promise.all((stats as any[]).map(async (item) => {
             const grade = await prisma.grade.findUnique({
                 where: { id: item.gradeId },
                 include: {
@@ -126,7 +179,7 @@ export const getGradesStats = async (req: Request, res: Response) => {
                 }
             });
             return {
-                course: `${grade?.assessment.course.name} (${grade?.assessment.course.code})`,
+                course: `${grade?.assessment?.course?.name || 'Inconnu'} (${grade?.assessment?.course?.code || '??'})`,
                 count: item._count.id
             };
         }));
@@ -194,11 +247,11 @@ export const getCourseGrades = async (req: Request, res: Response) => {
             }
         })
 
-        const pvData = enrollments.map(en => {
+        const pvData = (enrollments as any[]).map(en => {
             const studentGrades: any = {}
             const pendingRequests: any = {}
 
-            en.user.grades.forEach(g => {
+            en.user.grades.forEach((g: any) => {
                 studentGrades[g.assessmentId] = g.score
                 if ((g as any).changeRequests && (g as any).changeRequests.length > 0) {
                     pendingRequests[g.assessmentId] = {

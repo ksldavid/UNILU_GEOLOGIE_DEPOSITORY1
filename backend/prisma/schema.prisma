@@ -329,16 +329,17 @@ model StudentCourseEnrollment {
 }
 
 model Assessment {
-  id          Int            @id @default(autoincrement())
-  courseCode  String
-  creatorId   String
-  title       String
-  type        AssessmentType
-  maxPoints   Float
-  date        DateTime       @default(now())
-  dueDate     DateTime?
-  weight      Float          @default(1.0)
-  isPublished Boolean        @default(false)
+  id           Int            @id @default(autoincrement())
+  courseCode   String
+  creatorId    String
+  title        String
+  instructions String?
+  type         AssessmentType
+  maxPoints    Float
+  date         DateTime       @default(now())
+  dueDate      DateTime?
+  weight       Float          @default(1.0)
+  isPublished  Boolean        @default(false)
 
   // Timestamps
   createdAt DateTime @default(now())

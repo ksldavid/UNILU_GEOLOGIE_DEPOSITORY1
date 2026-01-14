@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Calendar, BookOpen, Clock, MapPin, User as UserIcon, Megaphone, CheckCircle, ChevronRight, X, QrCode, Loader2, SignalHigh, SignalLow } from "lucide-react";
+import { Calendar, BookOpen, Clock, MapPin, User as UserIcon, Megaphone, CheckCircle, ChevronRight, X, QrCode, Loader2, SignalHigh, SignalLow, Send } from "lucide-react";
 import { motion } from "motion/react";
 import { StudentPage } from "./StudentSidebar";
 import welcomeImage from '../../assets/slide1.png';
@@ -160,6 +160,7 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
   const stats = [
     { label: 'Assiduité', value: data?.stats?.attendance || '-', sub: '%', icon: CheckCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Matières en cours', value: data?.stats?.courseCount || '-', sub: 'Cours', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Devoirs à rendre', value: data?.stats?.pendingAssignmentsCount || '0', sub: 'À faire', icon: Send, color: 'text-orange-600', bg: 'bg-orange-50' },
   ];
 
   const container = {
@@ -175,6 +176,17 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
   const item = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 }
+  };
+
+  const getTimeRemaining = (dueDate: string) => {
+    const diff = new Date(dueDate).getTime() - new Date().getTime();
+    if (diff <= 0) return "Terminé";
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    if (days > 0) return `${days}j ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}min`;
   };
 
   if (loading) return <DashboardSkeleton />;
@@ -228,7 +240,7 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat, i) => (
           <motion.div
             key={i}
@@ -316,8 +328,55 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
           </div>
         </motion.div>
 
-        {/* Right Column: Announcements & Quick Actions */}
+        {/* Right Column: Active Assignments & Announcements */}
         <div className="space-y-8">
+          {/* Active Assignments Block */}
+          {data?.pendingAssignments?.length > 0 && (
+            <motion.div
+              variants={item}
+              className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-orange-100/50 transition-colors"></div>
+
+              <div className="relative">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
+                    <Send className="w-6 h-6 text-orange-600" />
+                    Devoirs en cours
+                  </h3>
+                  <button
+                    onClick={() => onNavigate('courses')}
+                    className="p-2 hover:bg-gray-50 rounded-xl transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {data.pendingAssignments.map((assignment: any) => (
+                    <div
+                      key={assignment.id}
+                      onClick={() => onNavigate('courses')}
+                      className="p-5 rounded-[28px] bg-gray-50 border border-transparent hover:border-orange-200 hover:bg-white transition-all cursor-pointer group/card"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-lg uppercase tracking-wider">{assignment.type}</span>
+                        <div className="flex items-center gap-2 text-rose-500 animate-pulse">
+                          <Clock className="w-3 h-3" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">
+                            {getTimeRemaining(assignment.dueDate)}
+                          </span>
+                        </div>
+                      </div>
+                      <h4 className="text-sm font-bold text-gray-900 mb-1 group-hover/card:text-orange-600 transition-colors line-clamp-1 capitalize">{assignment.title}</h4>
+                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{assignment.courseName}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           <motion.div
             variants={item}
             className="bg-gray-900 rounded-[40px] p-8 text-white shadow-2xl"

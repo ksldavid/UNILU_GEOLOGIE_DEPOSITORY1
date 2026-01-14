@@ -50,5 +50,16 @@ export const gradeService = {
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération des statistiques');
         return response.json();
+    },
+
+    async getMyRequests() {
+        const token = sessionStorage.getItem('token');
+        const response = await fetch(`${API_URL}/grades/my-requests`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) throw new Error('Erreur lors de la récupération de votre historique');
+        return response.json();
     }
 };
