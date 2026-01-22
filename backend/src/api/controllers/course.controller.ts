@@ -35,11 +35,11 @@ export const getCourses = async (req: Request, res: Response) => {
             }
         })
 
-        const formattedCourses = courses.map(c => ({
+        const formattedCourses = courses.map((c: any) => ({
             id: c.code, // Utilise le code comme ID pour le planning
             name: c.name,
             code: c.code,
-            professor: c.enrollments[0]?.user.name || 'À définir',
+            professor: c.enrollments?.[0]?.user?.name || 'À définir',
             color: '#1B4332'
         }))
 
