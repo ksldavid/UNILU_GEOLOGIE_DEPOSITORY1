@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:3001/api/student';
+import API_URL from './config';
+const STUDENT_API_URL = `${API_URL}/student`;
 
 const getHeaders = () => {
     const token = sessionStorage.getItem('token');
@@ -10,7 +11,7 @@ const getHeaders = () => {
 
 export const studentService = {
     async getDashboard() {
-        const response = await fetch(`${API_URL}/dashboard`, {
+        const response = await fetch(`${STUDENT_API_URL}/dashboard`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération du dashboard');
@@ -18,7 +19,7 @@ export const studentService = {
     },
 
     async getCourses() {
-        const response = await fetch(`${API_URL}/courses`, {
+        const response = await fetch(`${STUDENT_API_URL}/courses`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération des cours');
@@ -26,7 +27,7 @@ export const studentService = {
     },
 
     async getCourseDetails(courseCode: string) {
-        const response = await fetch(`${API_URL}/courses/${courseCode}`, {
+        const response = await fetch(`${STUDENT_API_URL}/courses/${courseCode}`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération des détails du cours');
@@ -34,7 +35,7 @@ export const studentService = {
     },
 
     async getSchedule() {
-        const response = await fetch(`${API_URL}/schedule`, {
+        const response = await fetch(`${STUDENT_API_URL}/schedule`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération du planning');
@@ -42,7 +43,7 @@ export const studentService = {
     },
 
     async getGrades() {
-        const response = await fetch(`${API_URL}/grades`, {
+        const response = await fetch(`${STUDENT_API_URL}/grades`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération des notes');
@@ -50,7 +51,7 @@ export const studentService = {
     },
 
     async getAnnouncements() {
-        const response = await fetch(`${API_URL}/announcements`, {
+        const response = await fetch(`${STUDENT_API_URL}/announcements`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération des annonces');
@@ -58,7 +59,7 @@ export const studentService = {
     },
 
     async getCourseManagement() {
-        const response = await fetch(`${API_URL}/courses-management`, {
+        const response = await fetch(`${STUDENT_API_URL}/courses-management`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération de la gestion des cours');
@@ -66,7 +67,7 @@ export const studentService = {
     },
 
     async toggleCourseActive(courseCode: string, isActive: boolean) {
-        const response = await fetch(`${API_URL}/courses/toggle-active`, {
+        const response = await fetch(`${STUDENT_API_URL}/courses/toggle-active`, {
             method: 'PUT',
             headers: getHeaders(),
             body: JSON.stringify({ courseCode, isActive })
@@ -80,7 +81,7 @@ export const studentService = {
         formData.append('assessmentId', assessmentId);
         formData.append('file', file);
 
-        const response = await fetch(`${API_URL}/submit-assignment`, {
+        const response = await fetch(`${STUDENT_API_URL}/submit-assignment`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${sessionStorage.getItem('token')}`
@@ -96,7 +97,7 @@ export const studentService = {
     },
 
     async markAnnouncementAsRead(announcementId: number) {
-        const response = await fetch(`${API_URL}/announcements/${announcementId}/read`, {
+        const response = await fetch(`${STUDENT_API_URL}/announcements/${announcementId}/read`, {
             method: 'POST',
             headers: getHeaders()
         });

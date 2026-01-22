@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:3001/api/professor';
+import API_URL from './config';
+const PROFESSOR_API_URL = `${API_URL}/professor`;
 
 const getHeaders = () => {
     const token = sessionStorage.getItem('token');
@@ -10,7 +11,7 @@ const getHeaders = () => {
 
 export const professorService = {
     async getDashboard() {
-        const response = await fetch(`${API_URL}/dashboard`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/dashboard`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération du dashboard');
@@ -18,7 +19,7 @@ export const professorService = {
     },
 
     async getCourses() {
-        const response = await fetch(`${API_URL}/courses`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/courses`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération des cours');
@@ -26,7 +27,7 @@ export const professorService = {
     },
 
     async getStudents(courseCode?: string) {
-        const url = courseCode ? `${API_URL}/students?courseCode=${courseCode}` : `${API_URL}/students`;
+        const url = courseCode ? `${PROFESSOR_API_URL}/students?courseCode=${courseCode}` : `${PROFESSOR_API_URL}/students`;
         const response = await fetch(url, {
             headers: getHeaders()
         });
@@ -35,7 +36,7 @@ export const professorService = {
     },
 
     async getSchedule() {
-        const response = await fetch(`${API_URL}/schedule`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/schedule`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error('Erreur lors de la récupération du planning');
@@ -43,7 +44,7 @@ export const professorService = {
     },
 
     async saveAttendance(data: { courseCode: string, date: string, records: { studentId: string, status: string }[] }) {
-        const response = await fetch(`${API_URL}/attendance`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/attendance`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -53,7 +54,7 @@ export const professorService = {
     },
 
     async getStudentPerformance(studentId: string, courseCode: string) {
-        const response = await fetch(`${API_URL}/students/${studentId}/performance?courseCode=${courseCode}`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/students/${studentId}/performance?courseCode=${courseCode}`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error("Erreur lors de la récupération des performances de l'étudiant");
@@ -61,7 +62,7 @@ export const professorService = {
     },
 
     async createAnnouncement(data: any) {
-        const response = await fetch(`http://localhost:3001/api/announcements`, {
+        const response = await fetch(`${API_URL}/announcements`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -71,7 +72,7 @@ export const professorService = {
     },
 
     async getMyAnnouncements() {
-        const response = await fetch(`http://localhost:3001/api/announcements/my`, {
+        const response = await fetch(`${API_URL}/announcements/my`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error("Erreur lors de la récupération de mes annonces");
@@ -79,7 +80,7 @@ export const professorService = {
     },
 
     async updateAnnouncement(id: number, data: any) {
-        const response = await fetch(`http://localhost:3001/api/announcements/${id}`, {
+        const response = await fetch(`${API_URL}/announcements/${id}`, {
             method: 'PUT',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -89,7 +90,7 @@ export const professorService = {
     },
 
     async deleteAnnouncement(id: number) {
-        const response = await fetch(`http://localhost:3001/api/announcements/${id}`, {
+        const response = await fetch(`${API_URL}/announcements/${id}`, {
             method: 'DELETE',
             headers: getHeaders()
         });
@@ -99,8 +100,8 @@ export const professorService = {
 
     async getAttendanceHistory(courseCode?: string) {
         const url = courseCode
-            ? `${API_URL}/attendance/history?courseCode=${courseCode}`
-            : `${API_URL}/attendance/history`;
+            ? `${PROFESSOR_API_URL}/attendance/history?courseCode=${courseCode}`
+            : `${PROFESSOR_API_URL}/attendance/history`;
         const response = await fetch(url, {
             headers: getHeaders()
         });
@@ -108,7 +109,7 @@ export const professorService = {
         return response.json();
     },
     async unenrollStudent(studentId: string, courseCode: string) {
-        const response = await fetch(`${API_URL}/unenroll-student`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/unenroll-student`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({ studentId, courseCode })
@@ -117,14 +118,14 @@ export const professorService = {
         return response.json();
     },
     async searchStudents(query: string) {
-        const response = await fetch(`${API_URL}/search-students?query=${query}`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/search-students?query=${query}`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error("Erreur lors de la recherche d'étudiants");
         return response.json();
     },
     async enrollStudent(studentId: string, courseCode: string) {
-        const response = await fetch(`${API_URL}/enroll-student`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/enroll-student`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({ studentId, courseCode })
@@ -133,7 +134,7 @@ export const professorService = {
         return response.json();
     },
     async createAssessment(data: any) {
-        const response = await fetch(`http://localhost:3001/api/professor/assessments`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/assessments`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -142,14 +143,14 @@ export const professorService = {
         return response.json();
     },
     async getCourseAssessments(courseCode: string) {
-        const response = await fetch(`http://localhost:3001/api/professor/courses/${courseCode}/assessments`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/courses/${courseCode}/assessments`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error("Erreur lors de la récupération des évaluations");
         return response.json();
     },
     async saveGrades(assessmentId: number, grades: any[]) {
-        const response = await fetch(`http://localhost:3001/api/professor/save-grades`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/save-grades`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({ assessmentId, grades })
@@ -158,7 +159,7 @@ export const professorService = {
         return response.json();
     },
     async deleteAssessment(assessmentId: number) {
-        const response = await fetch(`http://localhost:3001/api/professor/assessments/${assessmentId}`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/assessments/${assessmentId}`, {
             method: 'DELETE',
             headers: getHeaders()
         });
@@ -166,7 +167,7 @@ export const professorService = {
         return response.json();
     },
     async publishAssessment(assessmentId: number) {
-        const response = await fetch(`http://localhost:3001/api/professor/assessments/${assessmentId}/publish`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/assessments/${assessmentId}/publish`, {
             method: 'POST',
             headers: getHeaders()
         });
@@ -181,7 +182,7 @@ export const professorService = {
         formData.append('file', file);
 
         const token = sessionStorage.getItem('token');
-        const response = await fetch(`${API_URL}/upload-resource`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/upload-resource`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -193,14 +194,14 @@ export const professorService = {
     },
 
     async getCourseResources(courseCode: string) {
-        const response = await fetch(`${API_URL}/courses/${courseCode}/resources`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/courses/${courseCode}/resources`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error("Erreur lors de la récupération des documents");
         return response.json();
     },
     async deleteResource(resourceId: number) {
-        const response = await fetch(`${API_URL}/resources/${resourceId}`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/resources/${resourceId}`, {
             method: 'DELETE',
             headers: getHeaders()
         });
@@ -217,7 +218,7 @@ export const professorService = {
         if (file) formData.append('file', file);
 
         const token = sessionStorage.getItem('token');
-        const response = await fetch(`${API_URL}/grade-change-request`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/grade-change-request`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -229,7 +230,7 @@ export const professorService = {
     },
 
     async getCoursePerformance(courseCode: string) {
-        const response = await fetch(`${API_URL}/courses/${courseCode}/performance`, {
+        const response = await fetch(`${PROFESSOR_API_URL}/courses/${courseCode}/performance`, {
             headers: getHeaders()
         });
         if (!response.ok) throw new Error("Erreur lors de la récupération des statistiques de performance");
