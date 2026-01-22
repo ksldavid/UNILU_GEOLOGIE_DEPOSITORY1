@@ -74,7 +74,7 @@ app.use(generalLimiter)
 // 4. CORS - Configuration sécurisée
 const corsOptions = {
     origin: isProduction
-        ? ['https://unilu-geologie-depository-1-qtz2.vercel.app', 'https://unilu-geologie.vercel.app'] // Domaines autorisés en prod
+        ? ['https://uniluhub.com', 'https://www.uniluhub.com', 'https://unilu-geologie-depository-1-qtz2.vercel.app', 'https://unilu-geologie.vercel.app'] // Domaines autorisés en prod
         : '*', // Tout accepter en développement
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
