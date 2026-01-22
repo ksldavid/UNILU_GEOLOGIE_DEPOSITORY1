@@ -71,8 +71,7 @@ export default function App() {
       const checkAnnouncements = async () => {
         try {
           const announcements = await studentService.getAnnouncements();
-          const lastRead = sessionStorage.getItem('lastAnnouncementsCheck') || '0';
-          const hasUnread = announcements.some((ann: any) => new Date(ann.date).getTime() > parseInt(lastRead));
+          const hasUnread = announcements.some((ann: any) => !ann.isRead);
           setHasUnreadAnnouncements(hasUnread);
         } catch (err) {
           console.error("Erreur check annonces étudiant:", err);
@@ -80,10 +79,10 @@ export default function App() {
       };
 
       checkAnnouncements();
-      const interval = setInterval(checkAnnouncements, 60000);
+      const interval = setInterval(checkAnnouncements, 30000); // Check every 30s
       return () => clearInterval(interval);
     }
-  }, [userData, isLoggedIn]);
+  }, [userData, isLoggedIn, studentCurrentPage]); // Trigger check on page change too
 
   // Vérifier les nouvelles annonces pour le point rouge et la cloche (Professeur)
   useEffect(() => {
@@ -104,14 +103,6 @@ export default function App() {
       return () => clearInterval(interval);
     }
   }, [userData, isLoggedIn]);
-
-  // Marquer comme lu quand on arrive sur la page des annonces (Étudiant)
-  useEffect(() => {
-    if (studentCurrentPage === 'announcements') {
-      sessionStorage.setItem('lastAnnouncementsCheck', Date.now().toString());
-      setHasUnreadAnnouncements(false);
-    }
-  }, [studentCurrentPage]);
 
   // Marquer comme lu quand on arrive sur le tableau de bord (Professeur - les annonces y sont affichées)
   useEffect(() => {
@@ -256,6 +247,7 @@ export default function App() {
           onLogout={handleLogout}
           isOpen={isMobileMenuOpen}
           onClose={() => setIsMobileMenuOpen(false)}
+          hasUnreadAnnouncements={hasUnreadAnnouncements}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
           <StudentHeader

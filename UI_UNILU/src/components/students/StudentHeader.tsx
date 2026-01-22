@@ -54,11 +54,11 @@ export function StudentHeader({ studentData, onMenuClick, hasUnreadAnnouncements
 
           <button
             onClick={onBellClick}
-            className={`relative p-2 hover:bg-gray-50 rounded-lg transition-all duration-300 ${hasUnreadAnnouncements ? 'text-teal-600' : 'text-gray-700'}`}
+            className={`relative p-2 hover:bg-gray-50 rounded-lg transition-all duration-300 ${hasUnreadAnnouncements ? 'text-red-600' : 'text-gray-700'}`}
           >
-            <Bell className={`w-5 h-5 ${hasUnreadAnnouncements ? 'animate-bell' : ''}`} />
+            <Bell className={`w-5 h-5 ${hasUnreadAnnouncements ? 'animate-bell fill-red-600' : ''}`} />
             {hasUnreadAnnouncements && (
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse-red"></span>
+              <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
             )}
           </button>
 

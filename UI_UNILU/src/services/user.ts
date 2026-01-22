@@ -113,6 +113,39 @@ export const userService = {
         return response.json();
     },
 
+    async getStudentDemographics(levelId?: number, year?: string) {
+        const token = sessionStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        const params = new URLSearchParams();
+        if (levelId) params.append('levelId', levelId.toString());
+        if (year) params.append('year', year);
+
+        const url = `${API_URL}/stats/student-demographics${params.toString() ? '?' + params.toString() : ''}`;
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+            throw new Error('Erreur lors de la récupération des données démographiques');
+        }
+        return response.json();
+    },
+
+    async getDemographicFilters() {
+        const token = sessionStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        const response = await fetch(`${API_URL}/stats/student-demographics-filters`, { headers });
+        if (!response.ok) {
+            throw new Error('Erreur lors de la récupération des filtres');
+        }
+        return response.json();
+    },
+
     async createAnnouncement(data: { title: string, content: string, type: string, target: string, academicLevelId?: number, targetUserId?: string }) {
         const token = sessionStorage.getItem('token');
         const headers = {

@@ -317,20 +317,23 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   };
 
   const handleLaunchAssignment = async () => {
-    if (!assignmentData.title || !assignmentData.dueDate) return;
+    if (!assignmentData.title || !assignmentData.dueDate || !assignmentData.dueTime) return;
     setIsLaunchingAssignment(true);
     try {
+      // Combinaison de la date et de l'heure
       const dueDateTime = new Date(`${assignmentData.dueDate}T${assignmentData.dueTime}`);
+
       await professorService.createAssessment({
         title: assignmentData.title,
-        type: 'TP', // Or TD, let's use TP for Assignments
+        instructions: assignmentData.instructions,
+        type: 'TP',
         maxPoints: 20,
         date: new Date().toISOString(),
         dueDate: dueDateTime.toISOString(),
         courseCode: course.code,
         weight: 1
       });
-      alert("Travail lancé avec succès !");
+      alert(`Travail lancé avec succès ! Date limite : ${new Date(dueDateTime).toLocaleString('fr-FR', { hour12: false })}`);
       setAssignmentData({
         title: "",
         instructions: "",
@@ -1758,111 +1761,143 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                     <label className="block text-sm font-black text-gray-700 mb-2 ml-1">Date d'échéance</label>
                     <input
                       type="date"
-                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20"
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20 font-bold"
                       value={assignmentData.dueDate}
                       onChange={(e) => setAssignmentData({ ...assignmentData, dueDate: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-black text-gray-700 mb-2 ml-1">Heure limite</label>
-                    <input
-                      type="time"
-                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20"
-                      value={assignmentData.dueTime}
-                      onChange={(e) => setAssignmentData({ ...assignmentData, dueTime: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100 flex items-start gap-4">
-                  <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-bold text-amber-900">Règle de durée limitée</p>
-                    <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                      Une fois l'heure limite passée, le bouton de dépôt sera automatiquement désactivé pour les étudiants. Aucun retard ne sera accepté par le système.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleLaunchAssignment}
-                  disabled={isLaunchingAssignment || !assignmentData.title}
-                  className="w-full bg-[#3C096C] text-white py-5 rounded-2xl font-black text-xl hover:bg-[#5A189A] transition-all shadow-xl shadow-fuchsia-900/10 active:scale-95 disabled:opacity-50"
-                >
-                  {isLaunchingAssignment ? 'Lancement...' : 'Lancer le travail'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Active Assignments */}
-          <div className="w-full lg:w-[400px] space-y-6">
-            <h2 className="text-xl font-black text-gray-900 px-2 mt-2">Dépôts en cours</h2>
-
-            {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) > new Date()).map(assignment => (
-              <div key={assignment.id} className="bg-[#10002B] rounded-[40px] p-8 text-white relative overflow-hidden shadow-2xl group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/10 rounded-bl-full -mr-12 -mt-12 group-hover:bg-fuchsia-500/20 transition-all"></div>
-                <div className="relative z-10">
-                  <h3 className="text-xl font-bold mb-2 pr-8">{assignment.title}</h3>
-                  <div className="flex items-center gap-2 text-fuchsia-400 text-sm font-black uppercase tracking-widest mb-4">
-                    <Calendar className="w-4 h-4" />
-                    Échéance : {new Date(assignment.dueDate).toLocaleDateString()} à {new Date(assignment.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-2xl font-black">{assignment.submissions?.length || 0}</span>
-                      <span className="text-[10px] text-gray-400 uppercase font-black">Dépôts reçus</span>
-                    </div>
-                    <button
-                      onClick={() => setSelectedAssignmentForSubmissions(assignment)}
-                      className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
-                    >
-                      <Eye className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) > new Date()).length === 0 && (
-              <div className="bg-[#10002B] rounded-[40px] p-8 text-white relative overflow-hidden shadow-2xl flex flex-col items-center justify-center min-h-[200px]">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/10 rounded-bl-full -mr-12 -mt-12"></div>
-                <p className="text-gray-400 italic font-medium">Aucun travail en cours</p>
-              </div>
-            )}
-
-            <div className="bg-white border border-gray-100 rounded-[32px] p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <Settings2 className="w-5 h-5 text-gray-400" />
-                <h3 className="text-lg font-black text-gray-900">Historique des TP</h3>
-              </div>
-              <div className="space-y-4">
-                {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) < new Date()).map(old => (
-                  <div key={old.id} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-all group">
-                    <div className="overflow-hidden pr-2 flex-1">
-                      <p className="font-bold text-gray-900 truncate text-sm">{old.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(old.dueDate).toLocaleDateString()}</p>
-                        <span className="text-[10px] text-gray-300">•</span>
-                        <p className="text-[10px] text-fuchsia-600 font-black uppercase">{old.submissions?.length || 0} soumission{(old.submissions?.length || 0) !== 1 ? 's' : ''}</p>
+                    <label className="block text-sm font-black text-gray-700 mb-2 ml-1 flex justify-between">
+                      <span>Heure d'expiration</span>
+                      <span className="text-[10px] text-fuchsia-600">FORMAT 24H</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="23"
+                          placeholder="00"
+                          className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20 font-bold text-center text-xl"
+                          value={assignmentData.dueTime.split(':')[0]}
+                          onChange={(e) => {
+                            const hours = e.target.value.padStart(2, '0');
+                            const minutes = assignmentData.dueTime.split(':')[1] || '00';
+                            setAssignmentData({ ...assignmentData, dueTime: `${hours}:${minutes}` });
+                          }}
+                        />
+                        <span className="absolute -bottom-6 left-0 right-0 text-center text-[10px] font-black text-gray-400 uppercase">Heures</span>
+                      </div>
+                      <span className="text-2xl font-black text-gray-300">:</span>
+                      <div className="flex-1 relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          placeholder="00"
+                          className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-fuchsia-500/20 font-bold text-center text-xl"
+                          value={assignmentData.dueTime.split(':')[1]}
+                          onChange={(e) => {
+                            const hours = assignmentData.dueTime.split(':')[0] || '00';
+                            const minutes = e.target.value.padStart(2, '0');
+                            setAssignmentData({ ...assignmentData, dueTime: `${hours}:${minutes}` });
+                          }}
+                        />
+                        <span className="absolute -bottom-6 left-0 right-0 text-center text-[10px] font-black text-gray-400 uppercase">Minutes</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setSelectedAssignmentForSubmissions(old)}
-                        className="p-2 hover:bg-fuchsia-50 rounded-lg text-fuchsia-600 transition-all opacity-0 group-hover:opacity-100"
-                        title="Voir les soumissions"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <span className="bg-gray-100 text-gray-600 text-[10px] font-black px-2 py-1 rounded-lg">FINI</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100 flex items-start gap-4 mt-6">
+                <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-amber-900">Règle de durée limitée</p>
+                  <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                    Une fois l'heure limite passée (<span className="font-black text-amber-900">{assignmentData.dueTime}</span>), le bouton de dépôt sera automatiquement désactivé pour les étudiants. Aucun retard ne sera accepté.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleLaunchAssignment}
+                disabled={isLaunchingAssignment || !assignmentData.title}
+                className="w-full bg-[#3C096C] text-white py-5 rounded-2xl font-black text-xl hover:bg-[#5A189A] transition-all shadow-xl shadow-fuchsia-900/10 active:scale-95 disabled:opacity-50"
+              >
+                {isLaunchingAssignment ? 'Lancement...' : 'Lancer le travail'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Active Assignments */}
+        <div className="w-full lg:w-[400px] space-y-6">
+          <h2 className="text-xl font-black text-gray-900 px-2 mt-2">Dépôts en cours</h2>
+
+          {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) > new Date()).map(assignment => (
+            <div key={assignment.id} className="bg-[#10002B] rounded-[40px] p-8 text-white relative overflow-hidden shadow-2xl group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/10 rounded-bl-full -mr-12 -mt-12 group-hover:bg-fuchsia-500/20 transition-all"></div>
+              <div className="relative z-10">
+                <h3 className="text-xl font-bold mb-2 pr-8">{assignment.title}</h3>
+                <div className="flex items-center gap-2 text-fuchsia-400 text-sm font-black uppercase tracking-widest mb-4">
+                  <Calendar className="w-4 h-4" />
+                  Échéance : {new Date(assignment.dueDate).toLocaleDateString()} à {new Date(assignment.dueDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-2xl font-black">{assignment.submissions?.length || 0}</span>
+                    <span className="text-[10px] text-gray-400 uppercase font-black">Dépôts reçus</span>
+                  </div>
+                  <button
+                    onClick={() => setSelectedAssignmentForSubmissions(assignment)}
+                    className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
+                  >
+                    <Eye className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) > new Date()).length === 0 && (
+            <div className="bg-[#10002B] rounded-[40px] p-8 text-white relative overflow-hidden shadow-2xl flex flex-col items-center justify-center min-h-[200px]">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/10 rounded-bl-full -mr-12 -mt-12"></div>
+              <p className="text-gray-400 italic font-medium">Aucun travail en cours</p>
+            </div>
+          )}
+
+          <div className="bg-white border border-gray-100 rounded-[32px] p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <Settings2 className="w-5 h-5 text-gray-400" />
+              <h3 className="text-lg font-black text-gray-900">Historique des TP</h3>
+            </div>
+            <div className="space-y-4">
+              {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) < new Date()).map(old => (
+                <div key={old.id} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-all group">
+                  <div className="overflow-hidden pr-2 flex-1">
+                    <p className="font-bold text-gray-900 truncate text-sm">{old.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(old.dueDate).toLocaleDateString()} à {new Date(old.dueDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
+                      <span className="text-[10px] text-gray-300">•</span>
+                      <p className="text-[10px] text-fuchsia-600 font-black uppercase">{old.submissions?.length || 0} soumission{(old.submissions?.length || 0) !== 1 ? 's' : ''}</p>
                     </div>
                   </div>
-                ))}
-                {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) < new Date()).length === 0 && (
-                  <p className="text-gray-400 italic text-sm text-center py-4">Historique vide</p>
-                )}
-              </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSelectedAssignmentForSubmissions(old)}
+                      className="p-2 hover:bg-fuchsia-50 rounded-lg text-fuchsia-600 transition-all opacity-0 group-hover:opacity-100"
+                      title="Voir les soumissions"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <span className="bg-gray-100 text-gray-600 text-[10px] font-black px-2 py-1 rounded-lg">FINI</span>
+                  </div>
+                </div>
+              ))}
+              {exams.filter(e => e.type === 'TP' && e.dueDate && new Date(e.dueDate) < new Date()).length === 0 && (
+                <p className="text-gray-400 italic text-sm text-center py-4">Historique vide</p>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     Activity, ShieldCheck, Database, Server,
-    Terminal, Settings, LogOut, Bell, Search,
+    Terminal, Settings, LogOut, Bell, Search, Megaphone,
     Clock, Cpu, Shield, LayoutDashboard, Globe, Menu, X, MessageSquare
 } from 'lucide-react';
 import { SystemStatus } from './components/SystemStatus';
@@ -12,6 +12,7 @@ import { SystemLogs } from './components/SystemLogs';
 import { UserModal } from './components/UserModal';
 import { SupportTicketsAdmin } from './components/SupportTicketsAdmin';
 import { ConfigManager } from './components/ConfigManager';
+import { CommunicationManager } from './components/CommunicationManager';
 
 export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
     const [activeTab, setActiveTab] = useState('System');
@@ -67,6 +68,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
         { id: 'Database', icon: Database, label: 'Base de Données' },
         { id: 'Servers', icon: Server, label: 'Serveurs' },
         { id: 'Logs', icon: Terminal, label: 'Logs' },
+        { id: 'Communication', icon: Megaphone, label: 'Communication' },
         { id: 'Support', icon: MessageSquare, label: 'Support' },
         { id: 'Config', icon: Settings, label: 'Configuration' },
     ];
@@ -83,6 +85,8 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                 return <ServersStatus />;
             case 'Logs':
                 return <SystemLogs />;
+            case 'Communication':
+                return <CommunicationManager />;
             case 'Support':
                 return <SupportTicketsAdmin />;
             case 'Config':
@@ -182,8 +186,8 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                             <div className="h-1.5 w-full bg-slate-800/50 rounded-full overflow-hidden">
                                 <div
                                     className={`h-full rounded-full transition-all duration-1000 ${systemData.memPercent > 80 ? 'bg-red-500' :
-                                            systemData.memPercent > 60 ? 'bg-orange-500' :
-                                                'bg-blue-500'
+                                        systemData.memPercent > 60 ? 'bg-orange-500' :
+                                            'bg-blue-500'
                                         }`}
                                     style={{ width: `${Math.min(100, systemData.memPercent)}%` }}
                                 />
@@ -199,8 +203,8 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                             <div className="space-y-1">
                                 <span className="text-[8px] font-black text-slate-600 uppercase block">DB Ping</span>
                                 <span className={`text-[9px] font-black font-mono ${systemData.dbLatency < 50 ? 'text-emerald-500' :
-                                        systemData.dbLatency < 150 ? 'text-orange-500' :
-                                            'text-red-500'
+                                    systemData.dbLatency < 150 ? 'text-orange-500' :
+                                        'text-red-500'
                                     }`}>{systemData.dbLatency}ms</span>
                             </div>
                         </div>

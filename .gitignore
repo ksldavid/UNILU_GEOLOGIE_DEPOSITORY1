@@ -1,0 +1,75 @@
+# ===============================================
+# UNILU Géologie - Fichiers à ignorer par Git
+# ===============================================
+
+# =============== FICHIERS SENSIBLES ===============
+# IMPORTANT: Ne JAMAIS commiter ces fichiers !
+.env
+.env.local
+.env.*.local
+*.env
+secrets/
+*.pem
+*.key
+
+# =============== DÉPENDANCES ===============
+node_modules/
+.pnp/
+.pnp.js
+
+# =============== BUILD & CACHE ===============
+dist/
+build/
+.next/
+out/
+.cache/
+*.tsbuildinfo
+
+# =============== LOGS & DEBUG ===============
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+
+# =============== IDE & ÉDITEURS ===============
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# =============== MOBILE (EXPO/REACT NATIVE) ===============
+.expo/
+.expo-shared/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+android/
+ios/
+
+# =============== TESTING ===============
+coverage/
+.nyc_output/
+
+# =============== PRISMA ===============
+generated/
+prisma/migrations/dev/
+
+# =============== TEMP FILES ===============
+tmp/
+temp/
+*.tmp
+*.temp
+
+# =============== SCRIPTS DE DEBUG ===============
+check*.js
+check*.ts
+debug*.js
+debug*.ts
+verify*.js
+list*.ts

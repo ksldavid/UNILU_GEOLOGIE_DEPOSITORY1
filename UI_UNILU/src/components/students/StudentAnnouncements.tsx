@@ -68,11 +68,30 @@ export function StudentAnnouncements() {
           </div>
         ) : announcements.map((announcement) => {
           const Icon = getTypeIcon(announcement.type);
+          const handleMarkAsRead = async () => {
+            if (announcement.isRead) return;
+            try {
+              await studentService.markAnnouncementAsRead(announcement.id);
+              setAnnouncements(prev => prev.map(a =>
+                a.id === announcement.id ? { ...a, isRead: true } : a
+              ));
+            } catch (err) {
+              console.error(err);
+            }
+          };
+
           return (
             <div
               key={announcement.id}
-              className="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-teal-500 hover:shadow-lg transition-all cursor-pointer group"
+              onClick={handleMarkAsRead}
+              className={`bg-white rounded-2xl p-6 shadow-sm border-l-4 ${announcement.isRead ? 'border-teal-500 opacity-80' : 'border-rose-500 shadow-md ring-1 ring-rose-100'} hover:shadow-lg transition-all cursor-pointer group relative`}
             >
+              {!announcement.isRead && (
+                <div className="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500 border-2 border-white"></span>
+                </div>
+              )}
               <div className="flex gap-6">
                 {/* Icon */}
                 <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${announcement.color} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg`}>
@@ -88,11 +107,16 @@ export function StudentAnnouncements() {
                         <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-gray-100 text-gray-600 rounded-full">
                           {getTypeLabel(announcement.type)}
                         </span>
+                        {!announcement.isRead && (
+                          <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-rose-500 text-white rounded-full animate-pulse">
+                            NOUVEAU
+                          </span>
+                        )}
                         <span className="text-xs text-gray-400 font-bold italic">
                           {new Date(announcement.date).toLocaleDateString()}
                         </span>
                       </div>
-                      <h3 className="text-xl font-black text-gray-900 mb-2">{announcement.title}</h3>
+                      <h3 className={`text-xl font-black mb-2 ${announcement.isRead ? 'text-gray-700' : 'text-gray-900 group-hover:text-rose-600'}`}>{announcement.title}</h3>
                     </div>
                   </div>
 

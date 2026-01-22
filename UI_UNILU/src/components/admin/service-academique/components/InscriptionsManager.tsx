@@ -227,7 +227,10 @@ export function InscriptionsManager() {
     whatsapp: '',
     email: '',
     idNumber: '',
-    password: ''
+    password: '',
+    sex: 'M',
+    birthday: '',
+    nationality: 'Congolaise'
   });
 
   const fetchSuggestions = async () => {
@@ -268,7 +271,10 @@ export function InscriptionsManager() {
       whatsapp: '',
       email: '',
       idNumber: '',
-      password: ''
+      password: '',
+      sex: 'M',
+      birthday: '',
+      nationality: 'Congolaise'
     });
     setIsAddModalOpen(false);
   };
@@ -948,6 +954,41 @@ export function InscriptionsManager() {
                           <option value="assistant">Assistant</option>
                           <option value="assistant2">Assistant de Recherche</option>
                         </select>
+                      </div>
+                    )}
+
+                    {newUserType === 'student' && (
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-[#1B4332] mb-1">Sexe *</label>
+                          <select
+                            value={formData.sex}
+                            onChange={(e) => setFormData({ ...formData, sex: e.target.value })}
+                            className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[12px] outline-none focus:border-[#1B4332] transition-colors"
+                          >
+                            <option value="M">Masculin</option>
+                            <option value="F">Féminin</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[#1B4332] mb-1">Date de Naissance</label>
+                          <input
+                            type="date"
+                            value={formData.birthday}
+                            onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+                            className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[12px] outline-none focus:border-[#1B4332] transition-colors"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[#1B4332] mb-1">Nationalité</label>
+                          <input
+                            type="text"
+                            value={formData.nationality}
+                            onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                            className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[12px] outline-none focus:border-[#1B4332] transition-colors"
+                            placeholder="Ex: Congolaise"
+                          />
+                        </div>
                       </div>
                     )}
 
@@ -1684,6 +1725,6 @@ export function InscriptionsManager() {
           </div>
         )
       }
-    </div>
+    </div >
   );
 }

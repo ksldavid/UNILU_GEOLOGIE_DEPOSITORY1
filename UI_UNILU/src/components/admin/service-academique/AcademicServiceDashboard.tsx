@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
     LayoutDashboard, Users, ClipboardCheck, FileText, Calendar,
     GraduationCap, Search, Bell, ChevronDown, LogOut,
-    FileCheck, X, Check, Clock, AlertCircle, Megaphone, Send, Wrench, AlertTriangle, CheckCircle, ChevronLeft
+    FileCheck, X, Check, Clock, AlertCircle, Megaphone, Send, Wrench, AlertTriangle, CheckCircle, ChevronLeft, PieChart
 } from "lucide-react";
 import { InscriptionsManager } from "./components/InscriptionsManager";
 import { AttendanceManager } from "./components/AttendanceManager";
@@ -11,6 +11,7 @@ import { ScheduleManager } from "./components/ScheduleManager";
 import { StaffAssignmentManager } from "./components/StaffAssignmentManager";
 import { TechnicalSupport } from "./components/TechnicalSupport";
 import { ActivityHistory } from "./components/ActivityHistory";
+import { StudentDemographics } from "./components/StudentDemographics";
 import { userService } from "../../../services/user";
 import { supportService } from "../../../services/support";
 
@@ -25,6 +26,7 @@ const navItems = [
     { id: "assiduite", label: "Assiduité & Rectif.", icon: ClipboardCheck },
     { id: "notes", label: "Notes & PV", icon: FileText },
     { id: "planning", label: "Planning", icon: Calendar },
+    { id: "stats_demog", label: "Stats. Étudiants", icon: PieChart },
     { id: "history", label: "Historique", icon: Clock },
 ];
 
@@ -723,6 +725,8 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                             onSaveReady={(saveFn) => setOnPlanningSave(() => saveFn)}
                         />
                     )}
+
+                    {activeSection === "stats_demog" && <StudentDemographics />}
                 </main>
 
                 {/* Confirm Leave Modal */}

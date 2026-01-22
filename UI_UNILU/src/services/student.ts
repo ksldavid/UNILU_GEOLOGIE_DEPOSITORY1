@@ -93,5 +93,14 @@ export const studentService = {
             throw new Error(error.message || 'Erreur lors de la soumission');
         }
         return response.json();
+    },
+
+    async markAnnouncementAsRead(announcementId: number) {
+        const response = await fetch(`${API_URL}/announcements/${announcementId}/read`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        if (!response.ok) throw new Error('Erreur lors du marquage de l\'annonce comme lue');
+        return response.json();
     }
 };

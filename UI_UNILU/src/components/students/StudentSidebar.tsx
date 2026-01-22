@@ -9,15 +9,16 @@ interface StudentSidebarProps {
   onLogout: () => void;
   isOpen: boolean;
   onClose: () => void;
+  hasUnreadAnnouncements?: boolean;
 }
 
-export function StudentSidebar({ currentPage, onNavigate, onLogout, isOpen, onClose }: StudentSidebarProps) {
+export function StudentSidebar({ currentPage, onNavigate, onLogout, isOpen, onClose, hasUnreadAnnouncements }: StudentSidebarProps) {
   const menuItems = [
     { id: 'dashboard' as const, icon: LayoutDashboard, label: 'Tableau de bord' },
     { id: 'courses' as const, icon: BookOpen, label: 'Mes Cours' },
     { id: 'planning' as const, icon: Calendar, label: 'Emploi du temps' },
     { id: 'grades' as const, icon: GraduationCap, label: 'Notes & Résultats' },
-    { id: 'announcements' as const, icon: Megaphone, label: 'Annonces' },
+    { id: 'announcements' as const, icon: Megaphone, label: 'Annonces', badge: hasUnreadAnnouncements },
     { id: 'settings' as const, icon: Settings2, label: 'Mon Parcours' },
   ];
 
@@ -61,7 +62,10 @@ export function StudentSidebar({ currentPage, onNavigate, onLogout, isOpen, onCl
                 `}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
-                <span className={isActive ? '' : ''}>{item.label}</span>
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.badge && (
+                  <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : 'bg-red-500'} animate-pulse`} />
+                )}
               </button>
             );
           })}
