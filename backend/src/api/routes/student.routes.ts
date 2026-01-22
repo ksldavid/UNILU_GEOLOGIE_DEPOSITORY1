@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getStudentDashboard, getStudentCourses, getStudentCourseDetails, getStudentSchedule, getStudentGrades, getStudentAnnouncements, getStudentProfile, getStudentCourseManagement, toggleCourseActive, submitAssignment } from '../controllers/student.controller'
+import { getStudentDashboard, getStudentCourses, getStudentCourseDetails, getStudentSchedule, getStudentGrades, getStudentAnnouncements, getStudentProfile, updateStudentProfile, getStudentCourseManagement, toggleCourseActive, submitAssignment, markAnnouncementAsRead } from '../controllers/student.controller'
 import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 import { upload } from '../middleware/upload.middleware'
 
@@ -15,8 +15,12 @@ router.get('/schedule', authenticateToken, authorizeRole('STUDENT'), getStudentS
 router.get('/grades', authenticateToken, authorizeRole('STUDENT'), getStudentGrades)
 router.get('/announcements', authenticateToken, authorizeRole('STUDENT'), getStudentAnnouncements)
 router.get('/profile', authenticateToken, authorizeRole('STUDENT'), getStudentProfile)
+router.put('/profile', authenticateToken, authorizeRole('STUDENT'), updateStudentProfile)
 
 // Assignment submission
 router.post('/submit-assignment', authenticateToken, authorizeRole('STUDENT'), upload.single('file'), submitAssignment)
+
+// Announcements
+router.post('/announcements/:id/read', authenticateToken, authorizeRole('STUDENT'), markAnnouncementAsRead)
 
 export default router

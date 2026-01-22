@@ -371,7 +371,12 @@ export const getTechnicalStats = async (req: Request, res: Response) => {
         const sizeBytes = Number(dbSizeRaw[0]?.size_bytes || 0);
         const dbSizePretty = (sizeBytes / (1024 * 1024)).toFixed(2) + " MB";
 
-        const totalUsers = await prisma.user.count();
+        const totalUsers = await prisma.user.count({
+            where: {
+                systemRole: 'STUDENT',
+                isArchived: false
+            }
+        });
         const totalCourses = await prisma.course.count();
         const totalEnrollments = await prisma.studentCourseEnrollment.count();
         const totalTickets = await prisma.supportTicket.count();
@@ -472,5 +477,106 @@ export const clearCache = async (req: Request, res: Response) => {
         res.json({ message: "System cache and logs cleared successfully" });
     } catch (error) {
         res.status(500).json({ error: "Failed to clear cache" });
+    }
+}
+// Récupérer les données démographiques des étudiants avec filtres optionnels
+export const getStudentDemographics = async (req: Request, res: Response) => {
+    try {
+        const { levelId, year } = req.query;
+
+        const where: any = {
+            systemRole: 'STUDENT',
+            isArchived: false
+        };
+
+        // Filtrage par niveau ou année académique via la relation studentEnrollments
+        if (levelId || year) {
+            where.studentEnrollments = {
+                some: {
+                    ...(levelId && { academicLevelId: parseInt(levelId as string) }),
+                    ...(year && { academicYear: year as string })
+                }
+            };
+        }
+
+        const students = await prisma.user.findMany({
+            where,
+            select: {
+                sex: true,
+                birthday: true,
+                nationality: true
+            }
+        });
+
+        const total = students.length;
+
+        // Distribution Sexe
+        const sexDist: any = { M: 0, F: 0, "N/A": 0 };
+        // Distribution Age (birthday)
+        const ageDist: any = { "< 18": 0, "18-21": 0, "22-25": 0, "25+": 0, "N/A": 0 };
+        // Distribution Nationality
+        const nationalityDist: any = {};
+
+        const now = new Date();
+
+        students.forEach(s => {
+            // Sex
+            const sex = (s.sex === 'M' || s.sex === 'F') ? s.sex : "N/A";
+            sexDist[sex]++;
+
+            // Age based on birthday
+            if (s.birthday) {
+                const birth = new Date(s.birthday);
+                let age = now.getFullYear() - birth.getFullYear();
+                const m = now.getMonth() - birth.getMonth();
+                if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+                    age--;
+                }
+
+                if (age < 18) ageDist["< 18"]++;
+                else if (age <= 21) ageDist["18-21"]++;
+                else if (age <= 25) ageDist["22-25"]++;
+                else ageDist["25+"]++;
+            } else {
+                ageDist["N/A"]++;
+            }
+
+            // Nationality
+            const n = s.nationality || "N/A";
+            nationalityDist[n] = (nationalityDist[n] || 0) + 1;
+        });
+
+        res.json({
+            total,
+            sex: sexDist,
+            age: ageDist,
+            nationality: nationalityDist
+        });
+    } catch (error) {
+        console.error('Erreur demographics:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}
+
+// Récupérer les options de filtrage (Niveaux et Années)
+export const getDemographicFilters = async (req: Request, res: Response) => {
+    try {
+        const levels = await prisma.academicLevel.findMany({
+            where: { isActive: true },
+            orderBy: { order: 'asc' },
+            select: { id: true, name: true, code: true }
+        });
+
+        const years = await prisma.studentEnrollment.findMany({
+            select: { academicYear: true },
+            distinct: ['academicYear']
+        });
+
+        res.json({
+            levels,
+            years: years.map(y => y.academicYear)
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Erreur lors de la récupération des filtres' });
     }
 }

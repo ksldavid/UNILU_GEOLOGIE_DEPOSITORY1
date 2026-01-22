@@ -1,13 +1,19 @@
 import { Router } from 'express'
 import { getGradeChangeRequests, getMyGradeChangeRequests, updateGradeChangeRequestStatus, getGradesStats, getCourseGrades } from '../controllers/grade.controller'
-import { authenticateToken } from '../middleware/auth.middleware'
+import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 
 const router = Router()
 
-router.get('/requests', getGradeChangeRequests)
-router.get('/my-requests', authenticateToken, getMyGradeChangeRequests)
-router.patch('/requests/:id/status', updateGradeChangeRequestStatus)
-router.get('/stats', getGradesStats)
-router.get('/pv', getCourseGrades)
+// Toutes les routes de notes nécessitent une authentification
+router.use(authenticateToken)
+
+// Routes pour les demandes de modification de notes
+router.get('/requests', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getGradeChangeRequests)
+router.get('/my-requests', getMyGradeChangeRequests)
+router.patch('/requests/:id/status', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), updateGradeChangeRequestStatus)
+
+// Routes pour les statistiques et le PV
+router.get('/stats', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getGradesStats)
+router.get('/pv', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'USER']), getCourseGrades)
 
 export default router

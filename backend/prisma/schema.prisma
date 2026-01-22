@@ -72,6 +72,11 @@ model User {
 
   systemRole SystemRole @default(USER)
 
+  // Statistiques Étudiant (Optionnel)
+  sex         String? // "M", "F"
+  birthday    DateTime?
+  nationality String? // "Congolaise", etc.
+
   // Accès et Sécurité
   isBlocked   Boolean   @default(false)
   blockReason String?

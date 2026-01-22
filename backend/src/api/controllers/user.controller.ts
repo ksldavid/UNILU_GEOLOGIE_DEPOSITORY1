@@ -95,7 +95,7 @@ export const getUsers = async (req: Request, res: Response) => {
         }));
 
         if (role === 'STUDENT' && users.length > 0) {
-            console.log("🔍 Debug (envoyé au front) - Premier étudiant :", JSON.stringify(debuggingUsers[0], null, 2));
+            // Debug désactivé en production
         }
 
         res.json(debuggingUsers)

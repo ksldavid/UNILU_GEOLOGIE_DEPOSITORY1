@@ -227,8 +227,9 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
         const totalStudents = uniqueStudentIds.size
 
         // 3. Récupérer les cours de la journée (Planning)
-        const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long' })
-        const todayCapitalized = today.charAt(0).toUpperCase() + today.slice(1)
+        const daysFr = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+        const today = new Date();
+        const todayCapitalized = daysFr[today.getDay()]
 
         const todaysSchedule = await prisma.schedule.findMany({
             where: {
@@ -752,7 +753,7 @@ export const uploadCourseResource = async (req: AuthRequest, res: Response) => {
         // Upload vers Cloudinary en mode RAW pour les documents
         const uploadResult = await uploadToCloudinary(file.buffer, `courses/${courseCode}/resources`, file.originalname);
 
-        console.log('Fichier uploadé avec succès:', uploadResult.secure_url);
+        // Upload réussi - log minimal
 
         // Enregistrer dans la DB
         const resource = await prisma.courseResource.create({

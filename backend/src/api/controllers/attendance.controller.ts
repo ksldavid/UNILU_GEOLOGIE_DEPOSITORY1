@@ -110,7 +110,7 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             now.getMonth() !== sessionDate.getMonth() ||
             now.getFullYear() !== sessionDate.getFullYear()
         ) {
-            return res.status(403).json({ message: "Ce QR Code a expiré (date différente)." });
+            return res.status(403).json({ message: "Ce QR Code ne correspond pas à la date d'aujourd'hui. Veuillez vérifier la date de votre appareil ou la date de génération du QR Code." });
         }
 
         // 3. Vérifier la distance (si les positions sont disponibles)

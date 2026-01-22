@@ -1,7 +1,12 @@
-import express from 'express'
+import express, { Request, Response, NextFunction } from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import authRoutes from './api/routes/auth.routes' // Assurons-nous que le chemin est correct
+import helmet from 'helmet'
+import compression from 'compression'
+import rateLimit from 'express-rate-limit'
+
+// Routes imports
+import authRoutes from './api/routes/auth.routes'
 import userRoutes from './api/routes/user.routes'
 import statsRoutes from './api/routes/stats.routes'
 import scheduleRoutes from './api/routes/schedule.routes'
@@ -17,66 +22,172 @@ import professorRoutes from './api/routes/professor.routes'
 import announcementRoutes from './api/routes/announcement.routes'
 import attendanceRoutes from './api/routes/attendance.routes'
 
-
 import { captureLog } from './api/controllers/stats.controller'
 
-// ... (other imports)
-
-// Charger les variables d'environnement
+// Charger les variables d'environnement EN PREMIER
 dotenv.config()
 
 const app = express()
-// On change le port par défaut à 3001 pour éviter les conflits avec d'autres processus
 const PORT = process.env.PORT || 3001
+const isProduction = process.env.NODE_ENV === 'production'
 
-// Middleware
-app.use(cors()) // Autorise le Frontend à parler au Backend
-app.use(express.json()) // Permet de lire le JSON dans les requêtes
+// ============================================================
+// 🔒 SÉCURITÉ - MIDDLEWARES DE PROTECTION
+// ============================================================
 
-// Logging Middleware pour le dashboard technique
-app.use(captureLog);
+// 1. Helmet - Ajoute des headers HTTP de sécurité
+app.use(helmet({
+    contentSecurityPolicy: false, // Désactivé pour permettre les ressources externes
+    crossOriginEmbedderPolicy: false
+}))
 
-// Routes
-console.log('🔄 Chargement des routes...');
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/schedules', scheduleRoutes);
-app.use('/api/courses', courseRoutes);
-app.use('/api/grades', gradeRoutes);
-app.use('/api/support', supportRoutes);
-app.use('/api/staff', staffRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/database', databaseRoutes);
-app.use('/api/infrastructure', infrastructureRoutes);
-app.use('/api/student', studentRoutes);
-app.use('/api/professor', professorRoutes);
-app.use('/api/announcements', announcementRoutes);
-app.use('/api/attendance', attendanceRoutes);
+// 2. Compression - Réduit la taille des réponses
+app.use(compression())
 
+// 3. Rate Limiting - Protection contre le brute force et DDoS
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 500, // Maximum 500 requêtes par IP par fenêtre
+    message: {
+        status: 429,
+        message: 'Trop de requêtes. Veuillez réessayer dans quelques minutes.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+})
 
-// Route de diagnostic
-app.get('/api/health', (req, res) => {
+// Rate limiter plus strict pour l'authentification
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Maximum 10 tentatives de login par IP
+    message: {
+        status: 429,
+        message: 'Trop de tentatives de connexion. Veuillez réessayer dans 15 minutes.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+})
+
+// Appliquer le rate limiting général
+app.use(generalLimiter)
+
+// 4. CORS - Configuration sécurisée
+const corsOptions = {
+    origin: isProduction
+        ? ['https://unilu-geologie.vercel.app', 'https://votre-domaine.com'] // Domaines autorisés en prod
+        : '*', // Tout accepter en développement
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    maxAge: 86400 // 24 heures de cache pour les preflight requests
+}
+app.use(cors(corsOptions))
+
+// 5. Limite de taille des requêtes JSON (10MB max)
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+// 6. Logging Middleware pour le dashboard technique
+app.use(captureLog)
+
+// ============================================================
+// 📍 ROUTES
+// ============================================================
+
+console.log('🔄 Chargement des routes...')
+
+// Route d'authentification avec rate limiting strict
+app.use('/api/auth', authLimiter, authRoutes)
+
+// Routes protégées
+app.use('/api/users', userRoutes)
+app.use('/api/stats', statsRoutes)
+app.use('/api/schedules', scheduleRoutes)
+app.use('/api/courses', courseRoutes)
+app.use('/api/grades', gradeRoutes)
+app.use('/api/support', supportRoutes)
+app.use('/api/staff', staffRoutes)
+app.use('/api/admin', adminRoutes)
+app.use('/api/database', databaseRoutes)
+app.use('/api/infrastructure', infrastructureRoutes)
+app.use('/api/student', studentRoutes)
+app.use('/api/professor', professorRoutes)
+app.use('/api/announcements', announcementRoutes)
+app.use('/api/attendance', attendanceRoutes)
+
+// Route de diagnostic (santé du serveur)
+app.get('/api/health', (req: Request, res: Response) => {
     res.json({
         status: 'ok',
         message: 'Serveur UNILU API opérationnel !',
-        time: new Date().toISOString()
-    });
-});
+        time: new Date().toISOString(),
+        environment: isProduction ? 'production' : 'development'
+    })
+})
 
-// Route de test racine
-app.get('/', (req, res) => {
-    res.send('Serveur UNILU API opérationnel ! 🚀');
-});
+// Route racine
+app.get('/', (req: Request, res: Response) => {
+    res.send('Serveur UNILU API opérationnel ! 🚀')
+})
 
-// Démarrage du serveur
+// ============================================================
+// ❌ GESTION DES ERREURS GLOBALE
+// ============================================================
+
+// 404 - Route non trouvée
+app.use((req: Request, res: Response) => {
+    res.status(404).json({
+        status: 404,
+        message: `Route ${req.method} ${req.path} non trouvée`
+    })
+})
+
+// Gestionnaire d'erreurs global - IMPORTANT pour éviter les crashes
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    // Log l'erreur (en production, utiliser un service de logging comme Winston)
+    console.error('❌ Erreur serveur:', {
+        message: err.message,
+        stack: isProduction ? undefined : err.stack,
+        path: req.path,
+        method: req.method,
+        timestamp: new Date().toISOString()
+    })
+
+    // Ne pas exposer les détails de l'erreur en production
+    res.status(500).json({
+        status: 500,
+        message: isProduction
+            ? 'Une erreur interne est survenue. Veuillez réessayer plus tard.'
+            : err.message,
+        ...(isProduction ? {} : { stack: err.stack })
+    })
+})
+
+// ============================================================
+// 🚀 DÉMARRAGE DU SERVEUR
+// ============================================================
+
 app.listen(PORT, () => {
     console.log(`
-╔═════════════════════════════════════════════════════╗
-║                                                     ║
-║   🚀 SERVEUR UNILU API DÉMARRÉ                      ║
-║   🌐 URL: http://localhost:${PORT}                  ║
-║                                                     ║
-╚═════════════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   🚀 SERVEUR UNILU API DÉMARRÉ                            ║
+║   🌐 URL: http://localhost:${PORT}                         ║
+║   🔒 Mode: ${isProduction ? 'PRODUCTION' : 'DÉVELOPPEMENT'}                          ║
+║   ✅ Sécurité: Rate Limiting, Helmet, CORS                ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
     `)
+})
+
+// Export pour Vercel
+export default app
+
+// Gestion des erreurs non attrapées (évite les crashes silencieux)
+process.on('uncaughtException', (error) => {
+    console.error('❌ Exception non attrapée:', error)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Promesse rejetée non gérée:', reason)
 })

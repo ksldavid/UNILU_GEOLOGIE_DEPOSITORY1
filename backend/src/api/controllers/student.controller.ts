@@ -105,14 +105,17 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
         const activeCourseCodes = student.studentCourseEnrollments.map((e: any) => e.courseCode);
 
         // 4. Récupérer le planning du jour
+        const daysFr = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
         const today = new Date();
-        const dayOfWeek = today.toLocaleDateString('fr-FR', { weekday: 'long' });
+        const dayOfWeek = daysFr[today.getDay()];
+        const academicYear = currentEnrollment?.academicYear;
 
         const todaySchedule = await prisma.schedule.findMany({
             where: {
                 academicLevelId: currentLevelId,
                 day: dayOfWeek,
-                courseCode: { in: activeCourseCodes }
+                courseCode: { in: activeCourseCodes },
+                academicYear: academicYear
             },
             include: {
                 course: {
@@ -162,11 +165,24 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
                 isActive: true
             },
             include: {
-                author: { select: { name: true } }
+                author: { select: { name: true } },
+                readReceipts: {
+                    where: { userId }
+                }
             },
-            take: 1,
+            take: 3,
             orderBy: { createdAt: 'desc' }
         });
+
+        const formattedAnnouncements = announcements.map((ann: any) => ({
+            ...ann,
+            isRead: ann.readReceipts.length > 0,
+            date: ann.createdAt,
+            author: ann.author.name,
+            color: ann.type === 'SCHEDULE' ? 'from-orange-500 to-orange-600' :
+                ann.type === 'RESOURCE' ? 'from-blue-500 to-blue-600' :
+                    ann.type === 'REMINDER' ? 'from-purple-500 to-purple-600' : 'from-teal-500 to-teal-600'
+        }));
 
         // 6. Récupérer les devoirs en cours (TP/TD non soumis)
         const pendingAssignments = await prisma.assessment.findMany({
@@ -206,17 +222,7 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
                 dueDate: a.dueDate,
                 type: a.type
             })),
-            announcements: (announcements as any[]).map(a => ({
-                id: a.id,
-                title: a.title,
-                content: a.content,
-                author: a.author?.name || 'Système',
-                date: a.createdAt,
-                type: a.type,
-                color: a.type === 'SCHEDULE' ? 'from-orange-500 to-orange-600' :
-                    a.type === 'RESOURCE' ? 'from-blue-500 to-blue-600' :
-                        a.type === 'REMINDER' ? 'from-purple-500 to-purple-600' : 'from-teal-500 to-teal-600'
-            }))
+            announcements: formattedAnnouncements
         })
 
     } catch (error) {
@@ -707,7 +713,10 @@ export const getStudentAnnouncements = async (req: AuthRequest, res: Response) =
             },
             include: {
                 author: { select: { name: true } },
-                course: { select: { name: true } }
+                course: { select: { name: true } },
+                readReceipts: {
+                    where: { userId }
+                }
             },
             orderBy: { createdAt: 'desc' }
         }) as any[];
@@ -720,6 +729,7 @@ export const getStudentAnnouncements = async (req: AuthRequest, res: Response) =
             date: a.createdAt,
             author: a.author.name,
             course: a.course?.name || 'Général',
+            isRead: a.readReceipts.length > 0,
             color: a.type === 'SCHEDULE' ? 'from-orange-500 to-orange-600' :
                 a.type === 'RESOURCE' ? 'from-blue-500 to-blue-600' :
                     a.type === 'REMINDER' ? 'from-purple-500 to-purple-600' : 'from-teal-500 to-teal-600'
@@ -759,6 +769,10 @@ export const getStudentProfile = async (req: AuthRequest, res: Response) => {
             idNumber: student.id, // Use the actual ID as the matricule
             name: student.name,
             email: student.email,
+            sex: student.sex,
+            birthday: student.birthday,
+            nationality: student.nationality,
+            whatsapp: student.whatsapp,
             academicLevel: academicLevel,
             academicYear: enrollment?.academicYear || '-',
             campus: 'Campus Kasapa',
@@ -767,6 +781,36 @@ export const getStudentProfile = async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error('Erreur profile:', error);
         res.status(500).json({ message: 'Erreur serveur' });
+    }
+}
+
+export const updateStudentProfile = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.userId;
+        const { sex, birthday, nationality, whatsapp } = req.body;
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        const updated = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                sex,
+                birthday: birthday ? new Date(birthday) : null,
+                nationality,
+                whatsapp
+            }
+        });
+
+        res.json({
+            message: 'Profil mis à jour avec succès',
+            sex: updated.sex,
+            birthday: updated.birthday,
+            nationality: updated.nationality,
+            whatsapp: updated.whatsapp
+        });
+    } catch (error) {
+        console.error('Erreur update profile:', error);
+        res.status(500).json({ message: 'Erreur lors de la mise à jour du profil' });
     }
 }
 
@@ -919,6 +963,36 @@ export const submitAssignment = async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error('Erreur soumission travail:', error);
         res.status(500).json({ message: 'Erreur lors de l\'envoi de votre travail' });
+    }
+}
+
+export const markAnnouncementAsRead = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?.userId;
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        await prisma.announcementRead.upsert({
+            where: {
+                announcementId_userId: {
+                    announcementId: parseInt(id),
+                    userId
+                }
+            },
+            update: {
+                readAt: new Date()
+            },
+            create: {
+                announcementId: parseInt(id),
+                userId
+            }
+        });
+
+        res.json({ message: 'Annonce marquée comme lue' });
+    } catch (error) {
+        console.error('Erreur markAnnouncementAsRead:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
     }
 }
 

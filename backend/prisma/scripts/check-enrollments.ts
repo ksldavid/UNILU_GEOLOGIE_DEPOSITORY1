@@ -25,7 +25,7 @@ async function main() {
                 take: 3,
                 include: { user: true, academicLevel: true }
             })
-            console.log("Exemples :", examples.map(e => `${e.user.firstName} -> ${e.academicLevel.code}`))
+            console.log("Exemples :", examples.map(e => `${e.user.name} -> ${e.academicLevel.code}`))
         }
 
     } catch (e) {

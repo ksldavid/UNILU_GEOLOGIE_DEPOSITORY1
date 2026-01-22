@@ -21,13 +21,13 @@ export const login = async (req: Request, res: Response) => {
         })
 
         if (!user) {
-            console.log(`[AUTH] Utilisateur non trouvé pour: "${identifier}"`);
+            // Log générique sans exposer l'identifiant tenté
             return res.status(401).json({ message: 'Identifiants invalides' })
         }
 
         // 2. Vérifier le mot de passe
         const isPasswordValid = await bcrypt.compare(password, user.password)
-        console.log(`[AUTH] Tentative login pour ${identifier}. ID trouvé: ${user.id}. Password Match: ${isPasswordValid}`);
+        // Note: Ne pas logger les résultats de validation pour éviter l'énumération
 
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Identifiants invalides' })

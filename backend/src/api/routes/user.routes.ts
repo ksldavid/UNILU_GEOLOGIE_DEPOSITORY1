@@ -4,10 +4,13 @@ import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 
 const router = Router()
 
-// Route pour récupérer les utilisateurs
-router.get('/', authenticateToken, getUsers)
+// Toutes les routes utilisateurs nécessitent une authentification
+router.use(authenticateToken)
 
-// Route pour mettre à jour un utilisateur
-router.put('/:id', authenticateToken, updateUser)
+// Route pour récupérer les utilisateurs (Admin et Service Académique uniquement)
+router.get('/', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getUsers)
+
+// Route pour mettre à jour un utilisateur (Admin uniquement)
+router.put('/:id', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), updateUser)
 
 export default router
