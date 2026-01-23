@@ -22,7 +22,6 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrToken, setQrToken] = useState("");
   const [generatingQR, setGeneratingQR] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
   const [history, setHistory] = useState<any[]>([]);
@@ -125,9 +124,12 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
           const result = await attendanceService.generateQR(course.code, latitude, longitude);
           setQrToken(result.qrToken);
           setShowQRModal(true);
+          // Garder le chargement actif pendant l'ouverture du modal pour une transition fluide
+          setTimeout(() => {
+            setGeneratingQR(false);
+          }, 800);
         } catch (error: any) {
           alert(error.message || "Erreur lors de la génération du QR Code");
-        } finally {
           setGeneratingQR(false);
         }
       },
@@ -145,12 +147,10 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
             break;
           default:
             msg = "Impossible de récupérer votre position. Vérifiez les paramètres de confidentialité de Windows.";
-            break;
         }
-        setLocationError(msg);
         setGeneratingQR(false);
       },
-      { enableHighAccuracy: true, timeout: 15000 } // Augmenté le timeout à 15s pour plus de stabilité
+      { enableHighAccuracy: true, timeout: 15000 }
     );
   };
 
@@ -338,14 +338,22 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
                     <p className="text-gray-500 text-sm font-medium">{course.name}</p>
                   </div>
 
-                  <div className="bg-white p-4 border-2 border-dashed border-teal-200 rounded-2xl mb-4 shadow-sm inline-block">
-                    <QRCodeSVG
-                      value={qrToken}
-                      size={200}
-                      level="H"
-                      includeMargin={true}
-                      className="rounded-lg"
-                    />
+                  <div className="bg-white p-4 border-2 border-dashed border-teal-200 rounded-2xl mb-4 shadow-sm inline-block min-w-[232px] min-h-[232px] flex items-center justify-center">
+                    {qrToken ? (
+                      <QRCodeSVG
+                        value={qrToken}
+                        size={200}
+                        level="H"
+                        includeMargin={true}
+                        className="rounded-lg"
+                        animate-in="fade-in duration-500"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-10 h-10 text-teal-600 animate-spin" />
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Génération...</p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-3">
