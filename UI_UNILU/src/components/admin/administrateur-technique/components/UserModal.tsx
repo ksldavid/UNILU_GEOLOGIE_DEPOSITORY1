@@ -41,7 +41,7 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
         try {
             const token = localStorage.getItem('token');
             const fullNameForPass = `${lastName} ${firstName}`;
-            const res = await fetch(`${API_URL}/admin/credentials/suggest?role=${role}&name=${encodeURIComponent(fullNameForPass`)}`, {
+            const res = await fetch(`${API_URL}/admin/credentials/suggest?role=${role}&name=${encodeURIComponent(fullNameForPass)}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
