@@ -1,4 +1,4 @@
-import { API_URL } from '../../../../../services/config';
+import { API_URL } from '../../../../services/config';
 import { useState, useEffect } from 'react';
 import { MessageSquare, Clock, User, ChevronRight, Send } from 'lucide-react';
 import { supportService } from '../../../../services/support';

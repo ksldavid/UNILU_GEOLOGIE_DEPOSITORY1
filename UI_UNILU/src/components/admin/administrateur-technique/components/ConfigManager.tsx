@@ -1,4 +1,4 @@
-import { API_URL } from '../../../../../services/config';
+import { API_URL } from '../../../../services/config';
 import { useState, useEffect } from 'react';
 import {
     Wrench as ToolIcon, RefreshCw, ShieldAlert,

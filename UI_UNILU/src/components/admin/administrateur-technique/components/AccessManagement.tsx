@@ -1,4 +1,4 @@
-import { API_URL } from '../../../../../services/config';
+import { API_URL } from '../../../../services/config';
 import { useState, useEffect, useCallback } from 'react';
 import {
     Search, UserPlus, FileDown,

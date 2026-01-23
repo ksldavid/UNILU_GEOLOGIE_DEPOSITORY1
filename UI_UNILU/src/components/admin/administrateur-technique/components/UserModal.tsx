@@ -1,4 +1,4 @@
-import { API_URL } from '../../../../../services/config';
+import { API_URL } from '../../../../services/config';
 import { useState, useCallback, useEffect } from 'react';
 import {
     X, UserPlus, ShieldPlus, Key, RefreshCcw,
