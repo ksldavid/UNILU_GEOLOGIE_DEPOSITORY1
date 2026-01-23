@@ -28,7 +28,7 @@ export function SystemStatus() {
     const fetchData = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/stats/technical, {
+            const res = await fetch(`${API_URL}/stats/technical`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -57,7 +57,7 @@ export function SystemStatus() {
         if (isOffline) return;
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/stats/api-logs, {
+            const res = await fetch(`${API_URL}/stats/api-logs`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) setApiLogs(await res.json());
@@ -72,7 +72,7 @@ export function SystemStatus() {
         setIsRestarting(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/stats/restart, {
+            const res = await fetch(`${API_URL}/stats/restart`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -94,7 +94,7 @@ export function SystemStatus() {
         setIsClearingCache(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/stats/clear-cache, {
+            const res = await fetch(`${API_URL}/stats/clear-cache`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -345,6 +345,7 @@ function ServerBadge({ status, label, detail }: any) {
         </div>
     );
 }
+
 
 
 

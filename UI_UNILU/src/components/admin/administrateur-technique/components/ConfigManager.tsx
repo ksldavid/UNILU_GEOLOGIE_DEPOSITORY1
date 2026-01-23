@@ -13,7 +13,7 @@ export function ConfigManager() {
         const fetchStats = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch(`${API_URL}/stats/technical, {
+                const res = await fetch(`${API_URL}/stats/technical`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -149,6 +149,7 @@ function Activity({ className }: { className?: string }) {
         </svg>
     );
 }
+
 
 
 

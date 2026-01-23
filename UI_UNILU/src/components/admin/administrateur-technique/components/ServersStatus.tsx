@@ -13,7 +13,7 @@ export function ServersStatus() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/infrastructure/status, {
+            const res = await fetch(`${API_URL}/infrastructure/status`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -148,6 +148,7 @@ function SmallStat({ label, value }: any) {
         </div>
     );
 }
+
 
 
 

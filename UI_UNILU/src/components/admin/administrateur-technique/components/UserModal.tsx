@@ -41,7 +41,7 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
         try {
             const token = localStorage.getItem('token');
             const fullNameForPass = `${lastName} ${firstName}`;
-            const res = await fetch(`${API_URL}/admin/credentials/suggest?role=${role}&name=${encodeURIComponent(fullNameForPass)}`, {
+            const res = await fetch(`${API_URL}/admin/credentials/suggest?role=${role}&name=${encodeURIComponent(fullNameForPass`)}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -289,7 +289,7 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
             const token = localStorage.getItem('token');
             const fullName = `${lastName.toUpperCase()} ${middleName.toUpperCase()} ${firstName}`.replace(/\s+/g, ' ').trim();
 
-            const res = await fetch(`${API_URL}/admin/users, {
+            const res = await fetch(`${API_URL}/admin/users`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -645,6 +645,8 @@ function RoleButton({ active, icon, label, onClick }: any) {
         </button>
     );
 }
+
+
 
 
 

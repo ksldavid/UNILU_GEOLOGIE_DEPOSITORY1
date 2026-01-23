@@ -34,7 +34,7 @@ export function SupportTicketsAdmin() {
             // Actually our backend addMessage takes {ticketId, content, isAdmin}
             // Let's call it correctly:
             const token = localStorage.getItem('token');
-            await fetch(`${API_URL}/support/messages, {
+            await fetch(`${API_URL}/support/messages`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -246,6 +246,7 @@ export function SupportTicketsAdmin() {
         </div>
     );
 }
+
 
 
 
