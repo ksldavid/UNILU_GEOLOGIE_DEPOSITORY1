@@ -1,3 +1,4 @@
+import { API_URL } from '../../../../../services/config';
 import { useState, useEffect, useCallback } from 'react';
 import {
     Terminal, Search, Filter, Trash2,
@@ -15,7 +16,7 @@ export function SystemLogs() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:3001/api/stats/api-logs', {
+            const res = await fetch(`${API_URL}/stats/api-logs, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -39,7 +40,7 @@ export function SystemLogs() {
         if (!window.confirm("Voulez-vous vraiment vider les logs de la session ?")) return;
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:3001/api/stats/clear-cache', {
+            const res = await fetch(`${API_URL}/stats/clear-cache, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -175,3 +176,7 @@ function LogStatusIcon({ status }: { status: number }) {
     if (status >= 300) return <RefreshCw className="w-4 h-4 text-blue-400" />;
     return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
 }
+
+
+
+

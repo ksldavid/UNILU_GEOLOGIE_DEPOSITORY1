@@ -1,3 +1,4 @@
+import { API_URL } from '../../../../../services/config';
 import { useState, useEffect } from 'react';
 import { MessageSquare, Clock, User, ChevronRight, Send } from 'lucide-react';
 import { supportService } from '../../../../services/support';
@@ -33,7 +34,7 @@ export function SupportTicketsAdmin() {
             // Actually our backend addMessage takes {ticketId, content, isAdmin}
             // Let's call it correctly:
             const token = localStorage.getItem('token');
-            await fetch('http://localhost:3001/api/support/messages', {
+            await fetch(`${API_URL}/support/messages, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -245,3 +246,7 @@ export function SupportTicketsAdmin() {
         </div>
     );
 }
+
+
+
+

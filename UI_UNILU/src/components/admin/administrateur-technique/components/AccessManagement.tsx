@@ -1,3 +1,4 @@
+import { API_URL } from '../../../../../services/config';
 import { useState, useEffect, useCallback } from 'react';
 import {
     Search, UserPlus, FileDown,
@@ -37,7 +38,7 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
                 page: String(currentPage),
                 limit: String(limit)
             });
-            const res = await fetch(`http://localhost:3001/api/admin/users?${query}`, {
+            const res = await fetch(`${API_URL}/admin/users?${query}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -71,7 +72,7 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:3001/api/admin/users/${user.id}/status`, {
+            const res = await fetch(`${API_URL}/admin/users/${user.id}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -92,7 +93,7 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:3001/api/admin/users/${user.id}`, {
+            const res = await fetch(`${API_URL}/admin/users/${user.id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -407,7 +408,7 @@ function PasswordEditModal({ user, onClose, onSuccess }: { user: any, onClose: (
         setIsSaving(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:3001/api/admin/users/${user.id}/password`, {
+            const res = await fetch(`${API_URL}/admin/users/${user.id}/password`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -574,3 +575,6 @@ function PaginationButton({ label, icon, active, disabled, onClick }: any) {
         </button>
     );
 }
+
+
+

@@ -1,5 +1,6 @@
+import { API_URL as BASE_API_URL } from './config';
 
-const API_URL = 'http://localhost:3001/api/attendance';
+const API_URL = `${BASE_API_URL}/attendance`;
 
 const getHeaders = () => {
     const token = localStorage.getItem('token');

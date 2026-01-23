@@ -1,3 +1,4 @@
+import { API_URL } from '../../../../../services/config';
 import { useState, useEffect, useCallback } from 'react';
 import {
     Server as ServerIcon,
@@ -12,7 +13,7 @@ export function ServersStatus() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:3001/api/infrastructure/status', {
+            const res = await fetch(`${API_URL}/infrastructure/status, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -36,7 +37,7 @@ export function ServersStatus() {
     const handlePowerAction = async (id: string, action: string) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:3001/api/infrastructure/${id}/power`, {
+            const res = await fetch(`${API_URL}/infrastructure/${id}/power`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -147,3 +148,7 @@ function SmallStat({ label, value }: any) {
         </div>
     );
 }
+
+
+
+

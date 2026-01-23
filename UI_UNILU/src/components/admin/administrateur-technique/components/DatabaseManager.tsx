@@ -1,3 +1,4 @@
+import { API_URL } from '../../../../../services/config';
 import { useState, useEffect, useCallback } from 'react';
 import {
     Database, Activity, HardDrive,
@@ -16,7 +17,7 @@ export function DatabaseManager() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:3001/api/database/stats', {
+            const res = await fetch(`${API_URL}/database/stats, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -39,7 +40,7 @@ export function DatabaseManager() {
         setIsRunning(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:3001/api/database/query', {
+            const res = await fetch(`${API_URL}/database/query, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -247,3 +248,7 @@ function DBStatCard({ label, value, unit, trend, status, icon, details }: any) {
         </div>
     );
 }
+
+
+
+

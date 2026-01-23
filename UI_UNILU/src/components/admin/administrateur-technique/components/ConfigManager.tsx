@@ -1,3 +1,4 @@
+import { API_URL } from '../../../../../services/config';
 import { useState, useEffect } from 'react';
 import {
     Wrench as ToolIcon, RefreshCw, ShieldAlert,
@@ -12,7 +13,7 @@ export function ConfigManager() {
         const fetchStats = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:3001/api/stats/technical', {
+                const res = await fetch(`${API_URL}/stats/technical, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -32,7 +33,7 @@ export function ConfigManager() {
         try {
             const token = localStorage.getItem('token');
             const endpoint = action === 'Redémarrage' ? 'restart' : 'clear-cache';
-            const res = await fetch(`http://localhost:3001/api/stats/${endpoint}`, {
+            const res = await fetch(`${API_URL}/stats/${endpoint}`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -148,3 +149,7 @@ function Activity({ className }: { className?: string }) {
         </svg>
     );
 }
+
+
+
+

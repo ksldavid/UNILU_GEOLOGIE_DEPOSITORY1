@@ -13,6 +13,7 @@ import { UserModal } from './components/UserModal';
 import { SupportTicketsAdmin } from './components/SupportTicketsAdmin';
 import { ConfigManager } from './components/ConfigManager';
 import { CommunicationManager } from './components/CommunicationManager';
+import { API_URL } from '../../../services/config';
 
 export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
     const [activeTab, setActiveTab] = useState('System');
@@ -35,7 +36,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
         const fetchSystem = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:3001/api/stats/technical', {
+                const res = await fetch(`${API_URL}/stats/technical`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
