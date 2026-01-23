@@ -584,14 +584,26 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             {/* Footer - Fixed */}
             <div className="p-6 bg-gray-50/50 border-t border-gray-100 flex gap-3 shrink-0">
               <button
-                onClick={() => setShowAnnouncementModal(false)}
+                onClick={() => {
+                  setShowAnnouncementModal(false);
+                  setTargetCourse("");
+                  setTargetLevel("");
+                  setTargetStudent("");
+                  setSelectedStudentLabel("");
+                }}
                 className="flex-1 py-3 px-4 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-2xl font-bold transition-all text-xs uppercase tracking-widest"
               >
                 Annuler
               </button>
               <button
                 onClick={handleSendAnnouncement}
-                disabled={!announcementText || loading}
+                disabled={
+                  !announcementText ||
+                  loading ||
+                  (announcementType === 'specific_class' && !targetLevel) ||
+                  (announcementType === 'specific_course' && !targetCourse) ||
+                  (announcementType === 'specific_student' && !targetStudent)
+                }
                 className="flex-[1.5] py-3 px-8 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-teal-600/20 disabled:opacity-50 disabled:shadow-none text-xs uppercase tracking-widest active:scale-[0.98]"
               >
                 {loading ? (

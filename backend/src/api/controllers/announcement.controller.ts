@@ -11,16 +11,21 @@ export const createAnnouncement = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Auteur non identifié' })
         }
 
+        // Clean values to avoid foreign key violations with empty strings
+        const cleanedAcademicLevelId = academicLevelId ? parseInt(academicLevelId as string) : null
+        const cleanedCourseCode = courseCode && courseCode.trim() !== '' ? courseCode : null
+        const cleanedTargetUserId = targetUserId && targetUserId.trim() !== '' ? targetUserId : null
+
         const announcement = await prisma.announcement.create({
             data: {
                 title,
                 content,
                 type: type || 'GENERAL',
-                target,
+                target: target as any,
                 authorId,
-                academicLevelId: academicLevelId ? parseInt(academicLevelId) : null,
-                courseCode,
-                targetUserId,
+                academicLevelId: cleanedAcademicLevelId,
+                courseCode: cleanedCourseCode,
+                targetUserId: cleanedTargetUserId,
                 isActive: true
             }
         })
@@ -29,9 +34,18 @@ export const createAnnouncement = async (req: AuthRequest, res: Response) => {
             message: 'Annonce publiée avec succès',
             announcement
         })
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erreur création annonce:', error)
-        res.status(500).json({ message: 'Erreur lors de la publication de l\'annonce' })
+
+        // Log extra detail if it's a Prisma error
+        if (error.code === 'P2003') {
+            console.error('Détail erreur: Violation de contrainte étrangère (cible inexistante)')
+        }
+
+        res.status(500).json({
+            message: 'Erreur lors de la publication de l\'annonce',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        })
     }
 }
 
