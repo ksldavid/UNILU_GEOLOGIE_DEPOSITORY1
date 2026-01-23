@@ -15,6 +15,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [targetLevel, setTargetLevel] = useState("");
+  const [targetCourse, setTargetCourse] = useState("");
+  const [courses, setCourses] = useState<any[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
   const [selectedStudentLabel, setSelectedStudentLabel] = useState("");
   const [dismissedReminders, setDismissedReminders] = useState<number[]>(() => {
@@ -29,8 +31,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const dashboardData = await professorService.getDashboard();
+        const [dashboardData, coursesData] = await Promise.all([
+          professorService.getDashboard(),
+          professorService.getCourses()
+        ]);
         setData(dashboardData);
+        setCourses(coursesData);
       } catch (error) {
         console.error(error);
       } finally {
@@ -84,12 +90,17 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         title: `Annonce de ${data?.professorName || 'votre professeur'}`,
         content: announcementText,
         type: 'GENERAL',
-        target: announcementType === 'all_courses' ? 'ALL_STUDENTS' : (announcementType === 'specific_class' ? 'ACADEMIC_LEVEL' : 'SPECIFIC_USER'),
+        target: announcementType === 'all_courses' ? 'ALL_STUDENTS' :
+          (announcementType === 'specific_class' ? 'ACADEMIC_LEVEL' :
+            (announcementType === 'specific_course' ? 'SPECIFIC_COURSE' : 'SPECIFIC_USER')),
       };
 
       if (announcementType === 'specific_class') {
         const selectedLevel = data?.myLevels?.find((l: any) => l.name === targetLevel);
         payload.academicLevelId = selectedLevel?.id;
+      }
+      if (announcementType === 'specific_course') {
+        payload.courseCode = targetCourse;
       }
       if (announcementType === 'specific_student') {
         payload.targetUserId = targetStudent;
@@ -102,6 +113,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       setAnnouncementText("");
       setTargetStudent("");
       setTargetLevel("");
+      setTargetCourse("");
       setSelectedStudentLabel("");
 
       // Refresh dashboard to see new announcement if needed
@@ -464,6 +476,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   {[
                     { id: 'all_courses', label: 'Tous mes cours' },
                     { id: 'specific_class', label: 'Une classe particulière' },
+                    { id: 'specific_course', label: 'Un cours spécifique' },
                     { id: 'specific_student', label: 'Un étudiant en particulier' }
                   ].map((option) => (
                     <button
@@ -497,6 +510,27 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     ))}
                     {(!data?.myLevels || data.myLevels.length === 0) && (
                       <option disabled>Aucune classe trouvée</option>
+                    )}
+                  </select>
+                </div>
+              )}
+
+              {announcementType === 'specific_course' && (
+                <div className="animate-in slide-in-from-top-2 duration-200">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Sélectionnez le cours</label>
+                  <select
+                    value={targetCourse}
+                    onChange={(e) => setTargetCourse(e.target.value)}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-sm font-medium"
+                  >
+                    <option value="">Choisir un cours...</option>
+                    {courses.map((course: any) => (
+                      <option key={course.id} value={course.code}>
+                        {course.name} ({course.code})
+                      </option>
+                    ))}
+                    {courses.length === 0 && (
+                      <option disabled>Aucun cours trouvé</option>
                     )}
                   </select>
                 </div>
