@@ -23,6 +23,7 @@ import { AcademicServiceDashboard } from './components/admin/service-academique/
 import { authService } from './services/auth';
 import { studentService } from './services/student';
 import { professorService } from './services/professor';
+import { API_URL } from './services/config';
 
 
 export type Page = 'dashboard' | 'courses' | 'planning' | 'students' | 'course-detail' | 'attendance' | 'announcements';
@@ -65,7 +66,10 @@ export default function App() {
   const [studentCurrentPage, setStudentCurrentPage] = useState<StudentPage>(() => {
     return (sessionStorage.getItem('studentCurrentPage') as StudentPage) || 'dashboard';
   });
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(() => {
+    const saved = sessionStorage.getItem('selectedCourse');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hasUnreadAnnouncements, setHasUnreadAnnouncements] = useState(false);
   const [hasUnreadProfAnnouncements, setHasUnreadProfAnnouncements] = useState(false);
@@ -125,6 +129,14 @@ export default function App() {
   useEffect(() => {
     sessionStorage.setItem('studentCurrentPage', studentCurrentPage);
   }, [studentCurrentPage]);
+
+  useEffect(() => {
+    if (selectedCourse) {
+      sessionStorage.setItem('selectedCourse', JSON.stringify(selectedCourse));
+    } else {
+      sessionStorage.removeItem('selectedCourse');
+    }
+  }, [selectedCourse]);
 
 
   const handleLogin = async (id: string, password: string, role: UserRole): Promise<'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'> => {
