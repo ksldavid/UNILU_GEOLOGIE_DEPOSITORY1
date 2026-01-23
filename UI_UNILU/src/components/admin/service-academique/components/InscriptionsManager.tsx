@@ -239,7 +239,7 @@ export function InscriptionsManager() {
     try {
       const token = localStorage.getItem('token');
       const fullName = `${formData.nom} ${formData.prenom}`;
-      const res = await fetch(`${API_URL}/admin/credentials/suggest?role=${newUserType` === 'student' ? 'student' : 'prof'}&name=${encodeURIComponent(fullName)}`, {
+      const res = await fetch(`${API_URL}/admin/credentials/suggest?role=${newUserType === 'student' ? 'student' : 'prof'}&name=${encodeURIComponent(fullName)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {

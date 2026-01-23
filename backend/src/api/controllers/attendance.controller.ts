@@ -38,9 +38,12 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à générer un QR Code pour ce cours." });
         }
 
-        // 2. Définir le début de la journée (00:00:00) pour la session unique par jour
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // 2. Définir la date d'aujourd'hui (format YYYY-MM-DD)
+        // On se base sur le fuseau horaire de Lubumbashi (UTC+2) pour la cohérence
+        const now = new Date();
+        const lubumbashiTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
+        const todayStr = lubumbashiTime.toISOString().split('T')[0];
+        const today = new Date(todayStr); // Sera stocké à 00:00:00 UTC par Prisma
 
         // 3. Générer ou mettre à jour la session d'aujourd'hui
         const qrToken = crypto.randomBytes(32).toString('hex');
@@ -101,16 +104,17 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: "La prise de présence pour cette session est verrouillée." });
         }
 
-        // 2. Vérifier la date (doit être aujourd'hui)
+        // 2. Vérifier la date (doit correspondre à la date de génération)
         const now = new Date();
-        const sessionDate = new Date(session.date);
+        const lubumbashiTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
+        const todayStr = lubumbashiTime.toISOString().split('T')[0];
+        const sessionDateStr = new Date(session.date).toISOString().split('T')[0];
 
-        if (
-            now.getDate() !== sessionDate.getDate() ||
-            now.getMonth() !== sessionDate.getMonth() ||
-            now.getFullYear() !== sessionDate.getFullYear()
-        ) {
-            return res.status(403).json({ message: "Ce QR Code ne correspond pas à la date d'aujourd'hui. Veuillez vérifier la date de votre appareil ou la date de génération du QR Code." });
+        if (todayStr !== sessionDateStr) {
+            return res.status(403).json({
+                message: "Ce QR Code ne correspond pas à la date d'aujourd'hui.",
+                debug: { now: todayStr, session: sessionDateStr }
+            });
         }
 
         // 3. Vérifier la distance (si les positions sont disponibles)
