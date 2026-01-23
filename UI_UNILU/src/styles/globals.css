@@ -110,3 +110,15 @@
 .animate-pulse-red {
   animation: pulse-red 2s infinite;
 }
+
+@keyframes subtle-shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(1px); }
+  50% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
+  100% { transform: translateX(0); }
+}
+
+.animate-subtle-shake {
+  animation: subtle-shake 2s ease-in-out infinite;
+}

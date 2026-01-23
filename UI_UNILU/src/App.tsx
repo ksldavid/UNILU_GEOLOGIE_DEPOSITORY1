@@ -99,8 +99,8 @@ export default function App() {
       const checkProfAnnouncements = async () => {
         try {
           const data = await professorService.getDashboard();
-          const lastRead = sessionStorage.getItem('lastProfAnnouncementsCheck') || '0';
-          const hasUnread = data.announcements?.some((ann: any) => new Date(ann.date).getTime() > parseInt(lastRead));
+          const readIds = JSON.parse(localStorage.getItem('readProfAnnouncements') || '[]');
+          const hasUnread = data.announcements?.some((ann: any) => !readIds.includes(ann.id));
           setHasUnreadProfAnnouncements(hasUnread);
         } catch (err) {
           console.error("Erreur check annonces prof:", err);
@@ -109,17 +109,20 @@ export default function App() {
 
       checkProfAnnouncements();
       const interval = setInterval(checkProfAnnouncements, 60000);
-      return () => clearInterval(interval);
+
+      // Listen for local changes to mark as read immediately
+      const handleStorageChange = () => checkProfAnnouncements();
+      window.addEventListener('storage', handleStorageChange);
+
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('storage', handleStorageChange);
+      };
     }
   }, [userData, isLoggedIn]);
 
-  // Marquer comme lu quand on arrive sur le tableau de bord (Professeur - les annonces y sont affichées)
-  useEffect(() => {
-    if (currentPage === 'dashboard' && userData?.role === 'USER') {
-      sessionStorage.setItem('lastProfAnnouncementsCheck', Date.now().toString());
-      setHasUnreadProfAnnouncements(false);
-    }
-  }, [currentPage, userData]);
+  // On retire l'effet automatique qui marquait tout comme lu au chargement du dashboard
+  // pour permettre le marquage individuel par clic comme demandé.
 
   // Sync pages to sessionStorage
   useEffect(() => {

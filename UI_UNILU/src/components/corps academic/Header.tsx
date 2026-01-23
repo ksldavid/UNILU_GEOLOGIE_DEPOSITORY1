@@ -55,11 +55,21 @@ export function Header({ userData, onMenuClick, hasUnreadAnnouncements, onBellCl
 
           <button
             onClick={onBellClick}
-            className={`relative p-2 hover:bg-gray-50 rounded-lg transition-all duration-300 ${hasUnreadAnnouncements ? 'text-teal-600' : 'text-gray-700'}`}
+            className={`relative p-2.5 rounded-xl transition-all duration-500 overflow-hidden group ${hasUnreadAnnouncements
+              ? 'bg-teal-50 text-teal-600 shadow-lg shadow-teal-500/20'
+              : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+            title={hasUnreadAnnouncements ? "Nouvelles annonces" : "Pas de nouvelles annonces"}
           >
-            <Bell className={`w-5 h-5 ${hasUnreadAnnouncements ? 'animate-bell' : ''}`} />
+            <div className={`absolute inset-0 bg-teal-400/10 blur-xl transition-opacity duration-500 ${hasUnreadAnnouncements ? 'opacity-100' : 'opacity-0'}`} />
+
+            <Bell className={`w-5 h-5 relative z-10 ${hasUnreadAnnouncements ? 'animate-bell' : 'group-hover:rotate-12'}`} />
+
             {hasUnreadAnnouncements && (
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse-red"></span>
+              <>
+                <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white z-20 animate-pulse-red"></span>
+                <span className="absolute top-2 right-2 w-3 h-3 bg-red-400 rounded-full z-10 animate-ping opacity-75"></span>
+              </>
             )}
           </button>
 

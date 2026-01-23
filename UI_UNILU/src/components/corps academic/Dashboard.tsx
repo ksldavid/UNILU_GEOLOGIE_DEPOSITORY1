@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, Clock, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck } from "lucide-react";
+import { BookOpen, Clock, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2 } from "lucide-react";
 import type { Page } from "../../App";
 import { professorService } from "../../services/professor";
 
@@ -19,6 +19,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [selectedStudentLabel, setSelectedStudentLabel] = useState("");
   const [dismissedReminders, setDismissedReminders] = useState<number[]>(() => {
     const saved = localStorage.getItem('professor_dismissed_reminders');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [readAnnouncementIds, setReadAnnouncementIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('readProfAnnouncements');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -115,6 +119,16 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     const updated = [...dismissedReminders, id];
     setDismissedReminders(updated);
     localStorage.setItem('professor_dismissed_reminders', JSON.stringify(updated));
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    if (!readAnnouncementIds.includes(id)) {
+      const updated = [...readAnnouncementIds, id];
+      setReadAnnouncementIds(updated);
+      localStorage.setItem('readProfAnnouncements', JSON.stringify(updated));
+      // Trigger a storage event so App.tsx can pick up the change if listening
+      window.dispatchEvent(new Event('storage'));
+    }
   };
 
   useEffect(() => {
@@ -292,25 +306,50 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
             <div className="space-y-4">
               {data?.announcements?.length > 0 ? (
-                data.announcements.map((ann: any) => (
-                  <div key={ann.id} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-                    <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${ann.target === 'ALL_STUDENTS' ? 'bg-indigo-500' : 'bg-pink-500'}`}></div>
-                    <div className="flex items-start justify-between mb-2">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ann.target === 'ALL_STUDENTS' ? 'bg-indigo-50 text-indigo-700' : 'bg-pink-50 text-pink-700'
-                        }`}>
-                        {ann.target === 'ALL_STUDENTS' ? 'Annonce Générale' : 'Annonce Faculté'}
-                      </span>
-                      <span className="text-xs text-gray-400 font-medium">
-                        {new Date(ann.date).toLocaleDateString()}
-                      </span>
-                    </div>
+                data.announcements.map((ann: any) => {
+                  const isRead = readAnnouncementIds.includes(ann.id);
+                  return (
+                    <div
+                      key={ann.id}
+                      onClick={() => handleMarkAsRead(ann.id)}
+                      className={`bg-white border rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group cursor-pointer ${isRead ? 'border-gray-100 opacity-75' : 'border-teal-200 shadow-teal-100/50 animate-subtle-shake'
+                        }`}
+                    >
+                      <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${ann.target === 'ALL_STUDENTS' ? 'bg-indigo-500' : 'bg-pink-500'}`}></div>
 
-                    <h4 className="font-bold text-gray-900 text-lg mb-2 group-hover:text-teal-700 transition-colors">{ann.title}</h4>
-                    <p className="text-gray-600 leading-relaxed text-sm">
-                      {ann.content}
-                    </p>
-                  </div>
-                ))
+                      {!isRead && (
+                        <div className="absolute top-4 right-4 flex items-center gap-2">
+                          <span className="text-[10px] font-black text-teal-600 uppercase tracking-widest animate-pulse">Nouveau</span>
+                          <div className="w-2.5 h-2.5 bg-teal-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(20,184,166,0.6)]"></div>
+                        </div>
+                      )}
+
+                      <div className="flex items-start justify-between mb-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ann.target === 'ALL_STUDENTS' ? 'bg-indigo-50 text-indigo-700' : 'bg-pink-50 text-pink-700'
+                          }`}>
+                          {ann.target === 'ALL_STUDENTS' ? 'Annonce Générale' : 'Annonce Faculté'}
+                        </span>
+                        <span className="text-xs text-gray-400 font-medium">
+                          {new Date(ann.date).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      <h4 className={`font-bold text-lg mb-2 group-hover:text-teal-700 transition-colors ${isRead ? 'text-gray-700' : 'text-gray-900 underline decoration-teal-500/30 underline-offset-4'}`}>
+                        {ann.title}
+                      </h4>
+                      <p className={`leading-relaxed text-sm ${isRead ? 'text-gray-500' : 'text-gray-600'}`}>
+                        {ann.content}
+                      </p>
+
+                      {!isRead && (
+                        <div className="mt-4 pt-4 border-t border-teal-50 flex items-center gap-2 text-teal-600 font-bold text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Cliquer pour marquer comme lu
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               ) : (
                 <div className="bg-gray-50 rounded-xl p-8 text-center text-gray-500 border border-dashed border-gray-200">
                   <Megaphone className="w-8 h-8 mx-auto mb-3 text-gray-300" />
