@@ -452,14 +452,15 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       {/* Announcement Modal */}
       {showAnnouncementModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[28px] w-full max-w-lg shadow-2xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-teal-600 to-teal-700 p-6 text-white flex justify-between items-start">
+          <div className="bg-white rounded-[32px] w-full max-w-lg shadow-2xl border border-gray-100 flex flex-col max-h-[90vh] overflow-hidden">
+            {/* Header - Fixed */}
+            <div className="bg-gradient-to-r from-teal-600 to-teal-700 p-6 text-white flex justify-between items-start shrink-0">
               <div>
                 <h3 className="text-xl font-bold flex items-center gap-2">
                   <Megaphone className="w-5 h-5" />
                   Nouvelle Annonce
                 </h3>
-                <p className="text-teal-50 text-sm mt-1">Diffusez un message à vos étudiants</p>
+                <p className="text-teal-50 text-xs mt-1">Diffusez un message à vos étudiants</p>
               </div>
               <button
                 onClick={() => setShowAnnouncementModal(false)}
@@ -469,38 +470,39 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            {/* Content - Scrollable */}
+            <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">À qui s'adresse l'annonce ?</label>
-                <div className="grid grid-cols-1 gap-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">À qui s'adresse l'annonce ?</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {[
                     { id: 'all_courses', label: 'Tous mes cours' },
-                    { id: 'specific_class', label: 'Une classe particulière' },
-                    { id: 'specific_course', label: 'Un cours spécifique' },
-                    { id: 'specific_student', label: 'Un étudiant en particulier' }
+                    { id: 'specific_class', label: 'Une classe particul.' },
+                    { id: 'specific_course', label: 'Un cours spécif.' },
+                    { id: 'specific_student', label: 'Un étudiant' }
                   ].map((option) => (
                     <button
                       key={option.id}
                       onClick={() => setAnnouncementType(option.id)}
                       className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${announcementType === option.id
                         ? 'border-teal-600 bg-teal-50 text-teal-700 shadow-sm'
-                        : 'border-gray-100 hover:border-teal-200 text-gray-600'
+                        : 'border-gray-50 hover:border-teal-100 text-gray-600'
                         }`}
                     >
-                      <span className="font-medium text-sm">{option.label}</span>
-                      {announcementType === option.id && <div className="w-2 h-2 bg-teal-600 rounded-full"></div>}
+                      <span className="font-bold text-xs">{option.label}</span>
+                      {announcementType === option.id && <div className="w-2 h-2 bg-teal-600 rounded-full animate-pulse"></div>}
                     </button>
                   ))}
                 </div>
               </div>
 
               {announcementType === 'specific_class' && (
-                <div className="animate-in slide-in-from-top-2 duration-200">
+                <div className="animate-in slide-in-from-top-2 duration-200 bg-gray-50 p-4 rounded-2xl">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Sélectionnez la classe</label>
                   <select
                     value={targetLevel}
                     onChange={(e) => setTargetLevel(e.target.value)}
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-sm font-medium"
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-sm font-medium"
                   >
                     <option value="">Choisir une classe...</option>
                     {data?.myLevels?.map((level: any) => (
@@ -508,20 +510,17 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         {level.displayName || level.name}
                       </option>
                     ))}
-                    {(!data?.myLevels || data.myLevels.length === 0) && (
-                      <option disabled>Aucune classe trouvée</option>
-                    )}
                   </select>
                 </div>
               )}
 
               {announcementType === 'specific_course' && (
-                <div className="animate-in slide-in-from-top-2 duration-200">
+                <div className="animate-in slide-in-from-top-2 duration-200 bg-gray-50 p-4 rounded-2xl">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Sélectionnez le cours</label>
                   <select
                     value={targetCourse}
                     onChange={(e) => setTargetCourse(e.target.value)}
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-sm font-medium"
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-sm font-medium"
                   >
                     <option value="">Choisir un cours...</option>
                     {courses.map((course: any) => (
@@ -529,15 +528,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         {course.name} ({course.code})
                       </option>
                     ))}
-                    {courses.length === 0 && (
-                      <option disabled>Aucun cours trouvé</option>
-                    )}
                   </select>
                 </div>
               )}
 
               {announcementType === 'specific_student' && (
-                <div className="animate-in slide-in-from-top-2 duration-200">
+                <div className="animate-in slide-in-from-top-2 duration-200 bg-gray-50 p-4 rounded-2xl">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Rechercher l'étudiant</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -549,10 +545,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         setSelectedStudentLabel("");
                         handleStudentSearch(e.target.value);
                       }}
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-sm"
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-sm"
                     />
                     {filteredStudents.length > 0 && !selectedStudentLabel && (
-                      <div className="absolute z-[60] left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                      <div className="absolute z-[60] left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
                         {filteredStudents.map((s) => (
                           <button
                             key={s.id}
@@ -564,7 +560,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                             className="w-full text-left px-4 py-3 hover:bg-teal-50 border-b border-gray-50 last:border-0 transition-colors"
                           >
                             <p className="text-sm font-bold text-gray-900">{s.name}</p>
-                            <p className="text-[11px] text-gray-500 font-medium font-mono">{s.id} • {s.academicLevel}</p>
+                            <p className="text-[10px] text-gray-500 font-medium">{s.id} • {s.academicLevel}</p>
                           </button>
                         ))}
                       </div>
@@ -574,32 +570,39 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               )}
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Contenu du message</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Contenu du message</label>
                 <textarea
                   rows={4}
                   value={announcementText}
                   onChange={(e) => setAnnouncementText(e.target.value)}
                   placeholder="Écrivez votre message ici..."
-                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-gray-700 resize-none text-sm"
+                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all text-gray-700 resize-none text-sm leading-relaxed"
                 ></textarea>
               </div>
+            </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowAnnouncementModal(false)}
-                  className="flex-1 py-3 px-4 text-gray-600 hover:bg-gray-100 rounded-xl font-semibold transition-colors text-sm"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleSendAnnouncement}
-                  disabled={!announcementText}
-                  className="flex-2 py-3 px-8 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-teal-600/20 disabled:opacity-50 disabled:shadow-none text-sm"
-                >
-                  <Send className="w-4 h-4" />
-                  Diffuser l'annonce
-                </button>
-              </div>
+            {/* Footer - Fixed */}
+            <div className="p-6 bg-gray-50/50 border-t border-gray-100 flex gap-3 shrink-0">
+              <button
+                onClick={() => setShowAnnouncementModal(false)}
+                className="flex-1 py-3 px-4 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-2xl font-bold transition-all text-xs uppercase tracking-widest"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSendAnnouncement}
+                disabled={!announcementText || loading}
+                className="flex-[1.5] py-3 px-8 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-teal-600/20 disabled:opacity-50 disabled:shadow-none text-xs uppercase tracking-widest active:scale-[0.98]"
+              >
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Diffuser l'annonce
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
