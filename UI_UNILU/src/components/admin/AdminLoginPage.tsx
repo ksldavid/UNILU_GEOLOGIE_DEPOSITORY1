@@ -94,7 +94,7 @@ export function AdminLoginPage({ onLogin, onBack }: AdminLoginPageProps) {
             <div className="flex flex-col">
               <span className="text-xs font-black uppercase tracking-[0.2em] text-[#1B4332]/50">Portail Admin</span>
               <span className="text-sm font-bold text-[#1B4332] max-w-[200px] leading-tight">
-                Faculté des sciences et technologies
+                Faculté des Sciences et Technologies
               </span>
             </div>
           </motion.div>
@@ -121,7 +121,7 @@ export function AdminLoginPage({ onLogin, onBack }: AdminLoginPageProps) {
               className="flex items-center gap-4 text-[#1B4332]/70 font-medium"
             >
               <div className="h-px w-12 bg-[#1B4332]/20" />
-              <p className="text-lg">Département de géologie</p>
+              <p className="text-lg">Département de géosciences</p>
             </motion.div>
 
             <motion.p

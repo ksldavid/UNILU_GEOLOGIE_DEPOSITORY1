@@ -11,25 +11,25 @@ import slide4 from '../assets/slide4.png';
 const slides = [
     {
         image: slide1,
-        title: "Faculté de Science et Technologie : Département de Géologie",
+        title: "Faculté des Sciences et Technologies : Département de Géologie",
         subtitle: "Portail Professeur, Assistant et Étudiant",
         quote: "À la découverte de la force de la terre."
     },
     {
         image: slide2,
-        title: "Faculté de Science et Technologie : Département de Géologie",
+        title: "Faculté des Sciences et Technologies : Département de Géologie",
         subtitle: "Portail Professeur, Assistant et Étudiant",
         quote: "La géologie : lire dans le livre ouvert de la nature."
     },
     {
         image: slide3,
-        title: "Faculté de Science et Technologie : Département de Géologie",
+        title: "Faculté des Sciences et Technologies : Département de Géologie",
         subtitle: "Portail Professeur, Assistant et Étudiant",
         quote: "Le temps est le meilleur architecte de la terre."
     },
     {
         image: slide4,
-        title: "Faculté de Science et Technologie : Département de Géologie",
+        title: "Faculté des Sciences et Technologies : Département de Géologie",
         subtitle: "Portail Professeur, Assistant et Étudiant",
         quote: "Étudier le passé de la terre pour construire son futur."
     }
@@ -180,7 +180,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                         <h3 className="text-xl font-bold text-teal-600 mb-2 tracking-wide uppercase" style={{ fontFamily: "'Outfit', sans-serif" }}>
                             UNIVERSITE DE LUBUMBASHI
                         </h3>
-                        <p className="text-gray-500 text-sm font-medium">Portail de la Faculté de Science et Technologie : Département de Géologie</p>
+                        <p className="text-gray-500 text-sm font-medium">Portail de la Faculté des Sciences et Technologies : Département de Géologie</p>
                     </div>
 
                     <div className="flex-1 flex flex-col pt-4">

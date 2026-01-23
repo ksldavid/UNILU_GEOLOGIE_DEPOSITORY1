@@ -128,7 +128,7 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
                 doc.text('UNIVERSITÉ DE LUBUMBASHI', 125, 28, { align: 'center' });
                 doc.setFontSize(10);
                 doc.setFont('helvetica', 'normal');
-                doc.text('CENTRE D\'EXCELLENCE - FACULTÉ DE GÉOLOGIE', 125, 37, { align: 'center' });
+                doc.text('CENTRE D\'EXCELLENCE - FACULTÉ DES SCIENCES ET TECHNOLOGIES', 125, 37, { align: 'center' });
                 doc.setFontSize(8);
                 doc.text('DIRECTION DE L\'INFORMATIQUE ET DES SYSTÈMES D\'INFORMATION', 125, 43, { align: 'center' });
 
@@ -177,7 +177,7 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
         if (role === 'student') {
             welcomeText = `Nous avons le plaisir de vous confirmer votre enregistrement au sein du réseau académique de l’Université de Lubumbashi pour le compte de l'année académique courante en classe de ${studentClass}.\n\nL'UNILU, fidèle à sa mission d'excellence, met à votre disposition des outils numériques de pointe pour faciliter votre parcours d'apprentissage. Sachez que le corps professoral et technique est mobilisé pour assurer votre encadrement jusqu'à l'obtention de votre titre académique. Ce parcours vise à faire de vous un cadre compétent, un « produit fini » apte à répondre avec rigueur aux exigences du monde professionnel.\n\nEn utilisant les services numériques de l'institution, vous vous engagez à respecter strictement la charte de confidentialité et d'éthique informatique. L'usage de vos identifiants est placé sous votre entière responsabilité. Les paramètres d'accès fournis en page 2 constituent votre identité numérique unique au sein de notre base de données centralisée.\n\nNous vous recommandons une lecture attentive des consignes de sécurité jointes.`;
         } else if (role === 'prof') {
-            welcomeText = "Nous tenons à vous exprimer notre satisfaction de vous compter parmi les membres éminents du corps enseignant de la Faculté de Géologie. L'Université de Lubumbashi s'efforce de moderniser continuellement ses infrastructures pour soutenir votre mission de transmission du savoir et de recherche scientifique.\n\nCe document marque l'initialisation de vos privilèges numériques. Ces outils sont conçus pour optimiser la gestion de vos cours, l'évaluation des étudiants et la collaboration académique. Vous êtes prié de veiller à la stricte confidentialité de vos paramètres, car toute action initiée depuis votre compte est réputée être de votre fait.\n\nLe service technique reste à votre disposition pour tout accompagnement nécessaire dans l'appropriation de ces nouveaux outils de travail.";
+            welcomeText = "Nous tenons à vous exprimer notre satisfaction de vous compter parmi les membres éminents du corps enseignant de la Faculté des Sciences et Technologies. L'Université de Lubumbashi s'efforce de moderniser continuellement ses infrastructures pour soutenir votre mission de transmission du savoir et de recherche scientifique.\n\nCe document marque l'initialisation de vos privilèges numériques. Ces outils sont conçus pour optimiser la gestion de vos cours, l'évaluation des étudiants et la collaboration académique. Vous êtes prié de veiller à la stricte confidentialité de vos paramètres, car toute action initiée depuis votre compte est réputée être de votre fait.\n\nLe service technique reste à votre disposition pour tout accompagnement nécessaire dans l'appropriation de ces nouveaux outils de travail.";
         } else {
             welcomeText = "Votre affectation à l'administration de nos infrastructures critiques vous confère un accès privilégié à des ressources sensibles. La Direction de l'Informatique attend de vous une rigueur absolue dans la manipulation de ces droits.\n\nVous êtes lié par le secret professionnel le plus srict. La sécurité de l'écosystème numérique de l'UNILU repose sur la vigilance de ses administrateurs. Toute compromission, même involontaire, de vos clés d'accès doit être signalée instantanément à votre hiérarchie.\n\nIl vous est demandé d'initialiser votre environnement de travail dès réception de ces paramètres et de procéder à la destruction sécurisée de ce document physique une fois les codes mémorisés.";
         }
@@ -593,7 +593,7 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
                                             </div>
                                             <p className="text-[6px] font-black uppercase tracking-[0.4em] mb-1">RÉPUBLIQUE DÉMOCRATIQUE DU CONGO</p>
                                             <h3 className="text-sm font-black text-slate-900 uppercase">UNIVERSITÉ DE LUBUMBASHI</h3>
-                                            <p className="text-[5px] font-bold text-slate-500 uppercase tracking-widest">FACULTÉ DE GÉOLOGIE - DSI</p>
+                                            <p className="text-[5px] font-bold text-slate-500 uppercase tracking-widest">FACULTÉ DES SCIENCES ET TECHNOLOGIES - DSI</p>
                                         </div>
 
                                         <div className="space-y-4">

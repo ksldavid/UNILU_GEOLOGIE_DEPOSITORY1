@@ -162,7 +162,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             Pr. {data?.professorName || 'Espace Enseignant'}
           </h1>
           <h2 className="text-teal-100 text-2xl md:text-3xl font-light mb-6 opacity-90">
-            Faculté de Géologie
+            Faculté des Sciences et Technologies
           </h2>
           <p className="text-teal-50 text-lg max-w-2xl leading-relaxed opacity-80">
             Bienvenue sur votre tableau de bord académique. Gérez vos cours, consultez vos horaires et communiquez avec vos étudiants en toute simplicité.

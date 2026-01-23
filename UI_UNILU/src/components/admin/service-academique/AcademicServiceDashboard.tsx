@@ -351,7 +351,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                     </div>
                                     <div className="text-left hidden lg:block">
                                         <p className="text-sm font-medium text-[#1B4332]">Service Académique</p>
-                                        <p className="text-xs text-[#52796F]">Géologie - UNILU</p>
+                                        <p className="text-xs text-[#52796F]">Sciences et Technologies - UNILU</p>
                                     </div>
                                     <ChevronDown className="w-4 h-4 text-[#52796F] hidden lg:block" />
                                 </button>

@@ -27,6 +27,7 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedHistorySession, setSelectedHistorySession] = useState<any | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -148,6 +149,7 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
           default:
             msg = "Impossible de récupérer votre position. Vérifiez les paramètres de confidentialité de Windows.";
         }
+        setLocationError(msg);
         setGeneratingQR(false);
       },
       { enableHighAccuracy: true, timeout: 15000 }
@@ -314,6 +316,19 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
                 <p className="text-gray-400 text-xs italic">
                   Le QR Code capturera votre position pour sécuriser la zone de présence (200m).
                 </p>
+                {locationError && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                    <X className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-red-800 uppercase tracking-wider mb-1">
+                        Erreur de Localisation
+                      </p>
+                      <p className="text-xs text-red-600 font-medium leading-relaxed">
+                        {locationError}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
