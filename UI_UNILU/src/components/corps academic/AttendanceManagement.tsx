@@ -295,11 +295,21 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
                   )}
                   {generatingQR ? "Localisation..." : "Générer le QR code de présence"}
                 </button>
-                {locationError && (
-                  <p className="text-red-500 text-xs font-medium flex items-center gap-1 mt-2">
-                    <MapPin className="w-3 h-3" />
-                    {locationError}
-                  </p>
+                {generatingQR && (
+                  <div className="flex items-center gap-3 mt-4 bg-teal-50/50 border border-teal-100/50 px-4 py-3 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="relative">
+                      <div className="w-5 h-5 border-2 border-teal-100 border-t-teal-600 rounded-full animate-spin"></div>
+                      <div className="absolute inset-0 bg-teal-400/20 blur-sm rounded-full animate-pulse"></div>
+                    </div>
+                    <div className="flex flex-col">
+                      <p className="text-[10px] font-black text-teal-800 uppercase tracking-[0.15em]">
+                        Sécurisation de la position...
+                      </p>
+                      <p className="text-[9px] text-teal-600/70 font-bold uppercase tracking-widest">
+                        Génération du jeton dynamique
+                      </p>
+                    </div>
+                  </div>
                 )}
                 <p className="text-gray-400 text-xs italic">
                   Le QR Code capturera votre position pour sécuriser la zone de présence (200m).
