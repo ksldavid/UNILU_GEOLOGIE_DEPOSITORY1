@@ -342,9 +342,17 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       </p>
 
                       {!isRead && (
-                        <div className="mt-4 pt-4 border-t border-teal-50 flex items-center gap-2 text-teal-600 font-bold text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Cliquer pour marquer comme lu
+                        <div className="mt-4 pt-4 border-t border-teal-50 flex items-center justify-end">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAsRead(ann.id);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-teal-600/20 active:scale-95"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            Marquer comme lue
+                          </button>
                         </div>
                       )}
                     </div>
