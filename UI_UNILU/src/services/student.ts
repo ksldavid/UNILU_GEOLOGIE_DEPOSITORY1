@@ -2,7 +2,7 @@ import API_URL from './config';
 const STUDENT_API_URL = `${API_URL}/student`;
 
 const getHeaders = () => {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -84,7 +84,7 @@ export const studentService = {
         const response = await fetch(`${STUDENT_API_URL}/submit-assignment`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
                 // Note: Don't set Content-Type for FormData
             },
             body: formData

@@ -2,7 +2,7 @@ import API_URL from './config';
 const PROFESSOR_API_URL = `${API_URL}/professor`;
 
 const getHeaders = () => {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -181,7 +181,7 @@ export const professorService = {
         formData.append('title', title);
         formData.append('file', file);
 
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const response = await fetch(`${PROFESSOR_API_URL}/upload-resource`, {
             method: 'POST',
             headers: {
@@ -217,7 +217,7 @@ export const professorService = {
         formData.append('reason', data.reason);
         if (file) formData.append('file', file);
 
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const response = await fetch(`${PROFESSOR_API_URL}/grade-change-request`, {
             method: 'POST',
             headers: {

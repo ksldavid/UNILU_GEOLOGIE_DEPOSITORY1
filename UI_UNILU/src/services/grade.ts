@@ -2,7 +2,7 @@ import { API_URL } from './config';
 
 export const gradeService = {
     async getGradeChangeRequests(status?: string) {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const url = status
             ? `${API_URL}/grades/requests?status=${status.toUpperCase()}`
             : `${API_URL}/grades/requests`;
@@ -17,7 +17,7 @@ export const gradeService = {
     },
 
     async updateRequestStatus(id: string, status: 'APPROVED' | 'REJECTED', reason?: string) {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/grades/requests/${id}/status`, {
             method: 'PATCH',
             headers: {
@@ -31,7 +31,7 @@ export const gradeService = {
     },
 
     async getPV(courseCode: string, academicYear: string) {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/grades/pv?courseCode=${courseCode}&academicYear=${academicYear}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -42,7 +42,7 @@ export const gradeService = {
     },
 
     async getStats() {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/grades/stats`, {
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -53,7 +53,7 @@ export const gradeService = {
     },
 
     async getMyRequests() {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/grades/my-requests`, {
             headers: {
                 'Authorization': `Bearer ${token}`

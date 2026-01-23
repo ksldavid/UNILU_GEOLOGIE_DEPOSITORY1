@@ -38,7 +38,7 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
     const fetchSuggestions = useCallback(async () => {
         if (!lastName && !firstName) return;
         try {
-            const token = sessionStorage.getItem('token');
+            const token = localStorage.getItem('token');
             const fullNameForPass = `${lastName} ${firstName}`;
             const res = await fetch(`http://localhost:3001/api/admin/credentials/suggest?role=${role}&name=${encodeURIComponent(fullNameForPass)}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -285,7 +285,7 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
         }
 
         try {
-            const token = sessionStorage.getItem('token');
+            const token = localStorage.getItem('token');
             const fullName = `${lastName.toUpperCase()} ${middleName.toUpperCase()} ${firstName}`.replace(/\s+/g, ' ').trim();
 
             const res = await fetch('http://localhost:3001/api/admin/users', {

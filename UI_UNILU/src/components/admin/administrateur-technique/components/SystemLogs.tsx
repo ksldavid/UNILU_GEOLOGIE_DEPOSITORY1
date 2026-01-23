@@ -14,7 +14,7 @@ export function SystemLogs() {
     const fetchLogs = useCallback(async () => {
         setLoading(true);
         try {
-            const token = sessionStorage.getItem('token');
+            const token = localStorage.getItem('token');
             const res = await fetch('http://localhost:3001/api/stats/api-logs', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -38,7 +38,7 @@ export function SystemLogs() {
     const handleClearLogs = async () => {
         if (!window.confirm("Voulez-vous vraiment vider les logs de la session ?")) return;
         try {
-            const token = sessionStorage.getItem('token');
+            const token = localStorage.getItem('token');
             const res = await fetch('http://localhost:3001/api/stats/clear-cache', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }

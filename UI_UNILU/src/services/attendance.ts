@@ -2,7 +2,7 @@
 const API_URL = 'http://localhost:3001/api/attendance';
 
 const getHeaders = () => {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`

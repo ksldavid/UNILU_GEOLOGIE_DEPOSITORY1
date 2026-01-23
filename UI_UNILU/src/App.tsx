@@ -51,9 +51,14 @@ export interface UserData {
 type AppView = 'student-login' | 'admin-login' | 'logged-in';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<AppView>('student-login');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('token'));
+  const [userData, setUserData] = useState<UserData | null>(() => {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  });
+  const [currentView, setCurrentView] = useState<AppView>(() => {
+    return localStorage.getItem('token') ? 'logged-in' : 'student-login';
+  });
   const [currentPage, setCurrentPage] = useState<Page>(() => {
     return (sessionStorage.getItem('currentPage') as Page) || 'dashboard';
   });
@@ -151,7 +156,7 @@ export default function App() {
         let studentClass = undefined;
         if (actualRole === 'STUDENT') {
           try {
-            const dashboardData = await fetch('http://localhost:3001/api/student/dashboard', {
+            const dashboardData = await fetch(`${API_URL}/student/dashboard`, {
               headers: {
                 'Authorization': `Bearer ${response.token}`
               }

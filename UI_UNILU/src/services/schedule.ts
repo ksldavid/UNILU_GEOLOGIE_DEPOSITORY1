@@ -2,7 +2,7 @@ import { API_URL } from './config';
 
 export const scheduleService = {
     async getSchedule(academicLevelId: number, academicYear: string) {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/schedules?academicLevelId=${academicLevelId}&academicYear=${academicYear}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -13,7 +13,7 @@ export const scheduleService = {
     },
 
     async saveSchedule(academicLevelId: number, academicYear: string, schedules: any[]) {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/schedules`, {
             method: 'POST',
             headers: {

@@ -2,7 +2,7 @@ const API_URL = 'http://localhost:3001/api';
 
 export const courseService = {
     async getCourses(academicLevelId?: number) {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const url = academicLevelId !== undefined
             ? `${API_URL}/courses?academicLevelId=${academicLevelId}`
             : `${API_URL}/courses`;
@@ -17,7 +17,7 @@ export const courseService = {
     },
 
     async getLevels() {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/courses/levels`, {
             headers: {
                 'Authorization': `Bearer ${token}`

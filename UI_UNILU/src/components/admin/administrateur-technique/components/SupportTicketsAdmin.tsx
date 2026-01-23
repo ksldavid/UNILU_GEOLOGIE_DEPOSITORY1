@@ -32,7 +32,7 @@ export function SupportTicketsAdmin() {
             await supportService.addMessage(selectedTicket.id, reply); // TODO: backend needs to handle isAdmin flag or infer from role
             // Actually our backend addMessage takes {ticketId, content, isAdmin}
             // Let's call it correctly:
-            const token = sessionStorage.getItem('token');
+            const token = localStorage.getItem('token');
             await fetch('http://localhost:3001/api/support/messages', {
                 method: 'POST',
                 headers: {

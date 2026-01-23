@@ -11,7 +11,7 @@ export function ConfigManager() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const token = sessionStorage.getItem('token');
+                const token = localStorage.getItem('token');
                 const res = await fetch('http://localhost:3001/api/stats/technical', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -30,7 +30,7 @@ export function ConfigManager() {
         if (!window.confirm(`Confirmer l'action système : ${action} ?`)) return;
         setLoading(true);
         try {
-            const token = sessionStorage.getItem('token');
+            const token = localStorage.getItem('token');
             const endpoint = action === 'Redémarrage' ? 'restart' : 'clear-cache';
             const res = await fetch(`http://localhost:3001/api/stats/${endpoint}`, {
                 method: 'POST',

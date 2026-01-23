@@ -34,7 +34,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
     useEffect(() => {
         const fetchSystem = async () => {
             try {
-                const token = sessionStorage.getItem('token');
+                const token = localStorage.getItem('token');
                 const res = await fetch('http://localhost:3001/api/stats/technical', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

@@ -214,7 +214,7 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
             transition={{ delay: 0.3 }}
           >
             <h1 className="text-white text-5xl font-black mb-4 tracking-tight">
-              Bonjour, <span className="text-blue-400">{JSON.parse(sessionStorage.getItem('user') || '{}').name?.split(' ')[0] || 'Étudiant'}</span> 👋
+              Bonjour, <span className="text-blue-400">{JSON.parse(localStorage.getItem('user') || '{}').name?.split(' ')[0] || 'Étudiant'}</span> 👋
             </h1>
             <div className="h-20">
               <motion.p
