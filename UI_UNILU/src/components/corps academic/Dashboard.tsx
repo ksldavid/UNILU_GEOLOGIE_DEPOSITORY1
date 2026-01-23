@@ -92,7 +92,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         type: 'GENERAL',
         target: announcementType === 'all_courses' ? 'ALL_STUDENTS' :
           (announcementType === 'specific_class' ? 'ACADEMIC_LEVEL' :
-            (announcementType === 'specific_course' ? 'SPECIFIC_COURSE' : 'SPECIFIC_USER')),
+            (announcementType === 'specific_course' ? 'COURSE_STUDENTS' : 'SPECIFIC_USER')),
       };
 
       if (announcementType === 'specific_class') {
