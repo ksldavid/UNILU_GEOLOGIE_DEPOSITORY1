@@ -189,7 +189,17 @@ export const professorService = {
             },
             body: formData
         });
-        if (!response.ok) throw new Error("Erreur lors de l'envoi du document");
+        if (!response.ok) {
+            let message = "Erreur lors de l'envoi du document";
+            try {
+                const error = await response.json();
+                message = error.message || message;
+            } catch (e) {
+                if (response.status === 413) message = "Le fichier est trop volumineux (max 4.5MB sur Vercel)";
+                else message = `Erreur serveur (${response.status})`;
+            }
+            throw new Error(message);
+        }
         return response.json();
     },
 

@@ -766,9 +766,9 @@ export const uploadCourseResource = async (req: AuthRequest, res: Response) => {
         });
 
         res.json({ message: 'Document partagé avec succès', resource });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erreur upload ressource:', error);
-        res.status(500).json({ message: 'Erreur lors de l\'envoi du fichier' });
+        res.status(500).json({ message: error.message || 'Erreur lors de l\'envoi du fichier' });
     }
 }
 

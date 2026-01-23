@@ -425,9 +425,9 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         setUploadSuccess(true);
         fetchResources(); // Rafraîchir la liste
         setTimeout(() => setUploadSuccess(false), 3000);
-      } catch (error) {
+      } catch (error: any) {
         console.error(error);
-        alert("Erreur lors de l'envoi du document");
+        alert(error.message || "Erreur lors de l'envoi du document");
       } finally {
         setIsUploading(false);
         setPendingFile(null);

@@ -960,9 +960,9 @@ export const submitAssignment = async (req: AuthRequest, res: Response) => {
         });
 
         res.json({ message: 'Votre travail a été transmis avec succès', submission });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erreur soumission travail:', error);
-        res.status(500).json({ message: 'Erreur lors de l\'envoi de votre travail' });
+        res.status(500).json({ message: error.message || 'Erreur lors de l\'envoi de votre travail' });
     }
 }
 

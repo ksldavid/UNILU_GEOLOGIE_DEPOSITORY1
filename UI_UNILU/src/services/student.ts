@@ -90,8 +90,15 @@ export const studentService = {
             body: formData
         });
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Erreur lors de la soumission');
+            let message = 'Erreur lors de la soumission';
+            try {
+                const error = await response.json();
+                message = error.message || message;
+            } catch (e) {
+                if (response.status === 413) message = "Le fichier est trop volumineux (max 4.5MB sur Vercel)";
+                else message = `Erreur serveur (${response.status})`;
+            }
+            throw new Error(message);
         }
         return response.json();
     },

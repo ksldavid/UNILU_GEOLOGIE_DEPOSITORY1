@@ -24,10 +24,10 @@ const ALLOWED_MIME_TYPES: Record<string, string[]> = {
 
 // Tailles maximales par type (en bytes)
 const MAX_FILE_SIZES: Record<string, number> = {
-    'document': 10 * 1024 * 1024,  // 10MB pour les documents
-    'image': 5 * 1024 * 1024,       // 5MB pour les images
-    'archive': 25 * 1024 * 1024,    // 25MB pour les archives
-    'default': 10 * 1024 * 1024     // 10MB par défaut
+    'document': 4.5 * 1024 * 1024,  // 4.5MB limite Vercel
+    'image': 4.5 * 1024 * 1024,      // 4.5MB limite Vercel
+    'archive': 4.5 * 1024 * 1024,    // 4.5MB limite Vercel
+    'default': 4.5 * 1024 * 1024     // 4.5MB limite Vercel
 };
 
 const getFileType = (mimetype: string): string => {
@@ -39,7 +39,7 @@ const getFileType = (mimetype: string): string => {
 export const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 25 * 1024 * 1024, // 25MB limite absolue (vérifié ensuite par type)
+        fileSize: 5 * 1024 * 1024, // 5MB limite absolue
         files: 1, // Maximum 1 fichier par requête
     },
     fileFilter: (req: Request, file, cb) => {
