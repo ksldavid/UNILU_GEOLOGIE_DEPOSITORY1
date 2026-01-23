@@ -138,6 +138,13 @@ export default function App() {
     }
   }, [selectedCourse]);
 
+  // Protection: redirect to courses if on attendance page without selected course
+  useEffect(() => {
+    if (currentPage === 'attendance' && !selectedCourse && userData?.role === 'USER') {
+      setCurrentPage('courses');
+    }
+  }, [currentPage, selectedCourse, userData]);
+
 
   const handleLogin = async (id: string, password: string, role: UserRole): Promise<'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'> => {
     if (id && password) {

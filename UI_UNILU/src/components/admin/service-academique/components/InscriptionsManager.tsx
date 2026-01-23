@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, ChevronRight, UserPlus, BookOpen, FileText, CheckCircle, X, Ban, MessageCircle, AlertTriangle, School, Trash2, GraduationCap, Users, Copy, Eye, EyeOff, Lock, Hash, Key } from 'lucide-react';
 import { userService } from '../../../../services/user';
+import { API_URL } from '../../../../services/config';
 
 // Types definitons
 type Role = 'student' | 'professor' | 'assistant';
@@ -238,7 +239,7 @@ export function InscriptionsManager() {
     try {
       const token = localStorage.getItem('token');
       const fullName = `${formData.nom} ${formData.prenom}`;
-      const res = await fetch(`http://localhost:3001/api/admin/credentials/suggest?role=${newUserType === 'student' ? 'student' : 'prof'}&name=${encodeURIComponent(fullName)}`, {
+      const res = await fetch(`${API_URL}/admin/credentials/suggest?role=${newUserType === 'student' ? 'student' : 'prof'}&name=${encodeURIComponent(fullName)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
