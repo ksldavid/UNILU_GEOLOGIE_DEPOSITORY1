@@ -11,10 +11,18 @@ export const createAnnouncement = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Auteur non identifié' })
         }
 
+        console.log('📢 Tentative de création d\'annonce:', { title, target, academicLevelId, courseCode });
+
         // Clean values to avoid foreign key violations with empty strings
-        const cleanedAcademicLevelId = academicLevelId ? parseInt(academicLevelId as string) : null
+        // Correction: On vérifie explicitement null/undefined car academicLevelId peut être 0 (Presciences)
+        const cleanedAcademicLevelId = (academicLevelId !== undefined && academicLevelId !== null && academicLevelId !== '')
+            ? parseInt(academicLevelId as string)
+            : null
+
         const cleanedCourseCode = courseCode && courseCode.trim() !== '' ? courseCode : null
         const cleanedTargetUserId = targetUserId && targetUserId.trim() !== '' ? targetUserId : null
+
+        console.log('🧼 Valeurs nettoyées:', { cleanedAcademicLevelId, cleanedCourseCode, cleanedTargetUserId });
 
         const announcement = await prisma.announcement.create({
             data: {
@@ -86,7 +94,7 @@ export const getMyAnnouncements = async (req: AuthRequest, res: Response) => {
 export const updateAnnouncement = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
-        const { title, content, type, target, academicLevelId } = req.body;
+        const { title, content, type, target, academicLevelId, courseCode, targetUserId } = req.body;
         const userId = req.user?.userId;
 
         // Verify authorship
@@ -96,6 +104,10 @@ export const updateAnnouncement = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: 'Non autorisé à modifier cette annonce' });
         }
 
+        const cleanedAcademicLevelId = (academicLevelId !== undefined && academicLevelId !== null && academicLevelId !== '')
+            ? parseInt(academicLevelId as string)
+            : null
+
         const updated = await prisma.announcement.update({
             where: { id: parseInt(id) },
             data: {
@@ -103,7 +115,9 @@ export const updateAnnouncement = async (req: AuthRequest, res: Response) => {
                 content,
                 type,
                 target,
-                academicLevelId: academicLevelId ? parseInt(academicLevelId) : null
+                academicLevelId: cleanedAcademicLevelId,
+                courseCode: courseCode || null,
+                targetUserId: targetUserId || null
             }
         });
 
