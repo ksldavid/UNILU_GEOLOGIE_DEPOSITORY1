@@ -9,8 +9,8 @@ interface AutoLogoutProps {
 
 export const AutoLogout: React.FC<AutoLogoutProps> = ({
     onLogout,
-    timeoutMinutes = 5, // 5 minutes pour le test
-    warningMinutes = 2    // 2 minutes d'avertissement pour le test
+    timeoutMinutes = 60, // 1 heure par défaut
+    warningMinutes = 5    // 5 minutes d'avertissement
 }) => {
     const [showWarning, setShowWarning] = useState(false);
     const [timeLeft, setTimeLeft] = useState(warningMinutes * 60);
