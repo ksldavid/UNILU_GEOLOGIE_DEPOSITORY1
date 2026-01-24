@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, Clock, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2 } from "lucide-react";
+import { BookOpen, Clock, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2, MapPin, GraduationCap } from "lucide-react";
 import type { Page } from "../../App";
 import { professorService } from "../../services/professor";
 import "../../utils/auth-debug"; // Active les outils de débogage d'authentification
@@ -64,7 +64,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     const styles = getCourseStyles(c.title);
     return {
       title: c.title,
-      code: c.code,
+      courseCode: c.courseCode,
+      room: c.room,
+      level: c.level,
       time: c.time,
       timeDetail: c.timeDetail,
       icon: BookOpen,
@@ -230,9 +232,23 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     <div className={`${course.iconBg} w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0`}>
                       <Icon className={`w-7 h-7 ${course.iconColor}`} />
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-lg mb-1">{course.title}</h4>
-                      <p className="text-gray-600">{course.code}</p>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-900 text-lg mb-2 truncate group-hover:text-teal-700 transition-colors uppercase">
+                        {course.title}
+                      </h4>
+                      <div className="flex flex-wrap gap-4 items-center">
+                        <div className="flex items-center gap-1.5 text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg">
+                          <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                          <span className="text-[11px] font-black uppercase tracking-wider">{course.room}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-gray-500 bg-teal-50 px-2.5 py-1 rounded-lg">
+                          <GraduationCap className="w-3.5 h-3.5 text-teal-600" />
+                          <span className="text-[11px] font-black uppercase tracking-wider">{course.level}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-white border border-gray-100 px-2.5 py-1 rounded-lg">
+                          {course.courseCode}
+                        </div>
+                      </div>
                     </div>
                     <div className="text-right">
                       <div className={`

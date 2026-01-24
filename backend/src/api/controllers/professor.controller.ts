@@ -304,7 +304,9 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
             todaySchedule: todaysSchedule.map(s => ({
                 id: s.id,
                 title: s.course.name,
-                code: `${s.room} - ${s.academicLevel.name}`,
+                courseCode: s.courseCode,
+                room: s.room,
+                level: s.academicLevel.displayName || s.academicLevel.name,
                 time: "Aujourd'hui",
                 timeDetail: `${s.startTime} - ${s.endTime}`,
                 type: 'Cours',
