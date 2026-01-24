@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, Clock, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2, MapPin, GraduationCap } from "lucide-react";
+import { BookOpen, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2, MapPin, GraduationCap } from "lucide-react";
 import type { Page } from "../../App";
 import { professorService } from "../../services/professor";
 import "../../utils/auth-debug"; // Active les outils de débogage d'authentification
@@ -426,40 +426,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <h4 className="font-bold text-gray-900 mb-5 text-lg">Actions rapides</h4>
             <div className="space-y-3">
               <button
-                onClick={() => onNavigate('courses')}
-                className="w-full group flex items-center gap-4 px-4 py-3.5 bg-gray-50 hover:bg-teal-50 text-gray-700 hover:text-teal-700 rounded-xl transition-all border border-transparent hover:border-teal-100"
-              >
-                <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">
-                  <Clock className="w-5 h-5 text-teal-600" />
-                </div>
-                <span className="font-semibold text-sm">Gérer mes cours</span>
-              </button>
-              <button
-                onClick={() => onNavigate('planning')}
-                className="w-full group flex items-center gap-4 px-4 py-3.5 bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 rounded-xl transition-all border border-transparent hover:border-blue-100"
-              >
-                <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">
-                  <BookOpen className="w-5 h-5 text-blue-600" />
-                </div>
-                <span className="font-semibold text-sm">Voir mon planning</span>
-              </button>
-              <button
-                onClick={() => onNavigate('students')}
-                className="w-full group flex items-center gap-4 px-4 py-3.5 bg-gray-50 hover:bg-purple-50 text-gray-700 hover:text-purple-700 rounded-xl transition-all border border-transparent hover:border-purple-100"
-              >
-                <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">
-                  <Users className="w-5 h-5 text-purple-600" />
-                </div>
-                <span className="font-semibold text-sm">Voir étudiants</span>
-              </button>
-              <button
                 onClick={() => setShowAnnouncementModal(true)}
-                className="w-full group flex items-center gap-4 px-4 py-3.5 bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-orange-700 rounded-xl transition-all border border-transparent hover:border-orange-100"
+                className="w-full group flex items-center gap-4 px-4 py-3.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-xl transition-all border border-orange-100"
               >
                 <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">
                   <Megaphone className="w-5 h-5 text-orange-600" />
                 </div>
-                <span className="font-semibold text-sm">Faire une annonce</span>
+                <span className="font-bold text-sm uppercase tracking-widest">Faire une annonce</span>
               </button>
             </div>
           </div>
