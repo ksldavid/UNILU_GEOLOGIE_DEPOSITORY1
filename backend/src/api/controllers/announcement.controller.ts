@@ -125,6 +125,10 @@ export const deleteAnnouncement = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: 'Non autorisé à supprimer cette annonce' });
         }
 
+        // 1. Supprimer d'abord les reçus de lecture pour éviter les erreurs de contrainte (FK)
+        await prisma.announcementRead.deleteMany({ where: { announcementId: parseInt(id) } });
+
+        // 2. Supprimer l'annonce
         await prisma.announcement.delete({ where: { id: parseInt(id) } });
         res.json({ message: 'Annonce supprimée' });
     } catch (error) {
