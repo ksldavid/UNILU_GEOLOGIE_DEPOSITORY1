@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { BookOpen, Clock, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2 } from "lucide-react";
 import type { Page } from "../../App";
 import { professorService } from "../../services/professor";
+import "../../utils/auth-debug"; // Active les outils de débogage d'authentification
 
 interface DashboardProps {
   onNavigate: (page: Page) => void;

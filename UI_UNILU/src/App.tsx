@@ -20,6 +20,7 @@ import { Header } from "./components/corps academic/Header";
 import { MyAnnouncements } from "./components/corps academic/MyAnnouncements";
 import { TechnicalDashboard } from './components/admin/administrateur-technique/TechnicalDashboard';
 import { AcademicServiceDashboard } from './components/admin/service-academique/AcademicServiceDashboard';
+import { AutoLogout } from './components/common/AutoLogout';
 import { authService } from './services/auth';
 import { studentService } from './services/student';
 import { professorService } from './services/professor';
@@ -267,86 +268,102 @@ export default function App() {
   // Student Interface
   if (userData.role === 'STUDENT') {
     return (
-      <div className="flex h-screen bg-gray-50">
-        <StudentSidebar
-          currentPage={studentCurrentPage}
-          onNavigate={setStudentCurrentPage}
-          onLogout={handleLogout}
-          isOpen={isMobileMenuOpen}
-          onClose={() => setIsMobileMenuOpen(false)}
-          hasUnreadAnnouncements={hasUnreadAnnouncements}
-        />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <StudentHeader
-            studentData={{ ...userData, role: 'student' as any }}
-            onMenuClick={() => setIsMobileMenuOpen(true)}
+      <>
+        <AutoLogout onLogout={handleLogout} />
+        <div className="flex h-screen bg-gray-50">
+          <StudentSidebar
+            currentPage={studentCurrentPage}
+            onNavigate={setStudentCurrentPage}
+            onLogout={handleLogout}
+            isOpen={isMobileMenuOpen}
+            onClose={() => setIsMobileMenuOpen(false)}
             hasUnreadAnnouncements={hasUnreadAnnouncements}
-            onBellClick={() => setStudentCurrentPage('announcements')}
           />
-          <main className="flex-1 overflow-y-auto">
-            {studentCurrentPage === 'dashboard' && <StudentDashboard onNavigate={setStudentCurrentPage} />}
-            {studentCurrentPage === 'courses' && <StudentCourses />}
-            {studentCurrentPage === 'planning' && <StudentPlanning />}
-            {studentCurrentPage === 'grades' && <StudentGrades />}
-            {studentCurrentPage === 'announcements' && <StudentAnnouncements />}
-            {studentCurrentPage === 'settings' && <StudentPath />}
-          </main>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <StudentHeader
+              studentData={{ ...userData, role: 'student' as any }}
+              onMenuClick={() => setIsMobileMenuOpen(true)}
+              hasUnreadAnnouncements={hasUnreadAnnouncements}
+              onBellClick={() => setStudentCurrentPage('announcements')}
+            />
+            <main className="flex-1 overflow-y-auto">
+              {studentCurrentPage === 'dashboard' && <StudentDashboard onNavigate={setStudentCurrentPage} />}
+              {studentCurrentPage === 'courses' && <StudentCourses />}
+              {studentCurrentPage === 'planning' && <StudentPlanning />}
+              {studentCurrentPage === 'grades' && <StudentGrades />}
+              {studentCurrentPage === 'announcements' && <StudentAnnouncements />}
+              {studentCurrentPage === 'settings' && <StudentPath />}
+            </main>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Admin (Technical Dashboard)
   if (userData.role === 'ADMIN') {
-    return <TechnicalDashboard onLogout={handleLogout} />;
+    return (
+      <>
+        <AutoLogout onLogout={handleLogout} />
+        <TechnicalDashboard onLogout={handleLogout} />
+      </>
+    );
   }
 
   // Service Académique Dashboard
   if (userData.role === 'ACADEMIC_OFFICE') {
-    return <AcademicServiceDashboard onLogout={handleLogout} />;
+    return (
+      <>
+        <AutoLogout onLogout={handleLogout} />
+        <AcademicServiceDashboard onLogout={handleLogout} />
+      </>
+    );
   }
 
   // Professor Interface (Corps Académique)
   if (userData.role === 'USER') {
     return (
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar
-          currentPage={currentPage}
-          onNavigate={setCurrentPage}
-          onLogout={handleLogout}
-          isOpen={isMobileMenuOpen}
-          onClose={() => setIsMobileMenuOpen(false)}
-        />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Header
-            userData={{ ...userData, role: 'academic' as any }}
+      <>
+        <AutoLogout onLogout={handleLogout} />
+        <div className="flex h-screen bg-gray-50">
+          <Sidebar
+            currentPage={currentPage}
+            onNavigate={setCurrentPage}
             onLogout={handleLogout}
-            onMenuClick={() => setIsMobileMenuOpen(true)}
-            hasUnreadAnnouncements={hasUnreadProfAnnouncements}
-            onBellClick={() => setCurrentPage('dashboard')}
+            isOpen={isMobileMenuOpen}
+            onClose={() => setIsMobileMenuOpen(false)}
           />
-          <main className="flex-1 overflow-y-auto">
-            {currentPage === 'dashboard' && <Dashboard onNavigate={setCurrentPage} />}
-            {currentPage === 'courses' && <CourseList onCourseSelect={handleCourseSelect} />}
-            {currentPage === 'course-detail' && selectedCourse && (
-              <CourseManagement
-                course={selectedCourse}
-                onBack={handleBackToCourses}
-                onTakeAttendance={handleTakeAttendance}
-              />
-            )}
-            {currentPage === 'attendance' && selectedCourse && (
-              <AttendanceManagement
-                course={selectedCourse}
-                onBack={() => setCurrentPage('course-detail')}
-              />
-            )}
-            {currentPage === 'planning' && <Planning />}
-            {currentPage === 'students' && <Students />}
-            {currentPage === 'announcements' && <MyAnnouncements />}
-          </main>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <Header
+              userData={{ ...userData, role: 'academic' as any }}
+              onLogout={handleLogout}
+              onMenuClick={() => setIsMobileMenuOpen(true)}
+              hasUnreadAnnouncements={hasUnreadProfAnnouncements}
+              onBellClick={() => setCurrentPage('dashboard')}
+            />
+            <main className="flex-1 overflow-y-auto">
+              {currentPage === 'dashboard' && <Dashboard onNavigate={setCurrentPage} />}
+              {currentPage === 'courses' && <CourseList onCourseSelect={handleCourseSelect} />}
+              {currentPage === 'course-detail' && selectedCourse && (
+                <CourseManagement
+                  course={selectedCourse}
+                  onBack={handleBackToCourses}
+                  onTakeAttendance={handleTakeAttendance}
+                />
+              )}
+              {currentPage === 'attendance' && selectedCourse && (
+                <AttendanceManagement
+                  course={selectedCourse}
+                  onBack={() => setCurrentPage('course-detail')}
+                />
+              )}
+              {currentPage === 'planning' && <Planning />}
+              {currentPage === 'students' && <Students />}
+              {currentPage === 'announcements' && <MyAnnouncements />}
+            </main>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
