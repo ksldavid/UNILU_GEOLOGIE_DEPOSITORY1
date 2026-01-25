@@ -1381,20 +1381,18 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                             <>
                               <button
                                 disabled={course.role === 'Assistant'}
-                                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all shadow-lg active:scale-95 ${course.role === 'Assistant'
-                                  ? 'bg-gray-100 text-gray-400 shadow-none cursor-not-allowed'
-                                  : 'bg-orange-600 text-white hover:bg-orange-700 shadow-orange-200'
-                                  }`}
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                Publier
-                              </button>
-                              <button
-                                disabled={course.role === 'Assistant'}
+                                onClick={() => {
+                                  if (window.confirm(`Voulez-vous vraiment supprimer les points de ${student.name} pour cette épreuve ?`)) {
+                                    const newTempGrades = { ...tempGrades };
+                                    delete newTempGrades[student.id];
+                                    setTempGrades(newTempGrades);
+                                  }
+                                }}
                                 className={`p-2.5 rounded-xl transition-colors ${course.role === 'Assistant'
                                   ? 'text-gray-300 cursor-not-allowed'
                                   : 'hover:bg-red-50 text-red-500'
                                   }`}
+                                title="Effacer la note"
                               >
                                 <Trash2 className="w-5 h-5" />
                               </button>
