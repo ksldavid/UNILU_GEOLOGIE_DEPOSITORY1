@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Lock, Eye, EyeOff, ArrowRight, Shield, Play, Pause } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, ArrowRight, Shield, Play, Pause, GraduationCap, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ContactSupportModal } from './ContactSupportModal';
 import logoImage from '../assets/da1a2f529aca98b88831def6f2dc64f21ceb1b65.png';
@@ -11,26 +11,26 @@ import slide4 from '../assets/slide4.png';
 const slides = [
     {
         image: slide1,
-        title: "Faculté de Science et Technologie : Département de Géologie",
-        subtitle: "Portail Professeur, Assistant et Étudiant",
+        title: "Faculté de Science et Technologie",
+        subtitle: "Département de Géologie",
         quote: "À la découverte de la force de la terre."
     },
     {
         image: slide2,
-        title: "Faculté de Science et Technologie : Département de Géologie",
-        subtitle: "Portail Professeur, Assistant et Étudiant",
+        title: "Expertise Académique",
+        subtitle: "Portail collaboratif UNILU",
         quote: "La géologie : lire dans le livre ouvert de la nature."
     },
     {
         image: slide3,
-        title: "Faculté de Science et Technologie : Département de Géologie",
-        subtitle: "Portail Professeur, Assistant et Étudiant",
+        title: "Innovation Numérique",
+        subtitle: "Gestion moderne des cursus",
         quote: "Le temps est le meilleur architecte de la terre."
     },
     {
         image: slide4,
-        title: "Faculté de Science et Technologie : Département de Géologie",
-        subtitle: "Portail Professeur, Assistant et Étudiant",
+        title: "Réussite Étudiante",
+        subtitle: "Votre avenir commence ici",
         quote: "Étudier le passé de la terre pour construire son futur."
     }
 ];
@@ -44,7 +44,6 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
     const [studentId, setStudentId] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [rememberMe, setRememberMe] = useState(false);
     const [activeTab, setActiveTab] = useState<'student' | 'academic'>('student');
     const [showContactModal, setShowContactModal] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -57,7 +56,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
         if (!isPlaying) return;
         const timer = setInterval(() => {
             setCurrentSlide((prev) => (prev + 1) % slides.length);
-        }, 6000);
+        }, 8000);
         return () => clearInterval(timer);
     }, [isPlaying]);
 
@@ -66,16 +65,11 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
             setIsLoading(true);
             setError(false);
             setRoleMismatch(false);
-
             try {
                 const targetRole = activeTab === 'student' ? 'STUDENT' : 'USER';
                 const result = await onLogin(studentId.trim(), password.trim(), targetRole);
-
-                if (result === 'ROLE_MISMATCH') {
-                    setRoleMismatch(true);
-                } else if (result === 'AUTH_FAILED') {
-                    setError(true);
-                }
+                if (result === 'ROLE_MISMATCH') setRoleMismatch(true);
+                else if (result === 'AUTH_FAILED') setError(true);
             } catch (err) {
                 setError(true);
             } finally {
@@ -86,326 +80,175 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
         }
     };
 
-    const handleAdminAccess = () => {
-        onAdminAccess();
-    };
-
     return (
-        <div className="min-h-screen flex bg-white relative">
-            {/* Left Section - Hero */}
-            <div className="hidden lg:flex split-hero relative overflow-hidden">
-                {/* Slideshow Background */}
-                <div className="absolute inset-0">
-                    <AnimatePresence>
-                        <motion.div
-                            key={currentSlide}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 1.5, ease: "easeInOut" }}
-                            className="absolute inset-0"
-                        >
-                            <img
-                                src={slides[currentSlide].image}
-                                alt=""
-                                className="w-full h-full object-cover"
-                            />
-                        </motion.div>
-                    </AnimatePresence>
-                    {/* Subtle bottom gradient for text readability only */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                </div>
+        <div className="min-h-screen flex bg-slate-950 relative overflow-hidden font-['Outfit']">
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#009485]/10 blur-[150px] -mr-96 -mt-96 rounded-full animate-pulse" />
+            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-600/5 blur-[120px] -ml-48 -mb-48 rounded-full" />
 
-                {/* Content Container */}
-                <div className="relative z-10 flex flex-col justify-between p-16 w-full h-full">
-                    {/* Floating Shield Logo Top Left */}
-                    <div className="animate-fadeIn">
-                        <img
-                            src={logoImage}
-                            alt="UNILU Logo"
-                            className="w-44 h-auto drop-shadow-xl"
-                        />
-                    </div>
+            {/* Left Section - Cinematic Hero */}
+            <div className="hidden lg:flex flex-[1.4] relative overflow-hidden bg-slate-900 m-6 rounded-[50px] shadow-2xl">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={currentSlide}
+                        initial={{ scale: 1.1, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                        transition={{ duration: 2, ease: "easeOut" }}
+                        className="absolute inset-0"
+                    >
+                        <img src={slides[currentSlide].image} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                    </motion.div>
+                </AnimatePresence>
 
-                    {/* Text content at bottom left - MORE RAISED */}
-                    <div className="mb-80">
+                <div className="relative z-10 flex flex-col justify-between p-20 w-full">
+                    <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
+                        <img src={logoImage} alt="UNILU Logo" className="w-48 h-auto drop-shadow-2xl" />
+                    </motion.div>
+
+                    <div className="max-w-2xl">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={currentSlide}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
+                                initial={{ y: 30, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: -30, opacity: 0 }}
                                 transition={{ duration: 0.8 }}
+                                className="space-y-6"
                             >
-                                <h1 className="text-6xl font-black text-white leading-[1.1] mb-4 max-w-2xl drop-shadow-lg">
-                                    {slides[currentSlide].title}
-                                </h1>
-                                <p className="text-2xl text-white font-bold opacity-90 mb-6 drop-shadow-md">
-                                    {slides[currentSlide].subtitle}
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-3">
+                                        <span className="w-12 h-1 bg-[#009485] rounded-full" />
+                                        <span className="text-[#00E5BC] font-black text-xs uppercase tracking-[0.4em]">{slides[currentSlide].subtitle}</span>
+                                    </div>
+                                    <h1 className="text-7xl font-black text-white leading-none tracking-tighter uppercase whitespace-pre-line">
+                                        {slides[currentSlide].title}
+                                    </h1>
+                                </div>
+                                <p className="text-xl text-slate-300 font-medium italic opacity-80 pl-4 border-l-2 border-white/20">
+                                    "{slides[currentSlide].quote}"
                                 </p>
-                                <div className="orange-line" />
                             </motion.div>
                         </AnimatePresence>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <button onClick={onAdminAccess} className="p-4 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl text-white transition-all hover:scale-110">
+                            <Shield className="w-6 h-6" />
+                        </button>
+                        <button onClick={() => setIsPlaying(!isPlaying)} className="p-4 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl text-white transition-all hover:scale-110">
+                            {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+                        </button>
                     </div>
                 </div>
             </div>
 
-
-            {/* Controls Group - Bottom Left */}
-            <div className={`absolute bottom-8 left-8 z-50 flex items-center gap-3 transition-opacity duration-300 ${showContactModal ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                <button
-                    onClick={handleAdminAccess}
-                    className="p-3 bg-black/20 lg:bg-white/10 backdrop-blur-md rounded-full border border-white/20 transition-all text-white hover:scale-110 active:scale-95 shadow-lg"
-                    title="Accès Administration"
+            {/* Right Section - Minimalist Premium Form */}
+            <div className="flex-1 flex flex-col justify-center items-center px-12 lg:px-20 relative z-20">
+                <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="w-full max-w-md space-y-12"
                 >
-                    <Shield className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className="p-3 bg-black/20 lg:bg-white/10 backdrop-blur-md rounded-full border border-white/20 transition-all text-white hover:scale-110 active:scale-95 shadow-lg"
-                    title={isPlaying ? "Arrêter le défilement" : "Lancer le défilement"}
-                >
-                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                </button>
-            </div>
-
-            {/* Right Section - Login Form */}
-            <div className={`flex-1 split-form flex flex-col items-center px-8 bg-white relative transition-all duration-500 ${showContactModal ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                <div className="w-full max-w-sm flex flex-col min-h-full -mt-2 pb-12 justify-center">
-                    {/* Welcome Text at Top */}
-                    <div className="text-center mb-4">
-                        <h2 className="text-6xl font-bold mb-4 text-slate-900 tracking-tight" style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>
-                            Bienvenue
-                        </h2>
-                        <h3 className="text-xl font-bold text-teal-600 mb-2 tracking-wide uppercase" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                            UNIVERSITE DE LUBUMBASHI
-                        </h3>
-                        <p className="text-gray-500 text-sm font-medium">Portail de la Faculté de Science et Technologie : Département de Géologie</p>
+                    <div className="space-y-4 text-center lg:text-left">
+                        <div className="flex items-center justify-center lg:justify-start gap-3">
+                            <div className="w-2 h-2 rounded-full bg-[#009485]" />
+                            <span className="text-[#009485] font-black text-[10px] uppercase tracking-[0.4em]">Portail Officiel</span>
+                        </div>
+                        <h2 className="text-6xl font-black text-white tracking-tighter leading-none">Connexion<span className="text-[#009485]">.</span></h2>
+                        <p className="text-slate-400 text-lg font-medium leading-relaxed">Accédez à votre écosystème académique UNILU - Géologie.</p>
                     </div>
 
-                    <div className="flex-1 flex flex-col pt-4">
-                        <div className="mb-4 flex justify-center lg:justify-start lg:ml-1">
-                            {/* Décoration subtile */}
-                            <div className="w-12 h-1.5 bg-teal-500/10 rounded-full" />
-                        </div>
-
-                        {/* Pill-style Role Tabs */}
-                        <div className="flex p-1.5 bg-gray-50 rounded-2xl mb-6 border border-gray-100">
+                    <div className="space-y-8">
+                        {/* Premium Tabs */}
+                        <div className="flex p-2 bg-slate-900 border border-white/5 rounded-[30px] shadow-2xl">
                             <button
-                                onClick={() => {
-                                    setActiveTab('student');
-                                    setError(false);
-                                    setRoleMismatch(false);
-                                }}
-                                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'student'
-                                    ? 'bg-white text-teal-600 shadow-sm border border-gray-100'
-                                    : 'text-gray-400 hover:text-gray-600'
-                                    }`}
+                                onClick={() => { setActiveTab('student'); setError(false); setRoleMismatch(false); }}
+                                className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-[22px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'student' ? 'bg-[#009485] text-white shadow-xl shadow-teal-950/20' : 'text-slate-500 hover:text-slate-300'}`}
                             >
-                                Étudiant
+                                <GraduationCap className="w-4 h-4" /> Étudiant
                             </button>
                             <button
-                                onClick={() => {
-                                    setActiveTab('academic');
-                                    setError(false);
-                                    setRoleMismatch(false);
-                                }}
-                                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'academic'
-                                    ? 'bg-white text-teal-600 shadow-sm border border-gray-100'
-                                    : 'text-gray-400 hover:text-gray-600'
-                                    }`}
+                                onClick={() => { setActiveTab('academic'); setError(false); setRoleMismatch(false); }}
+                                className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-[22px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'academic' ? 'bg-[#009485] text-white shadow-xl shadow-teal-950/20' : 'text-slate-500 hover:text-slate-300'}`}
                             >
-                                Corps académique et scientifique
+                                <Users className="w-4 h-4" /> Académique
                             </button>
                         </div>
 
-                        {/* Login Form - Removed mt-auto to raise the form */}
-                        <motion.div
-                            className="space-y-6 pb-4"
-                            animate={error ? { x: [-10, 10, -10, 10, 0] } : {}}
-                            transition={{ duration: 0.4 }}
-                        >
-                            {/* Student ID Field */}
-                            <div>
-                                <label className="block text-sm font-bold text-slate-800 mb-2.5 ml-1">
-                                    {activeTab === 'student' ? 'Numéro Étudiant' : 'Identifiant Professionnel'}
-                                </label>
-                                <div className="relative">
-                                    <User className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${error ? 'text-red-400' : 'text-gray-400'}`} />
+                        {/* Login Form */}
+                        <div className="space-y-5">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] pl-6">ID UTILISATEUR</label>
+                                <div className="relative group">
+                                    <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 transition-colors group-focus-within:text-[#00E5BC]" />
                                     <input
                                         type="text"
-                                        placeholder={activeTab === 'student' ? 'Ex: 202300123' : 'Matricule'}
+                                        placeholder={activeTab === 'student' ? "Ex: 2023001" : "Matricule"}
                                         value={studentId}
-                                        onChange={(e) => {
-                                            setStudentId(e.target.value);
-                                            if (error) setError(false);
-                                        }}
-                                        className={`w-full pl-12 pr-4 py-4 bg-gray-50/50 border rounded-2xl text-slate-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${error
-                                            ? 'border-red-300 focus:ring-red-500/20 focus:border-red-500'
-                                            : 'border-gray-200 focus:ring-teal-500/20 focus:border-teal-500/50'
-                                            }`}
+                                        onChange={(e) => setStudentId(e.target.value)}
+                                        className="w-full h-20 pl-16 pr-8 bg-slate-900/50 border border-white/10 rounded-[30px] text-white font-bold placeholder:text-slate-700 outline-none focus:bg-slate-900 focus:border-[#009485] focus:ring-4 focus:ring-teal-500/5 transition-all text-lg"
                                     />
                                 </div>
                             </div>
 
-                            {/* Password Field */}
-                            <div>
-                                <label className="block text-sm font-bold text-slate-800 mb-2.5 ml-1">
-                                    Mot de passe
-                                </label>
-                                <div className="relative">
-                                    <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${error ? 'text-red-400' : 'text-gray-400'}`} />
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] pl-6">MOT DE PASSE</label>
+                                <div className="relative group">
+                                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 transition-colors group-focus-within:text-[#00E5BC]" />
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         placeholder="••••••••"
                                         value={password}
-                                        onChange={(e) => {
-                                            setPassword(e.target.value);
-                                            if (error) setError(false);
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                handleLogin();
-                                            }
-                                        }}
-                                        className={`w-full pl-12 pr-12 py-4 bg-gray-50/50 border rounded-2xl text-slate-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${error
-                                            ? 'border-red-300 focus:ring-red-500/20 focus:border-red-500'
-                                            : 'border-gray-200 focus:ring-teal-500/20 focus:border-teal-500/50'
-                                            }`}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                                        className="w-full h-20 pl-16 pr-20 bg-slate-900/50 border border-white/10 rounded-[30px] text-white font-bold placeholder:text-slate-700 outline-none focus:bg-slate-900 focus:border-[#009485] focus:ring-4 focus:ring-teal-500/5 transition-all text-lg"
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10"
-                                    >
+                                    <button onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
                                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                     </button>
                                 </div>
-                                <AnimatePresence>
-                                    {error && (
-                                        <motion.p
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="text-red-500 text-xs font-bold mt-2 ml-1"
-                                        >
-                                            Identifiant ou mot de passe incorrect.
-                                        </motion.p>
-                                    )}
-                                    {roleMismatch && (
-                                        <motion.p
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="text-red-500 text-xs font-bold mt-2 ml-1 leading-relaxed"
-                                        >
-                                            ❌ Cet identifiant n'appartient pas à cet onglet.
-                                            Veuillez sélectionner l'onglet "{activeTab === 'student' ? 'Corps Académique' : 'Étudiant'}" pour vous connecter.
-                                        </motion.p>
-                                    )}
-                                </AnimatePresence>
                             </div>
 
-                            <div className="flex items-center justify-between gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                    <input
-                                        type="checkbox"
-                                        checked={rememberMe}
-                                        onChange={(e) => setRememberMe(e.target.checked)}
-                                        className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
-                                    />
-                                    <span className="text-sm text-gray-600 font-medium group-hover:text-gray-800 transition-colors">Se souvenir de moi</span>
-                                </label>
-                            </div>
+                            <AnimatePresence>
+                                {(error || roleMismatch) && (
+                                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-6 py-4 bg-rose-500/10 border border-rose-500/20 rounded-[24px]">
+                                        <p className="text-rose-400 text-xs font-black uppercase tracking-widest text-center">
+                                            {error ? "Identifiants Invalides" : `Changement d'onglet requis: ${activeTab === 'student' ? 'Corps Académique' : 'Étudiant'}`}
+                                        </p>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
-                            {/* Submit Button */}
                             <button
                                 onClick={handleLogin}
                                 disabled={isLoading}
-                                className={`w-full h-14 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-bold rounded-2xl shadow-lg shadow-teal-500/20 transition-all flex items-center justify-center relative overflow-hidden active:scale-[0.98] disabled:cursor-not-allowed mt-2`}
+                                className="w-full h-20 bg-white hover:bg-[#009485] text-slate-950 hover:text-white rounded-[30px] font-black text-[13px] uppercase tracking-[0.4em] transition-all duration-500 shadow-2xl flex items-center justify-center gap-6 group disabled:bg-slate-800 disabled:text-slate-500 active:scale-95"
                             >
-                                <AnimatePresence mode="wait">
-                                    {isLoading ? (
-                                        <motion.div
-                                            key="loader"
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -10 }}
-                                            className="flex gap-1.5"
-                                        >
-                                            {[0, 1, 2].map((i) => (
-                                                <motion.div
-                                                    key={i}
-                                                    className="w-2 h-2 bg-white rounded-full"
-                                                    animate={{
-                                                        y: [0, -6, 0],
-                                                        opacity: [0.5, 1, 0.5]
-                                                    }}
-                                                    transition={{
-                                                        duration: 0.6,
-                                                        repeat: Infinity,
-                                                        delay: i * 0.1,
-                                                        ease: "easeInOut"
-                                                    }}
-                                                />
-                                            ))}
-                                        </motion.div>
-                                    ) : (
-                                        <motion.div
-                                            key="content"
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -10 }}
-                                            className="flex items-center gap-2"
-                                        >
-                                            Se connecter
-                                            <ArrowRight className="w-5 h-5" />
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </button>
-
-
-                        </motion.div>
-                    </div>
-
-                    {/* Footer Section */}
-                    <div className={`mt-auto pt-10 transition-opacity duration-300 ${showContactModal ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                        <div className="h-px bg-gray-100 w-full mb-8" />
-                        <div className="text-center text-xs text-gray-500">
-                            Vous rencontrez un problème technique ?{' '}
-                            <button
-                                onClick={() => setShowContactModal(true)}
-                                className="text-slate-600 font-bold hover:underline"
-                            >
-                                Support administratif
+                                {isLoading ? (
+                                    <Loader2 className="w-6 h-6 animate-spin" />
+                                ) : (
+                                    <>Authentification <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-2" /></>
+                                )}
                             </button>
                         </div>
                     </div>
-                </div>
+
+                    <div className="pt-10 border-t border-white/5 flex flex-col items-center gap-4 text-center">
+                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-relaxed">
+                            Difficultés d'accès ? Contactez le
+                            <button onClick={() => setShowContactModal(true)} className="ml-2 text-[#00E5BC] hover:underline">Support Académique</button>
+                        </p>
+                    </div>
+                </motion.div>
             </div>
 
-            {/* Contact Support Modal / Questionnaire */}
-            <ContactSupportModal
-                isOpen={showContactModal}
-                onClose={() => setShowContactModal(false)}
-            />
-
-            <style>{`
-                @keyframes fadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateX(-20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
-                }
-                .animate-fadeIn {
-                    animation: fadeIn 0.8s ease-out;
-                }
-            `}</style>
+            <ContactSupportModal isOpen={showContactModal} onClose={() => setShowContactModal(false)} />
         </div>
     );
+}
+
+function Loader2({ className }: { className?: string }) {
+    return <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className={className}><Users className="w-full h-full" /></motion.div>;
 }
