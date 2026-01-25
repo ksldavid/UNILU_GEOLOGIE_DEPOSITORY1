@@ -408,28 +408,49 @@ export const saveAttendance = async (req: AuthRequest, res: Response) => {
 
         if (!session) throw new Error("Impossible de créer la session");
 
-        const upsertOperations = records.map((record: any) => {
+        // Get all enrolled students for this course
+        const enrolledStudents = await prisma.studentCourseEnrollment.findMany({
+            where: {
+                courseCode,
+                isActive: true
+            },
+            select: {
+                userId: true
+            }
+        });
+
+        const enrolledStudentIds = enrolledStudents.map(e => e.userId);
+
+        // Create a map of records provided by the professor
+        const recordsMap = new Map(records.map((r: any) => [r.studentId, r.status]));
+
+        // Prepare upsert operations for all enrolled students
+        const upsertOperations = enrolledStudentIds.map((studentId) => {
             const statusMap: any = {
                 'present': 'PRESENT',
                 'absent': 'ABSENT',
                 'late': 'LATE'
             };
 
+            // If professor provided a status, use it; otherwise mark as ABSENT
+            const providedStatus = recordsMap.get(studentId);
+            const finalStatus = providedStatus ? statusMap[providedStatus] || 'ABSENT' : 'ABSENT';
+
             return prisma.attendanceRecord.upsert({
                 where: {
                     sessionId_studentId: {
                         sessionId: session!.id,
-                        studentId: record.studentId
+                        studentId: studentId
                     }
                 },
                 update: {
-                    status: statusMap[record.status] || 'ABSENT',
+                    status: finalStatus,
                     modifiedBy: userId
                 },
                 create: {
                     sessionId: session!.id,
-                    studentId: record.studentId,
-                    status: statusMap[record.status] || 'ABSENT',
+                    studentId: studentId,
+                    status: finalStatus,
                     modifiedBy: userId
                 }
             });
@@ -437,7 +458,12 @@ export const saveAttendance = async (req: AuthRequest, res: Response) => {
 
         await prisma.$transaction(upsertOperations);
 
-        res.json({ message: 'Présences enregistrées avec succès', sessionId: session.id });
+        res.json({
+            message: 'Présences enregistrées avec succès',
+            sessionId: session.id,
+            totalStudents: enrolledStudentIds.length,
+            recordedStudents: records.length
+        });
 
     } catch (error) {
         console.error('Erreur sauvegarde présence:', error);
@@ -1065,6 +1091,93 @@ export const getCoursePerformance = async (req: AuthRequest, res: Response) => {
         res.json(response);
     } catch (error) {
         console.error('Erreur stats performance cours:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}
+
+/**
+ * Synchronise les absences pour les sessions passées
+ * Marque automatiquement comme ABSENT tous les étudiants inscrits
+ * qui n'ont pas d'enregistrement de présence pour les sessions passées
+ */
+export const syncPastAttendance = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.userId;
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        // Get all past sessions (before today)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const pastSessions = await prisma.attendanceSession.findMany({
+            where: {
+                date: {
+                    lt: today
+                }
+            }
+        });
+
+        let totalSynced = 0;
+        const operations = [];
+
+        for (const session of pastSessions) {
+            // Get all enrolled students for this course
+            const enrolledStudents = await prisma.studentCourseEnrollment.findMany({
+                where: {
+                    courseCode: session.courseCode,
+                    isActive: true
+                },
+                select: {
+                    userId: true
+                }
+            });
+
+            const enrolledStudentIds = enrolledStudents.map((e: any) => e.userId);
+
+            // Get students who already have a record
+            const existingRecords = await prisma.attendanceRecord.findMany({
+                where: {
+                    sessionId: session.id
+                },
+                select: {
+                    studentId: true
+                }
+            });
+
+            const recordedStudentIds = new Set(existingRecords.map((r: any) => r.studentId));
+
+            // Find students without a record
+            const missingStudentIds = enrolledStudentIds.filter((id: string) => !recordedStudentIds.has(id));
+
+            // Create ABSENT records for missing students
+            for (const studentId of missingStudentIds) {
+                operations.push(
+                    prisma.attendanceRecord.create({
+                        data: {
+                            sessionId: session.id,
+                            studentId: studentId,
+                            status: 'ABSENT',
+                            modifiedBy: 'SYSTEM' // Marqué par le système
+                        }
+                    })
+                );
+                totalSynced++;
+            }
+        }
+
+        // Execute all operations in a transaction
+        if (operations.length > 0) {
+            await prisma.$transaction(operations);
+        }
+
+        res.json({
+            message: 'Synchronisation terminée',
+            sessionsProcessed: pastSessions.length,
+            recordsCreated: totalSynced
+        });
+
+    } catch (error) {
+        console.error('Erreur sync présences passées:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 }

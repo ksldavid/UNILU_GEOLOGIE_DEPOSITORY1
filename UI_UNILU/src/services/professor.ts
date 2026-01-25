@@ -269,5 +269,13 @@ export const professorService = {
             headers: getHeaders()
         });
         return handleResponse(response, "Erreur lors de la récupération des statistiques de performance");
+    },
+
+    async syncPastAttendance() {
+        const response = await fetch(`${PROFESSOR_API_URL}/attendance/sync-past`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        return handleResponse(response, "Erreur lors de la synchronisation des présences passées");
     }
 };

@@ -58,12 +58,30 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
   const fetchHistory = async () => {
     setLoadingHistory(true);
     try {
+      // Automatic sync before fetching history to ensure counts are correct
+      await professorService.syncPastAttendance();
       const data = await professorService.getAttendanceHistory(course.code);
       setHistory(data);
     } catch (error) {
       console.error("Error fetching history:", error);
     } finally {
       setLoadingHistory(false);
+    }
+  };
+
+  const handleSyncPastRecords = async () => {
+    setIsRefreshing(true);
+    try {
+      const result = await professorService.syncPastAttendance();
+      alert(`${result.recordsCreated} absences ont été synchronisées pour vos sessions passées.`);
+      if (activeTab === 'history') {
+        fetchHistory();
+      }
+    } catch (error) {
+      console.error("Error syncing:", error);
+      alert("Erreur lors de la synchronisation.");
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -425,8 +443,17 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
                   Exporter CSV
                 </button>
                 <button
+                  onClick={handleSyncPastRecords}
+                  disabled={isRefreshing}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 hover:text-orange-700 hover:bg-orange-100 border border-orange-200 rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50"
+                  title="Synchroniser les absences pour les cours passés"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  Sync. Absences
+                </button>
+                <button
                   onClick={handleSave}
-                  className="flex items-center gap-2 px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors font-semibold shadow-md"
+                  className="flex items-center gap-2 px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors font-semibold shadow-md translate-y-0 active:translate-y-0.5"
                 >
                   <Save className="w-4 h-4" />
                   Enregistrer

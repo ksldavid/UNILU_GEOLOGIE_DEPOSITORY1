@@ -1,5 +1,26 @@
 import { Router } from 'express'
-import { getProfessorDashboard, getProfessorCourses, getProfessorStudents, getProfessorSchedule, saveAttendance, getStudentPerformance, unenrollStudent, searchStudents, enrollStudent, createAssessment, getCourseAssessments, saveGrades, uploadCourseResource, getCourseResources, deleteCourseResource, deleteAssessment, publishAssessment, requestGradeChange, getCoursePerformance } from '../controllers/professor.controller'
+import {
+    getProfessorDashboard,
+    getProfessorCourses,
+    getProfessorStudents,
+    getProfessorSchedule,
+    saveAttendance,
+    getStudentPerformance,
+    unenrollStudent,
+    searchStudents,
+    enrollStudent,
+    createAssessment,
+    getCourseAssessments,
+    saveGrades,
+    uploadCourseResource,
+    getCourseResources,
+    deleteCourseResource,
+    deleteAssessment,
+    publishAssessment,
+    requestGradeChange,
+    getCoursePerformance,
+    syncPastAttendance
+} from '../controllers/professor.controller'
 import { getProfessorAttendanceHistory } from '../controllers/professor-history.controller'
 import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 import { upload } from '../middleware/upload.middleware'
@@ -14,6 +35,7 @@ router.get('/students', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACAD
 router.get('/students/:studentId/performance', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), getStudentPerformance)
 router.get('/schedule', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), getProfessorSchedule)
 router.post('/attendance', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), saveAttendance)
+router.post('/attendance/sync-past', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), syncPastAttendance)
 router.post('/unenroll-student', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), unenrollStudent)
 router.get('/search-students', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), searchStudents)
 router.post('/enroll-student', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), enrollStudent)
