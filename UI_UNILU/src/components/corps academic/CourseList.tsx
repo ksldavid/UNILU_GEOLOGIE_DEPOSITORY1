@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
-import { MoreVertical, CheckCircle2, Trash2, ShieldAlert, AlertCircle, Settings2 } from "lucide-react";
+import { MoreVertical, CheckCircle2, Trash2, ShieldAlert, AlertCircle, Settings2, ArrowRight } from "lucide-react";
 
 interface CourseListProps {
   onCourseSelect: (course: Course) => void;
@@ -97,12 +97,12 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
           return (
             <div
               key={course.id}
-              className={`group relative bg-white border border-gray-100 rounded-[32px] p-8 transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 ${isFinished ? 'opacity-80 grayscale-[0.3]' : ''}`}
+              className={`group relative bg-white border border-slate-100 rounded-[40px] p-8 transition-all duration-500 hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-2 ${isFinished ? 'opacity-75 grayscale-[0.4]' : ''}`}
             >
               {/* Overlapping Status overlay for finished courses */}
               {isFinished && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-                  <span className="bg-slate-800 text-white text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1 rounded-full shadow-lg flex items-center gap-2">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 scale-90">
+                  <span className="bg-slate-800 text-white text-[9px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full shadow-xl flex items-center gap-2 border border-slate-700">
                     <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                     Cours Terminé
                   </span>
@@ -110,10 +110,10 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
               )}
 
               {/* Options Menu Button */}
-              <div className="absolute top-6 right-6 z-20">
+              <div className="absolute top-8 right-8 z-20">
                 <button
                   onClick={() => setActiveMenu(activeMenu === course.id ? null : course.id)}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-900"
+                  className="p-2.5 bg-slate-50 hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 rounded-xl transition-all text-slate-400 hover:text-slate-900"
                 >
                   <MoreVertical className="w-5 h-5" />
                 </button>
@@ -122,11 +122,14 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
                 {activeMenu === course.id && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setActiveMenu(null)}></div>
-                    <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-2xl z-20 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="absolute right-0 mt-3 w-64 bg-white border border-slate-100 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] z-20 py-3 animate-in fade-in slide-in-from-top-4 duration-300">
+                      <div className="px-4 py-2 border-b border-slate-50 mb-2">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Options académiques</p>
+                      </div>
                       {isFinished ? (
                         <button
                           onClick={() => handleReactivateCourse(course.code)}
-                          className="w-full text-left px-4 py-3 text-sm font-bold text-teal-600 hover:bg-teal-50 flex items-center gap-3"
+                          className="w-full text-left px-4 py-3 text-sm font-bold text-teal-600 hover:bg-teal-50 flex items-center gap-3 transition-colors"
                         >
                           <AlertCircle className="w-4 h-4" />
                           Réactiver le cours
@@ -134,21 +137,21 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
                       ) : (
                         <button
                           onClick={() => handleFinishCourse(course.code)}
-                          className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-gray-50 flex items-center gap-3"
+                          className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                         >
                           <CheckCircle2 className="w-4 h-4" />
                           Finir le cours
                         </button>
                       )}
 
-                      <div className="h-px bg-gray-50 my-1 mx-2" />
+                      <div className="h-px bg-slate-50 my-1 mx-2" />
 
                       <button
                         onClick={() => {
                           setActiveMenu(null);
                           setShowDeleteModal(course);
                         }}
-                        className="w-full text-left px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-3"
+                        className="w-full text-left px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                         Supprimer le cours
@@ -158,40 +161,50 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
                 )}
               </div>
 
+              {/* Card Content */}
               <div className="mb-6 flex flex-wrap items-center gap-2 pr-8">
-                <span className={`inline-block ${colorClasses.bg} ${colorClasses.text} px-3 py-1 rounded-lg text-[11px] font-black tracking-widest uppercase`}>
+                <span className={`inline-block ${colorClasses.bg} ${colorClasses.text} px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm border border-transparent`}>
                   {course.code}
                 </span>
-                <span className={`inline-block px-3 py-1 rounded-lg text-[11px] font-black tracking-widest uppercase ${course.role === 'Professeur' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-600'}`}>
+                <span className={`inline-block px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm ${course.role === 'Professeur' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-600'}`}>
                   {course.role || 'Professeur'}
                 </span>
               </div>
 
-              <div className="mb-2">
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{course.level}</span>
-                <h3 className={`text-xl font-bold text-gray-900 mt-1 leading-tight h-14 line-clamp-2 ${isFinished ? 'text-gray-500' : ''}`}>
+              <div className="mb-4">
+                <div className="flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-[0.2em] mb-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
+                  {course.level}
+                </div>
+                <h3 className={`text-2xl font-black text-slate-900 mt-1 leading-[1.2] min-h-[64px] line-clamp-2 tracking-tight group-hover:text-teal-900 transition-colors ${isFinished ? 'text-slate-500' : ''}`}>
                   {course.name}
                 </h3>
               </div>
 
-              <div className="space-y-2 mb-8 min-h-[48px]">
+              <div className="space-y-4 mb-10 pt-6 border-t border-slate-50">
                 {course.schedule.split('\n').map((line, index) => (
-                  <div key={index} className="flex items-center gap-2 text-gray-400 font-medium text-xs">
-                    <div className="w-1 h-1 rounded-full bg-gray-200" />
-                    {line}
+                  <div key={index} className="flex items-center gap-3 text-slate-400 font-bold text-[11px] uppercase tracking-wider group/line">
+                    <div className="p-2 bg-slate-50 rounded-lg group-hover/line:bg-teal-50 group-hover/line:text-teal-600 transition-colors">
+                      <Settings2 className="w-3.5 h-3.5 opacity-50" />
+                    </div>
+                    <span>{line}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="relative group/btn">
+                <div className="absolute inset-0 bg-teal-600 blur-xl opacity-0 group-hover/btn:opacity-20 transition-opacity rounded-2xl" />
                 <button
                   onClick={() => onCourseSelect(course)}
-                  className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl transition-all font-black text-xs uppercase tracking-widest active:scale-[0.98] shadow-lg ${isFinished
-                    ? 'bg-slate-300 text-slate-600 shadow-slate-100 cursor-not-allowed cursor-pointer opacity-80'
-                    : 'bg-[#1B4332] hover:bg-[#123124] text-white shadow-teal-100'}`}
+                  className={`w-full relative flex items-center justify-between px-10 py-5 rounded-[26px] transition-all duration-300 font-black text-[11px] uppercase tracking-[0.25em] active:scale-[0.98] shadow-lg ${isFinished
+                    ? 'bg-slate-100 text-slate-400 border-2 border-slate-200 shadow-none'
+                    : 'bg-[#123124] hover:bg-[#0D261C] text-white shadow-teal-900/10 hover:shadow-teal-900/20'}`}
                 >
-                  <Settings2 className="w-4 h-4" />
-                  Gérer le cours
+                  <div className="flex items-center gap-4">
+                    <Settings2 className="w-5 h-5 text-teal-400 group-hover/btn:rotate-180 transition-transform duration-700" />
+                    <span>Gérer le cours</span>
+                  </div>
+                  <ArrowRight className="w-5 h-5 opacity-0 -translate-x-4 group-hover/btn:opacity-100 group-hover/btn:translate-x-0 transition-all duration-500" />
                 </button>
               </div>
             </div>
