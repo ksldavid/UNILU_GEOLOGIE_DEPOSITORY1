@@ -528,8 +528,8 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   ];
 
   const filteredGlobalStudents = globalStudents.filter(s =>
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.matricule.toLowerCase().includes(searchQuery.toLowerCase())
+    (s.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+    (s.id?.toLowerCase() || "").includes(searchQuery.toLowerCase())
   );
 
   // Global Components (Modals & Inputs)
@@ -1023,7 +1023,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                         </div>
                         <div>
                           <div className="font-bold text-gray-900">{s.name}</div>
-                          <div className="text-xs text-gray-400 font-bold">{s.matricule}</div>
+                          <div className="text-xs text-gray-400 font-bold">{s.id}</div>
                         </div>
                       </div>
                       <Plus className="w-5 h-5 text-gray-300 group-hover:text-teal-600" />
@@ -1046,7 +1046,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                     </div>
                     <div>
                       <div className="text-lg font-black text-gray-900">{selectedStudentToAdd.name}</div>
-                      <div className="text-sm text-teal-600 font-bold uppercase tracking-widest">{selectedStudentToAdd.matricule}</div>
+                      <div className="text-sm text-teal-600 font-bold uppercase tracking-widest">{selectedStudentToAdd.id}</div>
                     </div>
                   </div>
                   <button onClick={() => setSelectedStudentToAdd(null)} className="p-2 hover:bg-teal-100 rounded-full text-teal-600">
