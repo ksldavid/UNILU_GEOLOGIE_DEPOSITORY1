@@ -1046,22 +1046,37 @@ export const getCoursePerformance = async (req: AuthRequest, res: Response) => {
             where: { courseCode, isActive: true }
         });
 
-        const examStats = assessments.map(exam => {
-            const totalGrades = exam.grades.length;
-            const successCount = exam.grades.filter(g => g.score >= (exam.maxPoints / 2)).length;
-            const failureCount = totalGrades - successCount;
+        const examStats = await Promise.all(assessments.map(async (exam) => {
+            const totalWithGrades = exam.grades.length;
+
+            // Get student IDs and details for success/failure
+            const successGrades = exam.grades.filter(g => g.score >= (exam.maxPoints / 2));
+            const failureGrades = exam.grades.filter(g => g.score < (exam.maxPoints / 2));
+
+            const successCount = successGrades.length;
+            const failureCount = totalWithGrades - successCount;
             const sumScores = exam.grades.reduce((sum, g) => sum + g.score, 0);
+
+            // Fetch names for these students to make stats "real"
+            const studentIds = exam.grades.map(g => g.studentId);
+            const students = await prisma.user.findMany({
+                where: { id: { in: studentIds } },
+                select: { id: true, name: true }
+            });
+            const studentMap = new Map(students.map(s => [s.id, s.name]));
 
             return {
                 id: exam.id,
                 title: exam.title,
-                success: totalGrades > 0 ? Math.round((successCount / totalGrades) * 100) : 0,
-                failure: totalGrades > 0 ? Math.round((failureCount / totalGrades) * 100) : 0,
-                avg: totalGrades > 0 ? parseFloat((sumScores / totalGrades).toFixed(1)) : 0,
-                total: totalGrades,
-                enrolled: enrolledStudentsCount
+                success: totalWithGrades > 0 ? Math.round((successCount / totalWithGrades) * 100) : 0,
+                failure: totalWithGrades > 0 ? Math.round((failureCount / totalWithGrades) * 100) : 0,
+                avg: totalWithGrades > 0 ? parseFloat((sumScores / totalWithGrades).toFixed(1)) : 0,
+                total: totalWithGrades,
+                enrolled: enrolledStudentsCount,
+                successList: successGrades.map(g => ({ id: g.studentId, name: studentMap.get(g.studentId), score: g.score })),
+                failureList: failureGrades.map(g => ({ id: g.studentId, name: studentMap.get(g.studentId), score: g.score }))
             };
-        });
+        }));
 
         let globalSuccess = 0;
         let globalFailure = 0;

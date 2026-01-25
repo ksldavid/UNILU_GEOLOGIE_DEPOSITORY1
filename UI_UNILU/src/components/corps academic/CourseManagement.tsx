@@ -1673,8 +1673,8 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           </div>
         </div>
 
-        <div className="flex justify-center">
-          <div className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-sm flex flex-col items-center justify-center min-h-[400px] w-full max-w-3xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-sm flex flex-col items-center justify-center min-h-[400px]">
             <h3 className="text-xl font-black text-gray-900 mb-10 self-start">Visualisation des Résultats</h3>
 
             <div className="relative w-72 h-72 flex items-center justify-center">
@@ -1704,9 +1704,64 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
               </div>
             </div>
 
-            <button className="mt-12 bg-gray-50 text-gray-900 px-10 py-4 rounded-2xl font-black hover:bg-gray-100 transition-all border border-gray-100 shadow-sm active:scale-95">
+            <button className="mt-12 bg-gray-50 text-gray-900 px-10 py-4 rounded-2xl font-black hover:bg-gray-100 transition-all border border-gray-100 shadow-sm active:scale-95 w-full">
               Exporter le rapport PDF
             </button>
+          </div>
+
+          {/* Success/Failure Student Lists */}
+          <div className="space-y-6">
+            {/* Success List */}
+            <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm max-h-[500px] flex flex-col">
+              <h3 className="text-lg font-black text-emerald-600 mb-6 flex items-center gap-3 uppercase tracking-tight">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                Réussites ({currentStats.successList?.length || 0})
+              </h3>
+              <div className="overflow-y-auto custom-scrollbar flex-1 space-y-3 pr-2">
+                {currentStats.successList?.length > 0 ? currentStats.successList.map((s: any) => (
+                  <div key={s.id} className="flex items-center justify-between p-4 bg-emerald-50/30 rounded-2xl border border-emerald-100/50 group hover:bg-emerald-50 transition-all">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center font-black text-emerald-600 text-xs shadow-sm">
+                        {s.name?.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900 text-sm">{s.name}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">{s.id}</p>
+                      </div>
+                    </div>
+                    <div className="text-emerald-600 font-black text-base">{s.score}<span className="text-[10px] text-emerald-300">/20</span></div>
+                  </div>
+                )) : (
+                  <p className="text-gray-400 text-sm italic text-center py-10 font-medium">Aucun étudiant dans cette catégorie</p>
+                )}
+              </div>
+            </div>
+
+            {/* Failure List */}
+            <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm max-h-[500px] flex flex-col">
+              <h3 className="text-lg font-black text-rose-500 mb-6 flex items-center gap-3 uppercase tracking-tight">
+                <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
+                Échecs ({currentStats.failureList?.length || 0} étudiants)
+              </h3>
+              <div className="overflow-y-auto custom-scrollbar flex-1 space-y-3 pr-2">
+                {currentStats.failureList?.length > 0 ? currentStats.failureList.map((s: any) => (
+                  <div key={s.id} className="flex items-center justify-between p-4 bg-rose-50/30 rounded-2xl border border-rose-100/50 group hover:bg-rose-50 transition-all">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center font-black text-rose-500 text-xs shadow-sm">
+                        {s.name?.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900 text-sm">{s.name}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">{s.id}</p>
+                      </div>
+                    </div>
+                    <div className="text-rose-500 font-black text-base">{s.score}<span className="text-[10px] text-rose-300">/20</span></div>
+                  </div>
+                )) : (
+                  <p className="text-gray-400 text-sm italic text-center py-10 font-medium">Aucun étudiant dans cette catégorie</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
