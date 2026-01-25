@@ -430,28 +430,6 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
                   {isRefreshing ? 'Actualisation...' : 'Rafraîchir'}
                 </button>
                 <button
-                  onClick={() => setSelectedStatus({})}
-                  className="px-4 py-2 bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-50 border border-gray-200 rounded-lg font-medium transition-colors shadow-sm"
-                >
-                  Réinitialiser
-                </button>
-                <button
-                  onClick={handleDownloadCSV}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border border-emerald-200 rounded-lg font-medium transition-colors shadow-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  Exporter CSV
-                </button>
-                <button
-                  onClick={handleSyncPastRecords}
-                  disabled={isRefreshing}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 hover:text-orange-700 hover:bg-orange-100 border border-orange-200 rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50"
-                  title="Synchroniser les absences pour les cours passés"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  Sync. Absences
-                </button>
-                <button
                   onClick={handleSave}
                   className="flex items-center gap-2 px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors font-semibold shadow-md translate-y-0 active:translate-y-0.5"
                 >
