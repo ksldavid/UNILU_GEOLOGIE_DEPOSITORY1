@@ -32,23 +32,35 @@ export const authService = {
             throw new Error(data.message || 'Échec de la connexion');
         }
 
-        // Stocker le token
+        // Stocker le token dans sessionStorage au lieu de sessionStorage
+        // sessionStorage est effacé quand l'onglet/navigateur est fermé
         if (data.token) {
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            sessionStorage.setItem('token', data.token);
+            sessionStorage.setItem('user', JSON.stringify(data.user));
+            // On peut garder 'readProfAnnouncements' dans sessionStorage car c'est une préférence utilisateur non sensible
         }
 
-        return data; // Contient { message, token, user }
+        return data;
     },
 
     logout() {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        // Rediriger vers la racine pour s'assurer que l'utilisateur voit la page de login
+        window.location.href = '/';
     },
 
     getCurrentUser() {
-        const userStr = localStorage.getItem('user');
+        const userStr = sessionStorage.getItem('user');
         if (userStr) return JSON.parse(userStr);
         return null;
+    },
+
+    getToken() {
+        return sessionStorage.getItem('token');
+    },
+
+    isAuthenticated() {
+        return !!this.getToken();
     }
 };

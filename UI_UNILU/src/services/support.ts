@@ -2,7 +2,7 @@ import { API_URL } from './config';
 
 export const supportService = {
     async createTicket(ticketData: { subject: string, category: string, priority: string, message: string }) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/support/tickets`, {
             method: 'POST',
             headers: {
@@ -16,7 +16,7 @@ export const supportService = {
     },
 
     async getMyTickets() {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/support/tickets`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -25,7 +25,7 @@ export const supportService = {
     },
 
     async getTicketDetails(ticketId: string) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/support/tickets/${ticketId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -34,7 +34,7 @@ export const supportService = {
     },
 
     async addMessage(ticketId: string, content: string) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/support/messages`, {
             method: 'POST',
             headers: {
@@ -48,7 +48,7 @@ export const supportService = {
     },
 
     async getNotifications() {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/support/notifications`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -57,7 +57,7 @@ export const supportService = {
     },
 
     async markNotificationRead(id: string) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/support/notifications/${id}/read`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}` }
@@ -68,7 +68,7 @@ export const supportService = {
 
     // --- ADMIN / SUPPORT FUNCTIONS ---
     async adminGetAllTickets() {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/support/admin/tickets`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -77,7 +77,7 @@ export const supportService = {
     },
 
     async adminUpdateTicketStatus(ticketId: string, status: string) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/support/admin/tickets/${ticketId}/status`, {
             method: 'PUT',
             headers: {

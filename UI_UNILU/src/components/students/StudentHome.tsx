@@ -55,7 +55,7 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
       }
     }
 
-    localStorage.setItem('offline_attendance_scans', JSON.stringify(remainingScans));
+    sessionStorage.setItem('offline_attendance_scans', JSON.stringify(remainingScans));
     if (remainingScans.length === 0) {
       toast.success("Toutes les présences ont été synchronisées !");
     } else {
@@ -128,7 +128,7 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
             // Sauvegarde locale pour synchronisation ultérieure (Simulation)
             const offlineScans = JSON.parse(localStorage.getItem('offline_attendance_scans') || '[]');
             offlineScans.push({ token: decodedText, lat: latitude, lon: longitude, time: new Date() });
-            localStorage.setItem('offline_attendance_scans', JSON.stringify(offlineScans));
+            sessionStorage.setItem('offline_attendance_scans', JSON.stringify(offlineScans));
             toast.warning("Mode Hors-Ligne : Présence sauvegardée localement. Elle sera transmise dès le retour de la connexion.");
             setShowScanner(false);
           } else {
@@ -214,7 +214,7 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
             transition={{ delay: 0.3 }}
           >
             <h1 className="text-white text-5xl font-black mb-4 tracking-tight">
-              Bonjour, <span className="text-blue-400">{JSON.parse(localStorage.getItem('user') || '{}').name?.split(' ')[0] || 'Étudiant'}</span> 👋
+              Bonjour, <span className="text-blue-400">{JSON.parse(sessionStorage.getItem('user') || '{}').name?.split(' ')[0] || 'Étudiant'}</span> 👋
             </h1>
             <div className="h-20">
               <motion.p

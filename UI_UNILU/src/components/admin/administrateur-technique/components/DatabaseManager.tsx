@@ -16,7 +16,7 @@ export function DatabaseManager() {
     const fetchStats = useCallback(async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             const res = await fetch(`${API_URL}/database/stats`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -39,7 +39,7 @@ export function DatabaseManager() {
         if (!query.trim()) return;
         setIsRunning(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             const res = await fetch(`${API_URL}/database/query`, {
                 method: 'POST',
                 headers: {

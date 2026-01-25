@@ -133,14 +133,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const handleDismissReminder = (id: number) => {
     const updated = [...dismissedReminders, id];
     setDismissedReminders(updated);
-    localStorage.setItem('professor_dismissed_reminders', JSON.stringify(updated));
+    sessionStorage.setItem('professor_dismissed_reminders', JSON.stringify(updated));
   };
 
   const handleMarkAsRead = (id: string) => {
     if (!readAnnouncementIds.includes(id)) {
       const updated = [...readAnnouncementIds, id];
       setReadAnnouncementIds(updated);
-      localStorage.setItem('readProfAnnouncements', JSON.stringify(updated));
+      sessionStorage.setItem('readProfAnnouncements', JSON.stringify(updated));
       // Trigger a storage event so App.tsx can pick up the change if listening
       window.dispatchEvent(new Event('storage'));
     }

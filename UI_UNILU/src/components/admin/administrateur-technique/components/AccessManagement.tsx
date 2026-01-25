@@ -29,7 +29,7 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             const query = new URLSearchParams({
                 search: searchTerm,
                 role: selectedRole,
@@ -71,7 +71,7 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
         if (!window.confirm(`Voulez-vous vraiment ${user.status === 'Actif' ? 'bloquer' : 'débloquer'} l'accès pour ${user.name} ?`)) return;
 
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             const res = await fetch(`${API_URL}/admin/users/${user.id}/status`, {
                 method: 'PATCH',
                 headers: {
@@ -92,7 +92,7 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
         if (!window.confirm(`ACTION IRRÉVERSIBLE : Supprimer définitivement le compte de ${user.name} ?`)) return;
 
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             const res = await fetch(`${API_URL}/admin/users/${user.id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -407,7 +407,7 @@ function PasswordEditModal({ user, onClose, onSuccess }: { user: any, onClose: (
         if (!newPassword) return alert("Veuillez saisir un mot de passe.");
         setIsSaving(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             const res = await fetch(`${API_URL}/admin/users/${user.id}/password`, {
                 method: 'PATCH',
                 headers: {

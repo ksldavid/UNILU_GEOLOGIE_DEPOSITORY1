@@ -237,7 +237,7 @@ export function InscriptionsManager() {
   const fetchSuggestions = async () => {
     if (!formData.nom && !formData.prenom) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const fullName = `${formData.nom} ${formData.prenom}`;
       const res = await fetch(`${API_URL}/admin/credentials/suggest?role=${newUserType === 'student' ? 'student' : 'prof'}&name=${encodeURIComponent(fullName)}`, {
         headers: { 'Authorization': `Bearer ${token}` }

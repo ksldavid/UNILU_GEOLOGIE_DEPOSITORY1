@@ -2,13 +2,11 @@ import API_URL from './config';
 const PROFESSOR_API_URL = `${API_URL}/professor`;
 
 const getHeaders = () => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
 
     // Debug: Log si le token existe
     if (!token) {
-        console.error('❌ [Professor Service] Aucun token trouvé dans localStorage');
-    } else {
-        console.log('✅ [Professor Service] Token trouvé:', token.substring(0, 20) + '...');
+        console.error('❌ [Professor Service] Aucun token trouvé dans sessionStorage');
     }
 
     return {
@@ -23,10 +21,11 @@ const handleResponse = async (response: Response, errorMessage: string) => {
         // Si erreur 401 ou 403, c'est probablement un problème d'authentification
         if (response.status === 401 || response.status === 403) {
             console.error(`❌ [Professor Service] Erreur d'authentification (${response.status})`);
-            console.error('Token dans localStorage:', localStorage.getItem('token') ? 'Présent' : 'Absent');
 
-            // Optionnel: Rediriger vers la page de connexion
-            // window.location.href = '/login';
+            // Déconnexion automatique et redirection
+            import('./auth').then(({ authService }) => {
+                authService.logout();
+            });
 
             throw new Error('Session expirée. Veuillez vous reconnecter.');
         }
@@ -199,7 +198,7 @@ export const professorService = {
         formData.append('title', title);
         formData.append('file', file);
 
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         console.log('📤 [Professor Service] Upload resource, token:', token ? 'Présent' : 'Absent');
 
         const response = await fetch(`${PROFESSOR_API_URL}/upload-resource`, {
@@ -247,7 +246,7 @@ export const professorService = {
         formData.append('reason', data.reason);
         if (file) formData.append('file', file);
 
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${PROFESSOR_API_URL}/grade-change-request`, {
             method: 'POST',
             headers: {

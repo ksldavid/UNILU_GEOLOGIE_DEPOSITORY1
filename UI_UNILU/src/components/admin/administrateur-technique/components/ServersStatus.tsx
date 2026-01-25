@@ -12,7 +12,7 @@ export function ServersStatus() {
     const fetchServers = useCallback(async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             const res = await fetch(`${API_URL}/infrastructure/status`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -36,7 +36,7 @@ export function ServersStatus() {
 
     const handlePowerAction = async (id: string, action: string) => {
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             const res = await fetch(`${API_URL}/infrastructure/${id}/power`, {
                 method: 'POST',
                 headers: {

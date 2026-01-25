@@ -53,13 +53,13 @@ export interface UserData {
 type AppView = 'student-login' | 'admin-login' | 'logged-in';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('token'));
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!sessionStorage.getItem('token'));
   const [userData, setUserData] = useState<UserData | null>(() => {
-    const user = localStorage.getItem('user');
+    const user = sessionStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   });
   const [currentView, setCurrentView] = useState<AppView>(() => {
-    return localStorage.getItem('token') ? 'logged-in' : 'student-login';
+    return sessionStorage.getItem('token') ? 'logged-in' : 'student-login';
   });
   const [currentPage, setCurrentPage] = useState<Page>(() => {
     return (sessionStorage.getItem('currentPage') as Page) || 'dashboard';
@@ -220,8 +220,7 @@ export default function App() {
 
   const handleLogout = () => {
     authService.logout();
-    sessionStorage.removeItem('currentPage');
-    sessionStorage.removeItem('studentCurrentPage');
+    sessionStorage.clear(); // Clear everything in session
     setIsLoggedIn(false);
     setUserData(null);
     setCurrentPage('dashboard');

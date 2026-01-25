@@ -3,7 +3,7 @@ import { API_URL as BASE_API_URL } from './config';
 const API_URL = `${BASE_API_URL}/attendance`;
 
 const getHeaders = () => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
