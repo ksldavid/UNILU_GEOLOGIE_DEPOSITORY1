@@ -1447,7 +1447,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Note actuelle</label>
                     <div className="p-2.5 bg-gray-50 rounded-xl font-bold text-gray-500 border border-gray-100 text-sm">
-                      {selectedStudentForModif?.grade} / {selectedExam?.maxPoints || 10}
+                      {tempGrades[selectedStudentForModif?.id] || 0} / {selectedExam?.maxPoints || 10}
                     </div>
                   </div>
                 </div>
