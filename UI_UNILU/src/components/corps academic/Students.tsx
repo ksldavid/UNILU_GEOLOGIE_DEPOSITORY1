@@ -30,18 +30,24 @@ export function Students() {
     }
   }, [selectedStudent]);
 
+  const [allProfessorCourses, setAllProfessorCourses] = useState<any[]>([]);
+
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchData = async () => {
       try {
-        const data = await professorService.getStudents();
-        setStudents(data);
+        const [studentsData, coursesData] = await Promise.all([
+          professorService.getStudents(),
+          professorService.getCourses()
+        ]);
+        setStudents(studentsData);
+        setAllProfessorCourses(coursesData);
       } catch (error) {
         console.error(error);
       } finally {
         setLoading(false);
       }
     };
-    fetchStudents();
+    fetchData();
   }, []);
 
   const handleDelete = async (student: any) => {
@@ -60,7 +66,7 @@ export function Students() {
   const [selectedLevel, setSelectedLevel] = useState('Tous');
 
   // Extract unique courses and levels for filter
-  const courses = Array.from(new Set(students.map(s => s.courseName)));
+  const courses = Array.from(new Set(allProfessorCourses.map(c => c.name))).sort();
   const levels = Array.from(new Set(students.map(s => s.academicLevel))).sort();
 
   const filteredStudents = students.filter(student => {
