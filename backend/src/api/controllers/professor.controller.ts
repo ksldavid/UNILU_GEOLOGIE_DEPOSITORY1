@@ -213,7 +213,10 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
         }) as any[]
 
         const courseCodes = taughtCourses.map(tc => tc.courseCode)
-        const activeCoursesCount = taughtCourses.length
+
+        // Count active vs finished courses
+        const activeCoursesCount = taughtCourses.filter(tc => tc.status === 'ACTIVE').length;
+        const finishedCoursesCount = taughtCourses.filter(tc => tc.status === 'FINISHED').length;
 
         // 2. Compter le nombre total d'étudiants (uniques)
         const uniqueStudentIds = new Set<string>()
@@ -291,7 +294,8 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
             professorName: professor?.name,
             stats: {
                 studentCount: totalStudents,
-                courseCount: activeCoursesCount
+                activeCourseCount: activeCoursesCount,
+                finishedCourseCount: finishedCoursesCount
             },
             myLevels,
             expiredAssignments: recentlyExpiredAssignments.map(a => ({
@@ -357,13 +361,63 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
                 schedule: schedule,
                 location: c.schedules[0]?.room || 'À définir',
                 color: 'blue', // Default
-                role: e.role === 'PROFESSOR' ? 'Professeur' : 'Assistant'
+                role: e.role === 'PROFESSOR' ? 'Professeur' : 'Assistant',
+                status: e.status
             };
         });
 
         res.json(courses);
     } catch (error) {
         console.error('Erreur cours professeur:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}
+
+export const updateCourseStatus = async (req: AuthRequest, res: Response) => {
+    try {
+        const { courseCode, status } = req.body;
+        const userId = req.user?.userId;
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        await prisma.courseEnrollment.update({
+            where: {
+                userId_courseCode_academicYear: {
+                    userId,
+                    courseCode,
+                    academicYear: '2025-2026' // Should be dynamic ideally
+                }
+            },
+            data: { status }
+        });
+
+        res.json({ message: `Statut du cours mis à jour en ${status}` });
+    } catch (error) {
+        console.error('Erreur mise à jour statut cours:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}
+
+export const removeCourseAssignment = async (req: AuthRequest, res: Response) => {
+    try {
+        const { courseCode } = req.body;
+        const userId = req.user?.userId;
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        await prisma.courseEnrollment.delete({
+            where: {
+                userId_courseCode_academicYear: {
+                    userId,
+                    courseCode,
+                    academicYear: '2025-2026'
+                }
+            }
+        });
+
+        res.json({ message: 'Cours retiré de votre charge avec succès' });
+    } catch (error) {
+        console.error('Erreur retrait cours:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 }
@@ -375,12 +429,16 @@ export const saveAttendance = async (req: AuthRequest, res: Response) => {
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
-        const hasAccess = await prisma.courseEnrollment.findFirst({
+        const enrollment = await prisma.courseEnrollment.findFirst({
             where: { userId, courseCode }
         });
 
-        if (!hasAccess) {
+        if (!enrollment) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
+        }
+
+        if (enrollment.status === 'FINISHED') {
+            return res.status(403).json({ message: "Ce cours ne dispose plus de prise de présence vue que il a ete terminer" });
         }
 
         const sessionDate = new Date(date);

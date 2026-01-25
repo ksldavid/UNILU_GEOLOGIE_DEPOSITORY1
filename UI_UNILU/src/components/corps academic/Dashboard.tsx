@@ -407,17 +407,35 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               Statistiques
             </h3>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
-              {stats.map((stat, index) => (
-                <div
-                  key={index}
-                  onClick={() => onNavigate(stat.label === 'Étudiants' ? 'students' : 'courses')}
-                  className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group"
-                >
-                  <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600 mb-2 group-hover:scale-105 transition-transform origin-left">{stat.value}</div>
-                  <div className="text-gray-900 font-semibold mb-1">{stat.label}</div>
-                  <div className="text-gray-500 text-sm font-medium bg-gray-50 inline-block px-2 py-1 rounded-md">{stat.change}</div>
-                </div>
-              ))}
+              {/* Stat 1: Étudiants */}
+              <div
+                onClick={() => onNavigate('students')}
+                className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+              >
+                <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600 mb-2 group-hover:scale-105 transition-transform origin-left">{data?.stats?.studentCount || '0'}</div>
+                <div className="text-gray-900 font-semibold mb-1">Étudiants</div>
+                <div className="text-gray-500 text-sm font-medium bg-gray-50 inline-block px-2 py-1 rounded-md">Total</div>
+              </div>
+
+              {/* Stat 2: Cours Actifs */}
+              <div
+                onClick={() => onNavigate('courses')}
+                className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+              >
+                <div className="text-4xl font-extrabold text-teal-600 mb-2 group-hover:scale-105 transition-transform origin-left">{data?.stats?.activeCourseCount || '0'}</div>
+                <div className="text-gray-900 font-semibold mb-1">Cours Actifs</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-md">En charge actif</div>
+              </div>
+
+              {/* Stat 3: Cours Finis */}
+              <div
+                onClick={() => onNavigate('courses')}
+                className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+              >
+                <div className="text-4xl font-extrabold text-slate-400 mb-2 group-hover:scale-105 transition-transform origin-left">{data?.stats?.finishedCourseCount || '0'}</div>
+                <div className="text-gray-900 font-semibold mb-1">Cours Finis</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-md">En charge fini</div>
+              </div>
             </div>
           </div>
 

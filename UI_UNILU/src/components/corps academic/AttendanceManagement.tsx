@@ -1,5 +1,5 @@
 
-import { QrCode, Save, Search, ArrowLeft, X, MapPin, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, Download } from "lucide-react";
+import { QrCode, Save, Search, ArrowLeft, X, MapPin, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, Download, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
@@ -284,6 +284,20 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
         </div>
       </div>
 
+      {course.status === 'FINISHED' && (
+        <div className="mb-8 bg-amber-50 border border-amber-200 rounded-[32px] p-8 flex items-center gap-6 animate-in slide-in-from-top duration-500">
+          <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 shrink-0">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-amber-900 uppercase tracking-tight">Accès Restreint</h3>
+            <p className="text-amber-800 font-bold opacity-80 leading-relaxed italic">
+              Ce cours ne dispose plus de prise de présence vue que il a ete terminer. Vous pouvez toujours consulter l'historique complet ci-dessous.
+            </p>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'current' ? (
         <>
           {/* Date and QR Code Section */}
@@ -305,8 +319,8 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
               <div className="flex flex-col items-end gap-2 w-full md:w-auto">
                 <button
                   onClick={handleGenerateQR}
-                  disabled={generatingQR}
-                  className="flex items-center gap-3 px-8 py-4 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white rounded-2xl transition-all shadow-xl shadow-teal-600/30 font-bold text-lg w-full md:w-auto group active:scale-95"
+                  disabled={generatingQR || course.status === 'FINISHED'}
+                  className="flex items-center gap-3 px-8 py-4 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:text-slate-500 text-white rounded-2xl transition-all shadow-xl shadow-teal-600/30 font-bold text-lg w-full md:w-auto group active:scale-95"
                 >
                   {generatingQR ? (
                     <Loader2 className="w-6 h-6 animate-spin" />
@@ -431,7 +445,8 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
                 </button>
                 <button
                   onClick={handleSave}
-                  className="flex items-center gap-2 px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors font-semibold shadow-md translate-y-0 active:translate-y-0.5"
+                  disabled={course.status === 'FINISHED'}
+                  className="flex items-center gap-2 px-6 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:text-slate-500 text-white rounded-lg transition-colors font-semibold shadow-md translate-y-0 active:translate-y-0.5"
                 >
                   <Save className="w-4 h-4" />
                   Enregistrer

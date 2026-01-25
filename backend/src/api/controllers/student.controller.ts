@@ -321,6 +321,7 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
                 ? Math.round((attendedSessions / totalSessions) * 100)
                 : 0;
 
+            const isFinished = c.enrollments.some((en: any) => en.role === 'PROFESSOR' && en.status === 'FINISHED');
             const colorPalette = colors[index % colors.length];
 
             return {
@@ -338,7 +339,8 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
                 attendedCount: attendedSessions,
                 totalCount: totalSessions,
                 percentage: percentage,
-                attendance: percentage
+                attendance: percentage,
+                status: isFinished ? 'FINISHED' : 'ACTIVE'
             };
         });
 
@@ -452,7 +454,8 @@ export const getStudentCourseDetails = async (req: AuthRequest, res: Response) =
                 submittedAt: a.submissions[0]?.submittedAt,
                 submissionUrl: a.submissions[0]?.fileUrl,
                 status: a.isPublished ? 'PUBLISHED' : 'LAUNCHED'
-            }))
+            })),
+            isFinished: course.enrollments.some((en: any) => en.role === 'PROFESSOR' && en.status === 'FINISHED')
         });
 
     } catch (error) {

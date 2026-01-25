@@ -277,5 +277,21 @@ export const professorService = {
             headers: getHeaders()
         });
         return handleResponse(response, "Erreur lors de la synchronisation des présences passées");
+    },
+    async updateCourseStatus(courseCode: string, status: 'ACTIVE' | 'FINISHED') {
+        const response = await fetch(`${PROFESSOR_API_URL}/courses/update-status`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ courseCode, status })
+        });
+        return handleResponse(response, "Erreur lors du changement de statut");
+    },
+    async removeCourseAssignment(courseCode: string) {
+        const response = await fetch(`${PROFESSOR_API_URL}/courses/remove`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ courseCode })
+        });
+        return handleResponse(response, "Erreur lors du retrait du cours");
     }
 };

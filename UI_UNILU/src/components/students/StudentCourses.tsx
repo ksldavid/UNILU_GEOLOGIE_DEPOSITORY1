@@ -127,6 +127,12 @@ export function StudentCourses() {
                   <div className="flex items-center gap-3 mb-2 flex-wrap text-[10px] font-black uppercase tracking-widest">
                     <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg">{selectedCourse.code}</span>
                     <span className="text-blue-600 px-3 py-1 bg-blue-50 rounded-lg">{academicLevel}</span>
+                    {selectedCourse.isFinished && (
+                      <span className="px-3 py-1 bg-slate-800 text-white rounded-lg flex items-center gap-2">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        Cours Terminé
+                      </span>
+                    )}
                   </div>
                   <h1 className={`font-black text-gray-900 tracking-tight leading-tight ${selectedCourse.name.length > 50 ? 'text-2xl' :
                     selectedCourse.name.length > 30 ? 'text-3xl' : 'text-4xl'
@@ -622,9 +628,14 @@ export function StudentCourses() {
                   <span>{course.assignments} Devoirs</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-teal-600 group-hover:translate-x-1 transition-transform">
-                <span className="text-[10px] font-black uppercase tracking-widest text-end italic">Accéder</span>
-                <ChevronRight className="w-4 h-4 text-end italic" />
+              <div className="flex items-center gap-4">
+                {course.status === 'FINISHED' && (
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full border border-slate-100">Terminé</span>
+                )}
+                <div className="flex items-center gap-2 text-teal-600 group-hover:translate-x-1 transition-transform">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-end italic">Accéder</span>
+                  <ChevronRight className="w-4 h-4 text-end italic" />
+                </div>
               </div>
             </div>
           </motion.div>

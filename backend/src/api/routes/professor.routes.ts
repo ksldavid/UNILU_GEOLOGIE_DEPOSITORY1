@@ -19,7 +19,9 @@ import {
     publishAssessment,
     requestGradeChange,
     getCoursePerformance,
-    syncPastAttendance
+    syncPastAttendance,
+    updateCourseStatus,
+    removeCourseAssignment
 } from '../controllers/professor.controller'
 import { getProfessorAttendanceHistory } from '../controllers/professor-history.controller'
 import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
@@ -47,6 +49,9 @@ router.post('/assessments/:id/publish', authenticateToken, authorizeRole(['USER'
 router.get('/attendance/history', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), getProfessorAttendanceHistory)
 router.post('/grade-change-request', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), upload.single('file'), requestGradeChange)
 router.get('/courses/:courseCode/performance', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), getCoursePerformance)
+
+router.post('/courses/update-status', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), updateCourseStatus)
+router.post('/courses/remove', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), removeCourseAssignment)
 
 // Ressource management
 router.post('/upload-resource', authenticateToken, authorizeRole(['USER', 'ADMIN', 'ACADEMIC_OFFICE']), upload.single('file'), uploadCourseResource)

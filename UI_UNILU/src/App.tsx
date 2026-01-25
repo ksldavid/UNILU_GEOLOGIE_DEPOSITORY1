@@ -39,6 +39,7 @@ export interface Course {
   location: string;
   color: string;
   role?: "Professeur" | "Assistant";
+  status?: "ACTIVE" | "FINISHED";
   studentsCount?: number;
 }
 
