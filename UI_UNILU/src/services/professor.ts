@@ -278,19 +278,19 @@ export const professorService = {
         });
         return handleResponse(response, "Erreur lors de la synchronisation des présences passées");
     },
-    async updateCourseStatus(courseCode: string, status: 'ACTIVE' | 'FINISHED') {
+    async updateCourseStatus(enrollmentId: string, status: 'ACTIVE' | 'FINISHED') {
         const response = await fetch(`${PROFESSOR_API_URL}/courses/update-status`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ courseCode, status })
+            body: JSON.stringify({ enrollmentId, status })
         });
         return handleResponse(response, "Erreur lors du changement de statut");
     },
-    async removeCourseAssignment(courseCode: string) {
+    async removeCourseAssignment(enrollmentId: string) {
         const response = await fetch(`${PROFESSOR_API_URL}/courses/remove`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ courseCode })
+            body: JSON.stringify({ enrollmentId })
         });
         return handleResponse(response, "Erreur lors du retrait du cours");
     }

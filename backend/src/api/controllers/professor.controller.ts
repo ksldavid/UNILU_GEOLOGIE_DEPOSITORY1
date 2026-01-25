@@ -375,21 +375,27 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
 
 export const updateCourseStatus = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode, status } = req.body;
+        const { courseCode, status, enrollmentId } = req.body;
         const userId = req.user?.userId;
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
-        await prisma.courseEnrollment.update({
-            where: {
-                userId_courseCode_academicYear: {
+        if (enrollmentId) {
+            await prisma.courseEnrollment.update({
+                where: { id: Number(enrollmentId) },
+                data: { status }
+            });
+        } else {
+            // Fallback to searching by code and year
+            await prisma.courseEnrollment.updateMany({
+                where: {
                     userId,
                     courseCode,
-                    academicYear: '2024-2025' // Aligné avec l'année d'inscription actuelle
-                }
-            },
-            data: { status }
-        });
+                    academicYear: { in: ['2023-2024', '2024-2025', '2025-2026'] }
+                },
+                data: { status }
+            });
+        }
 
         res.json({ message: `Statut du cours mis à jour en ${status}` });
     } catch (error) {
@@ -400,20 +406,24 @@ export const updateCourseStatus = async (req: AuthRequest, res: Response) => {
 
 export const removeCourseAssignment = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode } = req.body;
+        const { courseCode, enrollmentId } = req.body;
         const userId = req.user?.userId;
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
-        await prisma.courseEnrollment.delete({
-            where: {
-                userId_courseCode_academicYear: {
+        if (enrollmentId) {
+            await prisma.courseEnrollment.delete({
+                where: { id: Number(enrollmentId) }
+            });
+        } else {
+            await prisma.courseEnrollment.deleteMany({
+                where: {
                     userId,
                     courseCode,
-                    academicYear: '2024-2025'
+                    academicYear: { in: ['2023-2024', '2024-2025', '2025-2026'] }
                 }
-            }
-        });
+            });
+        }
 
         res.json({ message: 'Cours retiré de votre charge avec succès' });
     } catch (error) {

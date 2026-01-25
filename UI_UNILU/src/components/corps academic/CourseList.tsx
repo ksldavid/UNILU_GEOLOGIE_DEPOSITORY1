@@ -28,10 +28,10 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
     fetchCourses();
   }, []);
 
-  const handleFinishCourse = async (courseCode: string) => {
+  const handleFinishCourse = async (enrollmentId: string) => {
     if (!window.confirm("Voulez-vous marquer ce cours comme terminé ? Cela bloquera les futures prises de présence.")) return;
     try {
-      await professorService.updateCourseStatus(courseCode, 'FINISHED');
+      await professorService.updateCourseStatus(enrollmentId, 'FINISHED');
       setActiveMenu(null);
       fetchCourses();
     } catch (error) {
@@ -39,9 +39,9 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
     }
   };
 
-  const handleReactivateCourse = async (courseCode: string) => {
+  const handleReactivateCourse = async (enrollmentId: string) => {
     try {
-      await professorService.updateCourseStatus(courseCode, 'ACTIVE');
+      await professorService.updateCourseStatus(enrollmentId, 'ACTIVE');
       setActiveMenu(null);
       fetchCourses();
     } catch (error) {
@@ -49,9 +49,9 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
     }
   };
 
-  const handleDeleteCourse = async (courseCode: string) => {
+  const handleDeleteCourse = async (enrollmentId: string) => {
     try {
-      await professorService.removeCourseAssignment(courseCode);
+      await professorService.removeCourseAssignment(enrollmentId);
       setShowDeleteModal(null);
       fetchCourses();
     } catch (error) {
@@ -128,7 +128,7 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
                       </div>
                       {isFinished ? (
                         <button
-                          onClick={() => handleReactivateCourse(course.code)}
+                          onClick={() => handleReactivateCourse(course.id)}
                           className="w-full text-left px-4 py-3 text-sm font-bold text-teal-600 hover:bg-teal-50 flex items-center gap-3 transition-colors"
                         >
                           <AlertCircle className="w-4 h-4" />
@@ -136,7 +136,7 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
                         </button>
                       ) : (
                         <button
-                          onClick={() => handleFinishCourse(course.code)}
+                          onClick={() => handleFinishCourse(course.id)}
                           className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                         >
                           <CheckCircle2 className="w-4 h-4" />
@@ -177,8 +177,8 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
                   {course.level}
                 </div>
                 <h3 className={`font-black text-slate-900 mt-1 leading-[1.2] min-h-[64px] tracking-tight group-hover:text-teal-900 transition-colors ${isFinished ? 'text-slate-500' : ''} ${course.name.length > 50 ? 'text-base' :
-                    course.name.length > 35 ? 'text-lg' :
-                      course.name.length > 25 ? 'text-xl' : 'text-2xl'
+                  course.name.length > 35 ? 'text-lg' :
+                    course.name.length > 25 ? 'text-xl' : 'text-2xl'
                   }`}>
                   {course.name}
                 </h3>
@@ -236,7 +236,7 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
                   Annuler
                 </button>
                 <button
-                  onClick={() => handleDeleteCourse(showDeleteModal.code)}
+                  onClick={() => handleDeleteCourse(showDeleteModal.id)}
                   className="py-4 px-6 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black transition-all shadow-lg shadow-rose-200 text-xs uppercase tracking-widest active:scale-95"
                 >
                   Confirmer
