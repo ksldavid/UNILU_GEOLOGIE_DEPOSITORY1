@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { BookOpen, Clock, MapPin, User, FileText, Download, ArrowLeft, Send, CheckCircle2, AlertCircle, ChevronRight, UploadCloud, Loader2, GraduationCap, Calendar, ArrowRight } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { BookOpen, Clock, MapPin, User, FileText, Download, ArrowLeft, Send, CheckCircle2, AlertCircle, ChevronRight, UploadCloud, Loader2 } from "lucide-react";
+import { motion } from "motion/react";
 import { studentService } from "../../services/student";
 import { Skeleton } from "../Skeleton";
 
@@ -23,7 +23,7 @@ export function StudentCourses() {
       setSelectedCourse(details);
     } catch (error) {
       console.error(error);
-      setSelectedCourse(course);
+      setSelectedCourse(course); // Fallback to list data
     } finally {
       setLoadingDetails(false);
     }
@@ -67,6 +67,7 @@ export function StudentCourses() {
     try {
       await studentService.submitAssignment(activeAssignmentId.toString(), file);
       alert("Travail déposé avec succès !");
+      // Refresh details to show submission status
       const details = await studentService.getCourseDetails(selectedCourse.code);
       setSelectedCourse(details);
     } catch (error: any) {
@@ -80,213 +81,459 @@ export function StudentCourses() {
   };
 
   if (loading) return (
-    <div className="p-10 max-w-7xl mx-auto space-y-12">
-      <Skeleton className="h-16 w-64 rounded-3xl" />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <Skeleton className="h-72 rounded-[48px]" />
-        <Skeleton className="h-72 rounded-[48px]" />
-        <Skeleton className="h-72 rounded-[48px]" />
-        <Skeleton className="h-72 rounded-[48px]" />
+    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <Skeleton className="h-10 w-48" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Skeleton className="h-64 rounded-[40px]" />
+        <Skeleton className="h-64 rounded-[40px]" />
+        <Skeleton className="h-64 rounded-[40px]" />
+        <Skeleton className="h-64 rounded-[40px]" />
       </div>
     </div>
   );
 
+
   if (selectedCourse) {
     return (
-      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="p-10 space-y-12 max-w-7xl mx-auto">
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className={`p-8 space-y-8 max-w-7xl mx-auto ${loadingDetails ? 'opacity-50 pointer-events-none' : ''}`}
+      >
         <button
           onClick={() => setSelectedCourse(null)}
-          className="group flex items-center gap-3 text-slate-400 font-black text-[11px] uppercase tracking-[0.3em] hover:text-[#009485] transition-all"
+          className="flex items-center gap-2 text-gray-500 font-bold hover:text-blue-600 transition-colors group px-2 py-1 rounded-lg hover:bg-blue-50 w-fit"
         >
-          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-2 transition-transform" /> Retour au campus
+          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Retour aux cours
         </button>
 
-        {/* Detailed Course Header - Premium */}
-        <div className="bg-[#0F172A] rounded-[50px] p-12 text-white relative overflow-hidden shadow-2xl">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-[#009485]/20 to-transparent blur-[100px] -mr-32 -mt-32 rounded-full" />
+        {/* Course Info Header */}
+        <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+          <div
+            className="absolute top-0 right-0 w-64 h-64 opacity-[0.03] -mr-32 -mt-32 rounded-full"
+            style={{ background: `linear-gradient(to bottom right, ${selectedCourse.colorFrom}, ${selectedCourse.colorTo})` }}
+          />
 
-          <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-            <div className="w-28 h-28 rounded-[36px] bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-2xl">
-              <BookOpen className="w-12 h-12 text-[#00E5BC]" />
-            </div>
-            <div className="space-y-4 flex-1">
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-[0.2em]">{selectedCourse.code}</span>
-                <span className="px-4 py-1.5 bg-[#009485]/20 text-[#00E5BC] rounded-xl text-[10px] font-black uppercase tracking-[0.2em]">{academicLevel}</span>
-                {selectedCourse.isFinished && (
-                  <span className="px-4 py-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                    ARCHIVÉ
-                  </span>
-                )}
+          <div className="relative space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-6">
+                <div
+                  className="w-20 h-20 rounded-[28px] flex items-center justify-center shadow-2xl shadow-blue-500/10 shrink-0"
+                  style={{ background: `linear-gradient(to bottom right, ${selectedCourse.colorFrom}, ${selectedCourse.colorTo})` }}
+                >
+                  <BookOpen className="w-10 h-10 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap text-[10px] font-black uppercase tracking-widest">
+                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg">{selectedCourse.code}</span>
+                    <span className="text-blue-600 px-3 py-1 bg-blue-50 rounded-lg">{academicLevel}</span>
+                    {selectedCourse.isFinished && (
+                      <span className="px-3 py-1 bg-slate-800 text-white rounded-lg flex items-center gap-2">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        Cours Terminé
+                      </span>
+                    )}
+                  </div>
+                  <h1 className={`font-black text-gray-900 tracking-tight leading-tight ${selectedCourse.name.length > 50 ? 'text-2xl' :
+                    selectedCourse.name.length > 30 ? 'text-3xl' : 'text-4xl'
+                    }`}>{selectedCourse.name}</h1>
+                </div>
               </div>
-              <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[1.1]">{selectedCourse.name}</h1>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 pt-12 border-t border-white/5">
-            <div className="flex items-center gap-4 group cursor-default">
-              <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-[#009485] transition-all">
-                <User className="w-5 h-5 text-slate-400 group-hover:text-white" />
+            {/* Metadata Row - Full width to avoid squeezing */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t border-gray-100">
+              <div className="flex items-center gap-4 group">
+                <div className="w-12 h-12 bg-blue-50/50 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 transition-colors duration-300">
+                  <User className="w-6 h-6 text-blue-600 group-hover:text-white transition-colors" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em] mb-1">Professeur</p>
+                  <p className="text-gray-900 font-bold leading-none">{selectedCourse.professor}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Responsable</p>
-                <p className="text-base font-bold text-white uppercase">{selectedCourse.professor}</p>
+
+              <div className="flex items-center gap-4 group">
+                <div className="w-12 h-12 bg-purple-50/50 rounded-2xl flex items-center justify-center group-hover:bg-purple-600 transition-colors duration-300">
+                  <MapPin className="w-6 h-6 text-purple-600 group-hover:text-white transition-colors" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em] mb-1">Lieu d'étude</p>
+                  <p className="text-gray-900 font-bold leading-none">{selectedCourse.room}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-4 group cursor-default">
-              <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-[#009485] transition-all">
-                <MapPin className="w-5 h-5 text-slate-400 group-hover:text-white" />
-              </div>
-              <div>
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Localisation</p>
-                <p className="text-base font-bold text-white uppercase">{selectedCourse.room}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 group cursor-default">
-              <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-[#009485] transition-all">
-                <Clock className="w-5 h-5 text-slate-400 group-hover:text-white" />
-              </div>
-              <div>
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Horaires</p>
-                <p className="text-base font-bold text-white uppercase">{selectedCourse.schedule}</p>
+
+              <div className="flex items-center gap-4 group">
+                <div className="w-12 h-12 bg-orange-50/50 rounded-2xl flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-300">
+                  <Clock className="w-6 h-6 text-orange-600 group-hover:text-white transition-colors" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em] mb-1">Programmation</p>
+                  <p className="text-gray-900 font-bold leading-none">{selectedCourse.schedule}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Work Area */}
-          <div className="lg:col-span-2 space-y-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content: Materials & Assignments */}
+          <div className="lg:col-span-2 space-y-8">
 
-            {/* Active TPs Section */}
-            <div className="bg-[#0F172A] rounded-[50px] p-12 text-white shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#009485]/10 blur-[80px] -mr-32 -mt-32 rounded-full" />
-              <input type="file" ref={fileInputRef} className="hidden" accept=".pdf" onChange={handleFileChange} />
+            {/* Devoirs à remettre */}
+            <div className="bg-[#0F172A] rounded-[40px] p-10 text-white shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:bg-blue-500/20 transition-colors duration-700"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl -ml-24 -mb-24"></div>
 
-              <div className="flex items-center justify-between mb-10">
-                <h3 className="text-3xl font-black tracking-tight flex items-center gap-5">
-                  <div className="p-4 bg-white/5 rounded-2xl backdrop-blur-md border border-white/10">
-                    <Send className="w-8 h-8 text-[#00E5BC]" />
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".pdf"
+                onChange={handleFileChange}
+              />
+
+              <div className="relative">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-2xl font-black flex items-center gap-4">
+                    <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10">
+                      <Send className="w-7 h-7 text-blue-400" />
+                    </div>
+                    Travaux Pratiques
+                  </h3>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] px-4 py-1.5 bg-blue-400/10 rounded-full border border-blue-400/20">
+                      En cours
+                    </span>
                   </div>
-                  Travaux Pratiques
-                </h3>
-                <div className="px-5 py-2 bg-white/5 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-[0.3em] text-[#00E5BC]">Session Ouverte</div>
-              </div>
+                </div>
 
-              <div className="space-y-6">
-                {(!selectedCourse.assignments || selectedCourse.assignments.length === 0) ? (
-                  <div className="py-20 text-center bg-white/2 rounded-[40px] border-2 border-dashed border-white/5">
-                    <p className="text-slate-500 font-bold italic">Aucune consigne déposée pour le moment.</p>
-                  </div>
-                ) : selectedCourse.assignments.filter((a: any) => (a.type === 'TP' || a.type === 'TD') && !a.submitted).map((assignment: any) => {
-                  const isLate = assignment.dueDate && new Date() > new Date(assignment.dueDate);
-                  return (
-                    <motion.div key={assignment.id} className="bg-white/5 border border-white/5 rounded-[40px] p-8 hover:bg-white/[0.08] transition-all group/item">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                        <div className="space-y-4 flex-1">
-                          <div className="flex items-center gap-4">
-                            <span className="text-[10px] font-black text-[#00E5BC] uppercase tracking-[0.3em] bg-[#009485]/20 px-3 py-1 rounded-lg">PROJET {assignment.type}</span>
-                            {assignment.dueDate && <span className={`text-[10px] font-black uppercase tracking-widest ${isLate ? 'text-rose-400' : 'text-slate-500'}`}>Limite: {new Date(assignment.dueDate).toLocaleDateString()}</span>}
+                <div className="grid grid-cols-1 gap-6">
+                  {(!selectedCourse.assignments || selectedCourse.assignments.length === 0) ? (
+                    <div className="py-12 flex flex-col items-center justify-center bg-white/5 rounded-3xl border border-white/10 border-dashed">
+                      <Send className="w-10 h-10 text-white/20 mb-4" />
+                      <p className="text-gray-400 font-bold italic">Aucun travail à remettre pour le moment</p>
+                    </div>
+                  ) : selectedCourse.assignments.filter((a: any) => (a.type === 'TP' || a.type === 'TD') && !a.submitted).map((assignment: any) => {
+                    const isLate = assignment.dueDate && new Date() > new Date(assignment.dueDate);
+                    const getTimeRemaining = (dueDate: string) => {
+                      const diff = new Date(dueDate).getTime() - new Date().getTime();
+                      if (diff <= 0) return null;
+                      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                      if (days > 0) return `${days}j ${hours}h restants`;
+                      if (hours > 0) return `${hours}h ${minutes}m restants`;
+                      return `${minutes}m restants`;
+                    };
+                    const remaining = assignment.dueDate ? getTimeRemaining(assignment.dueDate) : null;
+
+                    return (
+                      <motion.div
+                        key={assignment.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-8 bg-white/5 border border-white/10 rounded-[32px] hover:bg-white/10 hover:border-white/20 transition-all relative overflow-hidden group/item"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
+                          <div className="flex-1 space-y-4">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] px-3 py-1 bg-blue-400/10 rounded-lg border border-blue-400/20 italic">{assignment.type}</span>
+                              {assignment.dueDate && (
+                                <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${isLate ? 'text-rose-400' : 'text-gray-400'}`}>
+                                  <Clock className="w-3.5 h-3.5" />
+                                  {isLate ? 'Délai dépassé' : `Échéance : ${new Date(assignment.dueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} à ${new Date(assignment.dueDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}`}
+                                </div>
+                              )}
+                              {!isLate && remaining && !assignment.submitted && (
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 px-3 py-1 rounded-lg border border-amber-400/20 animate-pulse">
+                                  {remaining}
+                                </div>
+                              )}
+                            </div>
+
+                            <div>
+                              <h4 className="text-xl font-black group-hover/item:text-blue-400 transition-colors uppercase tracking-tight mb-2">{assignment.title}</h4>
+                              {assignment.instructions ? (
+                                <p className="text-gray-400 text-sm font-medium leading-relaxed italic border-l-2 border-white/10 pl-4 py-1">
+                                  {assignment.instructions}
+                                </p>
+                              ) : (
+                                <p className="text-gray-500 text-xs italic font-medium">Aucune consigne particulière fournie.</p>
+                              )}
+                            </div>
+
+                            {assignment.submitted && (
+                              <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 w-fit px-3 py-1 rounded-full border border-emerald-400/20">
+                                <CheckCircle2 className="w-3 h-3" /> Remis le {new Date(assignment.submittedAt).toLocaleDateString('fr-FR')} à {new Date(assignment.submittedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                              </div>
+                            )}
                           </div>
-                          <h4 className="text-2xl font-black tracking-tight uppercase group-hover/item:text-[#00E5BC] transition-colors">{assignment.title}</h4>
-                          <p className="text-slate-500 text-sm font-medium leading-relaxed italic border-l-2 border-white/10 pl-6">{assignment.instructions || "Consulter le PDF joint pour les instructions détaillées."}</p>
+
+                          <div className="shrink-0 pt-2">
+                            {assignment.submitted ? (
+                              <div className="flex flex-col gap-3 items-end">
+                                <div className="px-6 py-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-lg shadow-emerald-900/20">
+                                  <CheckCircle2 className="w-4 h-4" /> Terminé
+                                </div>
+                                <a
+                                  href={assignment.submissionUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] text-gray-500 hover:text-white font-black uppercase tracking-widest flex items-center gap-2 transition-colors pr-2"
+                                >
+                                  Voir mon dépôt <ChevronRight className="w-3 h-3" />
+                                </a>
+                              </div>
+                            ) : isLate ? (
+                              <div className="px-6 py-4 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 opacity-60">
+                                <AlertCircle className="w-4 h-4" /> Fermé
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleAssignmentClick(assignment.id)}
+                                disabled={isSubmitting}
+                                className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center gap-3 shadow-xl shadow-blue-900/40 active:scale-95 disabled:opacity-50"
+                              >
+                                {isSubmitting && activeAssignmentId === assignment.id ? (
+                                  <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                  <UploadCloud className="w-5 h-5" />
+                                )}
+                                Déposer le PDF
+                              </button>
+                            )}
+                          </div>
                         </div>
+                      </motion.div>
+                    )
+                  })}
+                  {selectedCourse.assignments && selectedCourse.assignments.filter((a: any) => (a.type === 'TP' || a.type === 'TD') && !a.submitted).length === 0 && selectedCourse.assignments.some((a: any) => a.submitted) && (
+                    <div className="py-8 flex flex-col items-center justify-center bg-white/5 rounded-3xl border border-white/10 border-dashed">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-400/40 mb-3" />
+                      <p className="text-gray-400 font-bold italic text-sm text-center">Tous les travaux en cours ont été remis ! <br />Consultez l'onglet des travaux soumis ci-dessous.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Travaux Soumis */}
+            <div className="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-emerald-100/50 transition-colors duration-500"></div>
+
+              <div className="relative">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-2xl font-black text-gray-900 flex items-center gap-4">
+                    <div className="p-3 bg-emerald-50 rounded-2xl">
+                      <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+                    </div>
+                    Travaux soumis
+                  </h3>
+                  <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] px-4 py-1.5 bg-emerald-50 rounded-full italic">
+                    {selectedCourse.assignments?.filter((a: any) => a.submitted).length || 0} Remis
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {(!selectedCourse.assignments || selectedCourse.assignments.filter((a: any) => a.submitted).length === 0) ? (
+                    <div className="py-12 flex flex-col items-center justify-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                      <Send className="w-10 h-10 text-gray-300 mb-4" />
+                      <p className="text-gray-500 font-bold italic">Aucun travail soumis pour le moment</p>
+                    </div>
+                  ) : (
+                    <>
+                      {selectedCourse.assignments
+                        .filter((a: any) => a.submitted)
+                        .sort((a: any, b: any) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+                        .slice(0, showAllSubmissions ? undefined : 3)
+                        .map((assignment: any) => (
+                          <motion.div
+                            key={assignment.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="p-6 bg-gray-50/50 border border-gray-100 rounded-[28px] hover:bg-white hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 transition-all group/sub"
+                          >
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-4 flex-1 min-w-0">
+                                <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 group-hover/sub:bg-emerald-600 group-hover/sub:text-white transition-colors">
+                                  <FileText className="w-6 h-6" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-bold text-gray-900 group-hover/sub:text-emerald-600 transition-colors truncate">{assignment.title}</h4>
+                                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest flex items-center gap-2 mt-1">
+                                    <Clock className="w-3 h-3" />
+                                    Remis le {new Date(assignment.submittedAt).toLocaleDateString('fr-FR')}
+                                  </p>
+                                </div>
+                              </div>
+                              <a
+                                href={assignment.submissionUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 hover:text-emerald-600 hover:border-emerald-200 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm"
+                              >
+                                Voir <ChevronRight className="w-3 h-3" />
+                              </a>
+                            </div>
+                          </motion.div>
+                        ))}
+
+                      {selectedCourse.assignments.filter((a: any) => a.submitted).length > 3 && (
                         <button
-                          onClick={() => handleAssignmentClick(assignment.id)}
-                          disabled={isSubmitting || isLate}
-                          className="h-20 px-10 bg-[#009485] hover:bg-[#00E5BC] text-white hover:text-slate-950 rounded-[24px] font-black text-[12px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-4 disabled:opacity-30 active:scale-95 shadow-2xl shadow-[#009485]/20"
+                          onClick={() => setShowAllSubmissions(!showAllSubmissions)}
+                          className="w-full py-4 bg-gray-50 hover:bg-emerald-50 text-gray-500 hover:text-emerald-600 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-transparent hover:border-emerald-100 flex items-center justify-center gap-3 group"
                         >
-                          {isSubmitting && activeAssignmentId === assignment.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5 shadow-sm" />}
-                          Déposer PDF
+                          {showAllSubmissions ? "Réduire la liste" : `Voir les ${selectedCourse.assignments.filter((a: any) => a.submitted).length - 3} autres soumissions`}
+                          <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showAllSubmissions ? "-rotate-90" : "rotate-90"}`} />
                         </button>
-                      </div>
-                    </motion.div>
-                  )
-                })}
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Submissions Section */}
-            <div className="space-y-8">
-              <div className="flex items-center gap-4">
-                <div className="w-1.5 h-6 bg-[#009485] rounded-full" />
-                <h3 className="text-2xl font-black text-slate-950 uppercase tracking-widest">Travaux Soumis</h3>
-              </div>
-              <div className="grid grid-cols-1 gap-4">
-                {selectedCourse.assignments?.filter((a: any) => a.submitted).map((assignment: any) => (
-                  <div key={assignment.id} className="bg-white border border-slate-100 rounded-[40px] p-8 shadow-sm hover:shadow-xl transition-all flex items-center justify-between group">
-                    <div className="flex items-center gap-6">
-                      <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
-                        <FileText className="w-7 h-7" />
-                      </div>
-                      <div>
-                        <h4 className="font-black text-slate-950 text-xl tracking-tight uppercase truncate max-w-sm">{assignment.title}</h4>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Validé le {new Date(assignment.submittedAt).toLocaleDateString()}</p>
-                      </div>
+            {/* Supports de cours */}
+            <div className="bg-white rounded-[32px] border border-gray-100 p-10 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-indigo-100/50 transition-colors duration-500"></div>
+
+              <div className="relative">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-2xl font-black text-gray-900 flex items-center gap-4">
+                    <div className="p-3 bg-indigo-50 rounded-2xl">
+                      <FileText className="w-7 h-7 text-indigo-600" />
                     </div>
-                    <a href={assignment.submissionUrl} target="_blank" rel="noopener noreferrer" className="p-4 bg-slate-50 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-2xl transition-all border border-transparent hover:border-emerald-100">
-                      <Download className="w-6 h-6" />
-                    </a>
-                  </div>
-                ))}
+                    Supports de cours
+                  </h3>
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] px-4 py-1.5 bg-indigo-50 rounded-full italic">
+                    {selectedCourse.resources?.length || 0} Documents
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {selectedCourse.resources?.length === 0 ? (
+                    <div className="col-span-full py-12 flex flex-col items-center justify-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                      <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
+                        <FileText className="w-8 h-8 text-gray-300" />
+                      </div>
+                      <p className="text-gray-500 font-bold italic">Aucun support disponible pour ce cours</p>
+                    </div>
+                  ) : (
+                    <>
+                      {selectedCourse.resources.slice(0, showAllResources ? undefined : 4).map((resource: any) => (
+                        <motion.a
+                          key={resource.id}
+                          href={resource.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          whileHover={{ x: 4, scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
+                          className="p-5 bg-white border border-gray-100 rounded-[28px] hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all cursor-pointer group/item flex items-center gap-5"
+                        >
+                          <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center group-hover/item:bg-indigo-600 transition-colors duration-300 shrink-0 shadow-inner">
+                            <FileText className="w-7 h-7 text-indigo-500 group-hover/item:text-white transition-colors" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 group-hover/item:text-indigo-600 transition-colors text-base mb-1 tracking-tight leading-snug break-words">
+                              {resource.title}
+                            </h4>
+                            <div className="flex items-center gap-3">
+                              <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest flex items-center gap-1.5">
+                                <Clock className="w-3 h-3" />
+                                {new Date(resource.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                              <span className="w-1 h-1 rounded-full bg-gray-200" />
+                              <span className="text-[10px] text-indigo-500/60 font-black uppercase tracking-widest italic">PDF</span>
+                            </div>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-gray-50 group-hover/item:bg-indigo-50 transition-colors">
+                            <Download className="w-4 h-4 text-gray-400 group-hover/item:text-indigo-600" />
+                          </div>
+                        </motion.a>
+                      ))}
+
+                      {selectedCourse.resources.length > 4 && (
+                        <button
+                          onClick={() => setShowAllResources(!showAllResources)}
+                          className="w-full py-4 bg-gray-50 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-transparent hover:border-indigo-100 flex items-center justify-center gap-3 group"
+                        >
+                          {showAllResources ? "Réduire la liste" : `Voir les ${selectedCourse.resources.length - 4} autres documents`}
+                          <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showAllResources ? "-rotate-90" : "rotate-90"}`} />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Resources Section */}
-            <div className="space-y-8">
-              <div className="flex items-center gap-4">
-                <div className="w-1.5 h-6 bg-indigo-500 rounded-full" />
-                <h3 className="text-2xl font-black text-slate-950 uppercase tracking-widest">Supports de cours</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {selectedCourse.resources?.map((resource: any) => (
-                  <a key={resource.id} href={resource.url} target="_blank" rel="noopener noreferrer" className="bg-white border border-slate-100 rounded-[40px] p-8 shadow-sm hover:shadow-2xl transition-all group flex items-start gap-6">
-                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center transition-colors group-hover:bg-[#0F172A] group-hover:text-white shrink-0">
-                      <FileText className="w-7 h-7" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-black text-slate-950 text-lg tracking-tight uppercase leading-tight group-hover:text-[#009485] transition-colors">{resource.title}</h4>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2 italic">Format PDF • {new Date(resource.date).toLocaleDateString()}</p>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
           </div>
 
-          {/* Sidebar Stats */}
-          <div className="space-y-10">
-            <div className="bg-[#1B4332] rounded-[50px] p-10 text-white shadow-2xl relative overflow-hidden group border border-white/5">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-10">
-                  <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center">
-                    <CheckCircle2 className="w-6 h-6 text-[#00E5BC]" />
+          {/* Sidebar Panel */}
+          <div className="space-y-8">
+            {/* Presence Widget */}
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[40px] p-8 text-white shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full -mr-16 -mt-16 group-hover:bg-white/20 transition-all duration-500"></div>
+
+              <div className="relative">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
+                    <CheckCircle2 className="w-6 h-6 text-white" />
                   </div>
                   <div className="text-right">
-                    <p className="text-5xl font-black tracking-tighter">{selectedCourse.attendance}%</p>
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00E5BC]/60">Taux de présence</p>
+                    <div className="text-4xl font-black">{selectedCourse.attendance}%</div>
+                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Présence</div>
                   </div>
                 </div>
-                <div className="h-4 bg-white/10 rounded-full overflow-hidden p-1 shadow-inner">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${selectedCourse.attendance}%` }} className="h-full bg-gradient-to-r from-[#00E5BC] to-emerald-400 rounded-full shadow-[0_0_20px_rgba(0,229,188,0.5)]" />
+
+                <div className="space-y-4">
+                  <div className="h-2.5 bg-white/20 rounded-full overflow-hidden p-0.5">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${selectedCourse.attendance}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className="h-full bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)]"
+                    />
+                  </div>
+                  <p className="text-[10px] font-bold italic opacity-80 leading-relaxed text-center">
+                    Excellent ! Continuez ainsi pour valider votre semestre.
+                  </p>
                 </div>
-                <p className="text-[10px] font-bold italic text-teal-100/60 mt-6 text-center leading-relaxed">Engagement académique validé sur la période.</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-sm space-y-8">
-              <h4 className="text-lg font-black text-slate-950 tracking-widest uppercase flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-amber-500" /> Réglement
-              </h4>
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="w-1.5 h-1.5 rounded-full bg-slate-200 mt-2 shrink-0" />
-                  <p className="text-slate-500 text-xs font-bold leading-relaxed italic">Les TP sont obligatoires et notés sur l'ensemble du semestre.</p>
+            {/* Rules Widget */}
+            <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-12 -mt-12"></div>
+
+              <div className="relative">
+                <h3 className="text-gray-900 font-black mb-6 flex items-center gap-3">
+                  <div className="p-2 bg-amber-50 rounded-xl">
+                    <AlertCircle className="w-5 h-5 text-amber-500" />
+                  </div>
+                  Règles & Infos
+                </h3>
+
+                <div className="space-y-6">
+                  <div className="flex gap-4 group/item">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0 group-hover/item:scale-150 transition-transform" />
+                    <p className="text-gray-500 text-xs font-bold leading-relaxed italic">
+                      La présence aux TP est <span className="text-gray-900 not-italic">obligatoire</span> pour valider l'unité d'enseignement.
+                    </p>
+                  </div>
+                  <div className="flex gap-4 group/item">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0 group-hover/item:scale-150 transition-transform" />
+                    <p className="text-gray-500 text-xs font-bold leading-relaxed italic">
+                      Toute absence doit être justifiée dans les <span className="text-gray-900 not-italic">48h</span> auprès du secrétariat.
+                    </p>
+                  </div>
                 </div>
-                <div className="flex gap-4">
-                  <div className="w-1.5 h-1.5 rounded-full bg-slate-200 mt-2 shrink-0" />
-                  <p className="text-slate-500 text-xs font-bold leading-relaxed italic">Tout retard supérieur à 15min est compté comme absence.</p>
+
+                <div className="mt-8 pt-8 border-t border-gray-50">
+                  <button className="w-full py-4 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">
+                    Voir le règlement complet
+                  </button>
                 </div>
               </div>
             </div>
@@ -296,81 +543,99 @@ export function StudentCourses() {
     );
   }
 
-  return (
-    <div className="p-10 max-w-7xl mx-auto animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 pb-12 border-b border-slate-100">
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-[#009485]" />
-            <span className="text-[#009485] font-black text-[11px] uppercase tracking-[0.4em]">Campus Numérique</span>
-          </div>
-          <h1 className="text-5xl font-black text-slate-950 tracking-tighter">Mes Enseignements<span className="text-[#009485]">.</span></h1>
-          <p className="text-slate-500 text-xl font-medium max-w-2xl leading-relaxed">Accédez à vos supports de cours et déposez vos travaux pour le niveau {academicLevel}.</p>
+  const DetailsSkeleton = () => (
+    <div className="p-8 space-y-8 max-w-7xl mx-auto animate-pulse">
+      <Skeleton className="h-6 w-32" />
+      <Skeleton className="h-48 rounded-[40px]" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <Skeleton className="h-64 rounded-[32px]" />
+          <Skeleton className="h-64 rounded-[32px]" />
         </div>
-        <div className="bg-slate-50 px-8 py-4 rounded-[24px] border border-slate-100 shadow-inner">
-          <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">{courses.length} Cours Disponibles</span>
+        <div className="space-y-6">
+          <Skeleton className="h-32 rounded-[32px]" />
+          <Skeleton className="h-64 rounded-[32px]" />
         </div>
       </div>
+    </div>
+  );
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-10">
+  if (loadingDetails) return <DetailsSkeleton />;
+
+
+  return (
+    <div className="p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
+      <div className="mb-10">
+        <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Mes Cours</h1>
+        <p className="text-gray-500 font-medium tracking-tight">Gérez et accédez à vos supports de {academicLevel}</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {courses.map((course) => (
           <motion.div
             key={course.id}
-            whileHover={{ y: -10 }}
+            whileHover={{ y: -4 }}
             onClick={() => handleCourseClick(course)}
-            className={`group relative bg-white rounded-[50px] p-10 shadow-sm border border-slate-100 hover:shadow-[0_48px_80px_-20px_rgba(0,0,0,0.12)] transition-all cursor-pointer overflow-hidden ${course.status === 'FINISHED' ? 'bg-slate-50/50 grayscale-[0.5]' : ''}`}
+            className="bg-white rounded-[40px] p-8 shadow-sm border border-gray-100 hover:shadow-xl transition-all cursor-pointer group relative overflow-hidden"
           >
-            <div className={`absolute top-0 right-0 w-48 h-48 bg-teal-500 opacity-0 group-hover:opacity-[0.03] rounded-bl-[100px] transition-all duration-700 group-hover:scale-125`} />
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${course.color} opacity-[0.03] -mr-16 -mt-16 rounded-full transition-transform group-hover:scale-150 duration-700`} />
 
-            <div className="flex items-start justify-between mb-10 relative z-10">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-8 relative">
+              <div className="flex items-center gap-5 flex-1 min-w-0">
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform shrink-0"
+                  style={{
+                    background: `linear-gradient(to bottom right, ${course.colorFrom}, ${course.colorTo})`
+                  }}
+                >
+                  <BookOpen className="w-8 h-8 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{course.code}</span>
+                  <h3 className={`font-black text-gray-900 tracking-tight truncate ${course.name.length > 35 ? 'text-lg' :
+                    course.name.length > 25 ? 'text-xl' : 'text-2xl'
+                    }`}>{course.name}</h3>
+                </div>
+              </div>
+            </div>
+
+            {/* Icons Grid */}
+            <div className="grid grid-cols-2 gap-y-4 gap-x-8 mb-8 relative">
+              <div className="flex items-center gap-3 text-sm text-gray-500 font-bold">
+                <div className="p-2 bg-gray-50 rounded-lg"><User className="w-4 h-4 text-gray-400" /></div>
+                <span>{course.professor}</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-gray-500 font-bold">
+                <div className="p-2 bg-gray-50 rounded-lg"><MapPin className="w-4 h-4 text-gray-400" /></div>
+                <span>{course.room}</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-gray-500 font-bold col-span-2">
+                <div className="p-2 bg-gray-50 rounded-lg"><Clock className="w-4 h-4 text-gray-400" /></div>
+                <span>{course.schedule}</span>
+              </div>
+            </div>
+
+            {/* Resources Footer */}
+            <div className="flex items-center justify-between pt-6 border-t border-gray-50 relative">
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 rounded-3xl bg-slate-950 shadow-2xl flex items-center justify-center transition-transform group-hover:rotate-6 group-hover:scale-110 duration-500">
-                  <BookOpen className="w-10 h-10 text-[#00E5BC]" />
+                <div className="flex items-center gap-2 text-xs text-gray-400 font-black uppercase tracking-widest">
+                  <FileText className="w-4 h-4" />
+                  <span>{course.materials} Docs</span>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{course.code}</span>
-                    {course.status === 'FINISHED' && (
-                      <span className="bg-slate-800 text-[#00E5BC] text-[8px] font-black uppercase tracking-[0.3em] px-2 py-1 rounded-md">ARCHIVE</span>
-                    )}
-                  </div>
-                  <h3 className="text-3xl font-black text-slate-950 tracking-tight leading-none uppercase group-hover:text-[#009485] transition-colors">{course.name}</h3>
+                <div className="flex items-center gap-2 text-xs text-gray-400 font-black uppercase tracking-widest border-l border-gray-100 pl-4">
+                  <Send className="w-4 h-4" />
+                  <span>{course.assignments} Devoirs</span>
                 </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10 relative z-10 lg:pr-10">
-              <div className="flex items-center gap-4 group/item">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover/item:bg-teal-50 group-hover/item:text-[#009485] transition-all">
-                  <User className="w-5 h-5" />
+              <div className="flex items-center gap-4">
+                {course.status === 'FINISHED' && (
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full border border-slate-100">Terminé</span>
+                )}
+                <div className="flex items-center gap-2 text-teal-600 group-hover:translate-x-1 transition-transform">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-end italic">Accéder</span>
+                  <ChevronRight className="w-4 h-4 text-end italic" />
                 </div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-none">{course.professor}</span>
-              </div>
-              <div className="flex items-center gap-4 group/item">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover/item:bg-teal-50 group-hover/item:text-[#009485] transition-all">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-none">{course.room}</span>
-              </div>
-              <div className="flex items-center gap-4 group/item sm:col-span-2">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover/item:bg-teal-50 group-hover/item:text-[#009485] transition-all">
-                  <Calendar className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-none">{course.schedule}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-10 border-t border-slate-50 relative z-10 transition-colors group-hover:border-teal-100">
-              <div className="flex items-center gap-8">
-                <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
-                  <FileText className="w-4 h-4" /> {course.materials} Documents
-                </div>
-                <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
-                  <Send className="w-4 h-4" /> {course.assignments} Devoirs
-                </div>
-              </div>
-              <div className="flex items-center gap-3 text-[#009485] font-black tracking-[0.2em] text-[10px] uppercase italic transition-all group-hover:translate-x-2">
-                Accéder <ArrowRight className="w-4 h-4" />
               </div>
             </div>
           </motion.div>

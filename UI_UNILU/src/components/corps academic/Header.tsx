@@ -1,4 +1,4 @@
-import { Search, Calendar, Bell, Menu, User } from "lucide-react";
+import { Search, Calendar, Bell, Menu } from "lucide-react";
 import { UserData } from "../../App";
 
 interface HeaderProps {
@@ -20,34 +20,31 @@ export function Header({ userData, onMenuClick, hasUnreadAnnouncements, onBellCl
   };
 
   return (
-    <header className="bg-white/80 backdrop-blur-3xl border-b border-slate-100 px-6 md:px-12 py-6 sticky top-0 z-30">
-      <div className="flex items-center justify-between gap-8">
+    <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-4">
+      <div className="flex items-center justify-between gap-4">
         {/* Mobile Menu Button */}
         <button
           onClick={onMenuClick}
-          className="md:hidden p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl text-slate-600 transition-colors"
+          className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-600"
         >
           <Menu className="w-6 h-6" />
         </button>
 
-        {/* Improved Search Bar */}
-        <div className="flex-1 max-w-2xl hidden md:block">
-          <div className="relative group">
-            <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-[#009485] transition-colors" />
+        <div className="flex-1 max-w-2xl">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Explorer le système académique..."
-              className="w-full pl-16 pr-6 h-16 bg-slate-50 border-2 border-transparent rounded-[24px] focus:bg-white focus:border-[#009485] focus:ring-0 transition-all text-[13px] font-bold text-slate-900 placeholder:text-slate-300"
+              placeholder="Rechercher..."
+              className="w-full pl-12 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-sm md:text-base"
             />
           </div>
         </div>
 
-        {/* Global Controls */}
-        <div className="flex items-center gap-4 md:gap-8 ml-auto">
-          {/* Calendar Widget */}
-          <div className="hidden lg:flex items-center gap-4 bg-slate-50 px-6 py-3 rounded-2xl border border-slate-100 shadow-sm cursor-default">
-            <Calendar className="w-5 h-5 text-[#009485]" />
-            <span className="text-[11px] font-black text-slate-950 uppercase tracking-[0.2em]">
+        <div className="flex items-center gap-2 md:gap-6 ml-2 md:ml-8">
+          <div className="hidden md:flex items-center gap-2 text-gray-700">
+            <Calendar className="w-5 h-5" />
+            <span className="font-medium">
               {new Date().toLocaleDateString('fr-FR', {
                 day: 'numeric',
                 month: 'short',
@@ -56,37 +53,33 @@ export function Header({ userData, onMenuClick, hasUnreadAnnouncements, onBellCl
             </span>
           </div>
 
-          {/* Notifications Button */}
           <button
             onClick={onBellClick}
-            className={`relative p-4 rounded-2xl transition-all duration-500 overflow-hidden group ${hasUnreadAnnouncements
-              ? 'bg-teal-50 text-teal-600 shadow-xl shadow-teal-500/10 active:scale-90 border border-teal-100'
-              : 'bg-slate-50 text-slate-400 hover:text-slate-900 hover:bg-white hover:shadow-lg hover:border-slate-100 border border-transparent'
+            className={`relative p-2.5 rounded-xl transition-all duration-500 overflow-hidden group ${hasUnreadAnnouncements
+              ? 'bg-teal-50 text-teal-600 shadow-lg shadow-teal-500/20'
+              : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
               }`}
+            title={hasUnreadAnnouncements ? "Nouvelles annonces" : "Pas de nouvelles annonces"}
           >
-            <div className={`absolute inset-0 bg-teal-400/20 blur-xl transition-opacity duration-500 ${hasUnreadAnnouncements ? 'opacity-100' : 'opacity-0'}`} />
-            <Bell className={`w-5 h-5 relative z-10 ${hasUnreadAnnouncements ? 'animate-bell' : 'transition-transform duration-500 group-hover:rotate-12'}`} />
+            <div className={`absolute inset-0 bg-teal-400/10 blur-xl transition-opacity duration-500 ${hasUnreadAnnouncements ? 'opacity-100' : 'opacity-0'}`} />
+
+            <Bell className={`w-5 h-5 relative z-10 ${hasUnreadAnnouncements ? 'animate-bell' : 'group-hover:rotate-12'}`} />
 
             {hasUnreadAnnouncements && (
               <>
-                <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white z-20 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span>
-                <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-rose-400 rounded-full z-10 animate-ping opacity-75"></span>
+                <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white z-20 animate-pulse-red"></span>
+                <span className="absolute top-2 right-2 w-3 h-3 bg-red-400 rounded-full z-10 animate-ping opacity-75"></span>
               </>
             )}
           </button>
 
-          {/* Profile Quick Access */}
-          <div className="flex items-center gap-4 pl-4 md:pl-10 border-l border-slate-100">
-            <div className="hidden sm:block text-right">
-              <div className="text-[13px] font-black text-slate-950 tracking-tight leading-none mb-1 uppercase">{userData.name}</div>
-              <div className="text-[9px] font-black text-[#009485] uppercase tracking-[0.3em] opacity-80">{userData.title || 'Professeur'}</div>
+          <div className="flex items-center gap-3 pl-2 md:pl-6 border-l border-gray-200">
+            <div className="hidden md:block text-right">
+              <div className="font-semibold text-gray-900">{userData.name}</div>
+              <div className="text-sm text-gray-500">{userData.title}</div>
             </div>
-            <div className="relative group cursor-pointer">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#009485] to-teal-500 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity animate-pulse" />
-              <div className="w-12 h-12 bg-white border-2 border-slate-50 rounded-2xl shadow-sm flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform">
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-white" />
-                <span className="text-slate-950 font-black text-sm relative z-10">{getInitials(userData.name)}</span>
-              </div>
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-full flex items-center justify-center">
+              <span className="text-white font-semibold text-sm md:text-base">{getInitials(userData.name)}</span>
             </div>
           </div>
         </div>
