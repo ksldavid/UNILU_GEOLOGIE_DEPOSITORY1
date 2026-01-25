@@ -94,7 +94,7 @@ export function AdminLoginPage({ onLogin, onBack }: AdminLoginPageProps) {
             <div className="flex flex-col">
               <span className="text-xs font-black uppercase tracking-[0.2em] text-[#1B4332]/50">Portail Admin</span>
               <span className="text-sm font-bold text-[#1B4332] max-w-[200px] leading-tight">
-                Faculté des Sciences et Technologies
+                Faculté de Science et Technologie
               </span>
             </div>
           </motion.div>
