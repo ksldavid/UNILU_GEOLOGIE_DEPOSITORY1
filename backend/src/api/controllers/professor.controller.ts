@@ -354,7 +354,7 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
             const schedule = c.schedules.map((s: any) => `${s.day}: ${s.startTime} - ${s.endTime} (${s.room})`).join('\n') || 'Non défini';
 
             return {
-                id: c.code,
+                id: String(e.id),
                 code: c.code,
                 name: c.name,
                 level: level,
@@ -385,7 +385,7 @@ export const updateCourseStatus = async (req: AuthRequest, res: Response) => {
                 userId_courseCode_academicYear: {
                     userId,
                     courseCode,
-                    academicYear: '2025-2026' // Should be dynamic ideally
+                    academicYear: '2024-2025' // Aligné avec l'année d'inscription actuelle
                 }
             },
             data: { status }
@@ -410,7 +410,7 @@ export const removeCourseAssignment = async (req: AuthRequest, res: Response) =>
                 userId_courseCode_academicYear: {
                     userId,
                     courseCode,
-                    academicYear: '2025-2026'
+                    academicYear: '2024-2025'
                 }
             }
         });
