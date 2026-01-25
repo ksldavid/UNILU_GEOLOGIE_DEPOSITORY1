@@ -1631,35 +1631,39 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           <div className="bg-white p-6 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -mr-10 -mt-10"></div>
             <h3 className="text-gray-400 mb-2 uppercase text-[10px] tracking-widest relative z-10 font-black">Réussite</h3>
-            <div className="text-4xl font-black text-emerald-600 relative z-10">{currentStats.success}%</div>
+            <div className={`font-black text-emerald-600 relative z-10 ${currentStats.success.toString().length > 4 ? 'text-2xl' : 'text-3xl'}`}>
+              {currentStats.success}%
+            </div>
             <p className="text-[10px] text-emerald-600 font-bold mt-4 relative z-10">Moyenne ≥ 50%</p>
           </div>
 
           <div className="bg-white p-6 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-bl-full -mr-10 -mt-10"></div>
             <h3 className="text-gray-400 mb-2 uppercase text-[10px] tracking-widest relative z-10 font-black">Échec</h3>
-            <div className="text-4xl font-black text-rose-500 relative z-10">{currentStats.failure}%</div>
+            <div className={`font-black text-rose-500 relative z-10 ${currentStats.failure.toString().length > 4 ? 'text-2xl' : 'text-3xl'}`}>
+              {currentStats.failure}%
+            </div>
             <p className="text-[10px] text-rose-500 font-bold mt-4 relative z-10">Moyenne {"<"} 50%</p>
           </div>
 
           <div className="bg-white p-6 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-teal-50 rounded-bl-full -mr-10 -mt-10"></div>
             <h3 className="text-gray-400 mb-2 uppercase text-[10px] tracking-widest relative z-10 font-black">Moyenne</h3>
-            <div className="text-4xl font-black text-teal-600 relative z-10">{currentStats.avg}</div>
+            <div className="text-3xl font-black text-teal-600 relative z-10">{currentStats.avg}</div>
             <p className="text-[10px] text-teal-600 font-bold mt-4 relative z-10">Moyenne de classe</p>
           </div>
 
           <div className="bg-white p-6 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-10 -mt-10"></div>
             <h3 className="text-gray-400 mb-2 uppercase text-[10px] tracking-widest relative z-10 font-black">Inscrits</h3>
-            <div className="text-4xl font-black text-blue-600 relative z-10">{currentStats.enrolled}</div>
+            <div className="text-3xl font-black text-blue-600 relative z-10">{currentStats.enrolled}</div>
             <p className="text-[10px] text-blue-600 font-bold mt-4 relative z-10">Effectif théorique</p>
           </div>
 
           <div className="bg-white p-6 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-fuchsia-50 rounded-bl-full -mr-10 -mt-10"></div>
             <h3 className="text-gray-400 mb-2 uppercase text-[10px] tracking-widest relative z-10 font-black">Absents</h3>
-            <div className="text-4xl font-black text-fuchsia-600 relative z-10">
+            <div className="text-3xl font-black text-fuchsia-600 relative z-10">
               {currentStats.enrolled > 0 ? parseFloat((((currentStats.enrolled - currentStats.total) / currentStats.enrolled) * 100).toFixed(2)) : 0}%
             </div>
             <p className="text-[10px] text-fuchsia-600 font-bold mt-4 relative z-10">Taux d'absence</p>
@@ -1668,7 +1672,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           <div className="bg-[#1B4332] p-6 rounded-[40px] shadow-xl relative overflow-hidden group text-white">
             <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-bl-full -mr-10 -mt-10"></div>
             <h3 className="text-teal-400/60 mb-2 uppercase text-[10px] tracking-widest relative z-10 font-black">Évalués</h3>
-            <div className="text-4xl font-black relative z-10">{currentStats.total}</div>
+            <div className="text-3xl font-black relative z-10">{currentStats.total}</div>
             <p className="text-teal-400 text-[10px] font-bold mt-4 relative z-10">Présents à l'épreuve</p>
           </div>
         </div>

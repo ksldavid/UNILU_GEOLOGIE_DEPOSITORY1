@@ -1082,16 +1082,23 @@ export const getCoursePerformance = async (req: AuthRequest, res: Response) => {
             };
         }));
 
+        // Calculate global stats based only on assessments that have at least one grade
+        // to avoid watering down semester averages with empty assessments
+        const gradedExams = examStats.filter(s => s.total > 0);
+
         let globalSuccess = 0;
         let globalFailure = 0;
         let globalAvg = 0;
         let globalTotal = 0;
 
-        if (examStats.length > 0) {
-            globalSuccess = Math.round(examStats.reduce((sum, s) => sum + s.success, 0) / examStats.length);
-            globalFailure = Math.round(examStats.reduce((sum, s) => sum + s.failure, 0) / examStats.length);
-            globalAvg = parseFloat((examStats.reduce((sum, s) => sum + s.avg, 0) / examStats.length).toFixed(1));
-            globalTotal = Math.round(examStats.reduce((sum, s) => sum + s.total, 0) / examStats.length);
+        if (gradedExams.length > 0) {
+            globalSuccess = parseFloat((gradedExams.reduce((sum, s) => sum + s.success, 0) / gradedExams.length).toFixed(2));
+            globalFailure = parseFloat((gradedExams.reduce((sum, s) => sum + s.failure, 0) / gradedExams.length).toFixed(2));
+            globalAvg = parseFloat((gradedExams.reduce((sum, s) => sum + s.avg, 0) / gradedExams.length).toFixed(2));
+            globalTotal = Math.round(gradedExams.reduce((sum, s) => sum + s.total, 0) / gradedExams.length);
+        } else if (examStats.length > 0) {
+            // If NO exams are graded yet, still show 0 instead of NaN
+            globalTotal = 0;
         }
 
         const response = [
