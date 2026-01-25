@@ -422,19 +422,23 @@ export const saveAttendance = async (req: AuthRequest, res: Response) => {
         const enrolledStudentIds = enrolledStudents.map(e => e.userId);
 
         // Create a map of records provided by the professor
-        const recordsMap = new Map(records.map((r: any) => [r.studentId, r.status]));
+        const recordsMap = new Map<string, string>(
+            (records || []).map((r: any) => [String(r.studentId), String(r.status)])
+        );
+
+        const statusMap: Record<string, 'PRESENT' | 'ABSENT' | 'LATE'> = {
+            'present': 'PRESENT',
+            'absent': 'ABSENT',
+            'late': 'LATE'
+        };
 
         // Prepare upsert operations for all enrolled students
         const upsertOperations = enrolledStudentIds.map((studentId) => {
-            const statusMap: any = {
-                'present': 'PRESENT',
-                'absent': 'ABSENT',
-                'late': 'LATE'
-            };
-
             // If professor provided a status, use it; otherwise mark as ABSENT
             const providedStatus = recordsMap.get(studentId);
-            const finalStatus = providedStatus ? statusMap[providedStatus] || 'ABSENT' : 'ABSENT';
+            const finalStatus: 'PRESENT' | 'ABSENT' | 'LATE' = providedStatus
+                ? (statusMap[providedStatus] || 'ABSENT')
+                : 'ABSENT';
 
             return prisma.attendanceRecord.upsert({
                 where: {
@@ -1047,15 +1051,15 @@ export const getCoursePerformance = async (req: AuthRequest, res: Response) => {
         });
 
         const examStats = await Promise.all(assessments.map(async (exam) => {
-            const totalWithGrades = exam.grades.length;
+            const allGrades = exam.grades;
+            const totalCount = allGrades.length;
 
-            // Get student IDs and details for success/failure
-            const successGrades = exam.grades.filter(g => g.score >= (exam.maxPoints / 2));
-            const failureGrades = exam.grades.filter(g => g.score < (exam.maxPoints / 2));
+            const successGrades = allGrades.filter(g => g.score >= (exam.maxPoints / 2));
+            const failureGrades = allGrades.filter(g => g.score < (exam.maxPoints / 2));
 
             const successCount = successGrades.length;
-            const failureCount = totalWithGrades - successCount;
-            const sumScores = exam.grades.reduce((sum, g) => sum + g.score, 0);
+            const failureCount = totalCount - successCount;
+            const sumScores = allGrades.reduce((sum, g) => sum + g.score, 0);
 
             // Fetch names for these students to make stats "real"
             const studentIds = exam.grades.map(g => g.studentId);
@@ -1068,10 +1072,10 @@ export const getCoursePerformance = async (req: AuthRequest, res: Response) => {
             return {
                 id: exam.id,
                 title: exam.title,
-                success: totalWithGrades > 0 ? Math.round((successCount / totalWithGrades) * 100) : 0,
-                failure: totalWithGrades > 0 ? Math.round((failureCount / totalWithGrades) * 100) : 0,
-                avg: totalWithGrades > 0 ? parseFloat((sumScores / totalWithGrades).toFixed(1)) : 0,
-                total: totalWithGrades,
+                success: totalCount > 0 ? parseFloat(((successCount / totalCount) * 100).toFixed(2)) : 0,
+                failure: totalCount > 0 ? parseFloat(((failureCount / totalCount) * 100).toFixed(2)) : 0,
+                avg: totalCount > 0 ? parseFloat((sumScores / totalCount).toFixed(2)) : 0,
+                total: totalCount,
                 enrolled: enrolledStudentsCount,
                 successList: successGrades.map(g => ({ id: g.studentId, name: studentMap.get(g.studentId), score: g.score })),
                 failureList: failureGrades.map(g => ({ id: g.studentId, name: studentMap.get(g.studentId), score: g.score }))

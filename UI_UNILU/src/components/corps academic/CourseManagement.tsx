@@ -1660,7 +1660,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
             <div className="absolute top-0 right-0 w-24 h-24 bg-fuchsia-50 rounded-bl-full -mr-10 -mt-10"></div>
             <h3 className="text-gray-400 mb-2 uppercase text-[10px] tracking-widest relative z-10 font-black">Absents</h3>
             <div className="text-4xl font-black text-fuchsia-600 relative z-10">
-              {currentStats.enrolled > 0 ? Math.round(((currentStats.enrolled - currentStats.total) / currentStats.enrolled) * 100) : 0}%
+              {currentStats.enrolled > 0 ? parseFloat((((currentStats.enrolled - currentStats.total) / currentStats.enrolled) * 100).toFixed(2)) : 0}%
             </div>
             <p className="text-[10px] text-fuchsia-600 font-bold mt-4 relative z-10">Taux d'absence</p>
           </div>
