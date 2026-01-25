@@ -80,10 +80,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     // Optional: Display a message or leave empty.
   }
 
-  const stats = [
-    { label: "Étudiants", value: data?.stats.studentCount || '0', change: "Total" },
-    { label: "Cours Actifs", value: data?.stats.courseCount || '0', change: "En charge" }
-  ];
 
   const handleSendAnnouncement = async () => {
     if (!announcementText) return;
@@ -233,7 +229,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       <Icon className={`w-7 h-7 ${course.iconColor}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-gray-900 text-lg mb-2 truncate group-hover:text-teal-700 transition-colors uppercase">
+                      <h4 className="font-bold text-gray-900 text-base mb-2 group-hover:text-teal-700 transition-colors uppercase leading-tight">
                         {course.title}
                       </h4>
                       <div className="flex flex-wrap gap-4 items-center">

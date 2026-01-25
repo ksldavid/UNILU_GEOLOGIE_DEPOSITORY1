@@ -601,7 +601,10 @@ export function StudentCourses() {
                       <span className="bg-slate-800 text-white text-[8px] font-black uppercase tracking-[0.3em] px-2 py-1 rounded-md">Terminé</span>
                     )}
                   </div>
-                  <h3 className={`font-black text-slate-900 tracking-tight leading-none uppercase group-hover:text-teal-700 transition-colors ${course.name.length > 35 ? 'text-xl' : 'text-2xl'}`}>
+                  <h3 className={`font-black text-slate-900 tracking-tight leading-[1.2] uppercase group-hover:text-teal-700 transition-colors ${course.name.length > 50 ? 'text-base' :
+                      course.name.length > 35 ? 'text-lg' :
+                        course.name.length > 25 ? 'text-xl' : 'text-2xl'
+                    }`}>
                     {course.name}
                   </h3>
                 </div>

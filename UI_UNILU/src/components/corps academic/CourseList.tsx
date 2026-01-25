@@ -176,7 +176,10 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
                   <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
                   {course.level}
                 </div>
-                <h3 className={`text-2xl font-black text-slate-900 mt-1 leading-[1.2] min-h-[64px] line-clamp-2 tracking-tight group-hover:text-teal-900 transition-colors ${isFinished ? 'text-slate-500' : ''}`}>
+                <h3 className={`font-black text-slate-900 mt-1 leading-[1.2] min-h-[64px] tracking-tight group-hover:text-teal-900 transition-colors ${isFinished ? 'text-slate-500' : ''} ${course.name.length > 50 ? 'text-base' :
+                    course.name.length > 35 ? 'text-lg' :
+                      course.name.length > 25 ? 'text-xl' : 'text-2xl'
+                  }`}>
                   {course.name}
                 </h3>
               </div>
