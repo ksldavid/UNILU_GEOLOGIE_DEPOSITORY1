@@ -149,8 +149,8 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: "Vous n'êtes pas officiellement inscrit à ce cours." });
         }
 
-        // 5. NOUVEAU: Vérifier si l'étudiant a déjà pris présence aujourd'hui pour ce cours
-        const existingAttendance = await prisma.attendanceRecord.findUnique({
+        // 5. Vérifier si l'étudiant a déjà pris présence aujourd'hui
+        const existingAttendance = await (prisma as any).attendanceRecord.findUnique({
             where: {
                 sessionId_studentId: {
                     sessionId: session.id,
@@ -159,7 +159,8 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        if (existingAttendance) {
+        // Si l'étudiant est déjà PRESENT ou LATE, on ne change rien
+        if (existingAttendance && existingAttendance.status !== 'ABSENT') {
             return res.status(400).json({
                 message: "Vous avez déjà pris présence pour ce cours aujourd'hui.",
                 alreadyMarked: true,
@@ -167,9 +168,19 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // 6. Enregistrer la présence (uniquement si pas déjà enregistrée)
-        await prisma.attendanceRecord.create({
-            data: {
+        // 6. Enregistrer ou Mettre à jour la présence 
+        // Si le statut était 'ABSENT' (mis par le prof ou le système), on le passe à 'PRESENT'
+        await (prisma as any).attendanceRecord.upsert({
+            where: {
+                sessionId_studentId: {
+                    sessionId: session.id,
+                    studentId: userId
+                }
+            },
+            update: {
+                status: 'PRESENT'
+            },
+            create: {
                 sessionId: session.id,
                 studentId: userId,
                 status: 'PRESENT'
