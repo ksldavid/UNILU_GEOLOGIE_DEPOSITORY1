@@ -19,41 +19,68 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
 
         const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
 
-        // 1. Get courses (taught by professor or all if superuser)
+        let filterCourseCodes: string[] = [];
+        let courseMap = new Map<string, string>();
+
         const whereClause = isSuperUser
             ? (courseCode ? { courseCode: String(courseCode) } : {})
             : { userId, ...(courseCode ? { courseCode: String(courseCode) } : {}) };
 
-        const taughtCourses = await prisma.courseEnrollment.findMany({
-            where: whereClause,
-            select: { courseCode: true, course: { select: { name: true } } },
-            distinct: ['courseCode']
-        }) as any[];
+        if (isSuperUser && !courseCode) {
+            // SuperUser viewing all: We'll fill courseMap but filterCourseCodes might be too large
+            // We'll handle this cases differently in step 2
+            const allCourses = await prisma.course.findMany({ select: { code: true, name: true }, take: 200 });
+            allCourses.forEach(c => courseMap.set(c.code, c.name));
+        } else {
+            const taughtCourses = await prisma.courseEnrollment.findMany({
+                where: whereClause,
+                select: { courseCode: true, course: { select: { name: true } } },
+                distinct: ['courseCode']
+            }) as any[];
 
-        const filterCourseCodes = taughtCourses.map(tc => tc.courseCode);
-        const courseMap = new Map(taughtCourses.map(tc => [tc.courseCode, tc.course.name] as [string, string]));
+            filterCourseCodes = taughtCourses.map(tc => tc.courseCode);
+            taughtCourses.forEach(tc => courseMap.set(tc.courseCode, tc.course.name));
+        }
 
         // 2. Get students enrolled in these courses
-        const studentEnrollments = await prisma.studentCourseEnrollment.findMany({
-            where: {
-                courseCode: { in: filterCourseCodes },
-                isActive: true
-            },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true
-                    }
-                },
-                course: {
-                    include: {
-                        academicLevels: true
+        let studentEnrollments: any[] = [];
+
+        if (isSuperUser && !courseCode) {
+            // Fetch students directly for SuperUser view
+            const users = await prisma.user.findMany({
+                where: { systemRole: 'STUDENT', isArchived: false },
+                take: 100,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    studentCourseEnrollments: {
+                        where: { isActive: true },
+                        take: 1,
+                        include: { course: { include: { academicLevels: true } } }
                     }
                 }
-            }
-        });
+            }) as any[];
+
+            studentEnrollments = users.map(u => {
+                const enrollment = u.studentCourseEnrollments[0];
+                return {
+                    user: u,
+                    courseCode: enrollment?.courseCode || 'N/A',
+                    course: enrollment?.course || { name: 'Non inscrit', academicLevels: [] }
+                };
+            });
+        } else {
+            studentEnrollments = await prisma.studentCourseEnrollment.findMany({
+                where: {
+                    courseCode: { in: filterCourseCodes },
+                    isActive: true
+                },
+                take: 100,
+                include: {
+                    user: { select: { id: true, name: true, email: true } },
+                    course: { include: { academicLevels: true } }
+                }
+            });
+        }
 
         // 3. Get Attendance Stats
         const sessions = await prisma.attendanceSession.findMany({
@@ -145,7 +172,7 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
                 grade: averageGrade,
                 totalSessions: courseSessions.length,
                 presentCount,
-                todayStatus: todayStatus?.courseCode === cCode ? todayStatus.status.toLowerCase() : null
+                todayStatus: (todayStatus && todayStatus.courseCode === cCode) ? todayStatus.status.toLowerCase() : null
             };
         });
 
@@ -236,17 +263,33 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
         const activeCoursesCount = taughtCourses.filter(tc => tc.status === 'ACTIVE').length;
         const finishedCoursesCount = taughtCourses.filter(tc => tc.status === 'FINISHED').length;
 
-        // Count unique students (Query SQL Count au lieu de charger les objets)
-        const totalStudents = await prisma.studentCourseEnrollment.count({
-            where: isSuperUser
-                ? { isActive: true }
-                : { courseCode: { in: courseCodes }, isActive: true }
-        });
+        // Count unique students (Corrected logic to avoid duplicates)
+        let totalStudents = 0;
+        if (isSuperUser) {
+            totalStudents = await prisma.user.count({
+                where: { systemRole: 'STUDENT', isArchived: false }
+            });
+        } else {
+            const result = await prisma.studentCourseEnrollment.groupBy({
+                by: ['userId'],
+                where: {
+                    courseCode: { in: courseCodes },
+                    isActive: true
+                }
+            });
+            totalStudents = result.length;
+        }
 
         // 3. Récupérer les cours de la journée (Planning) - Seulement le nécessaire
         const daysFr = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
         const today = new Date();
         const todayCapitalized = daysFr[today.getDay()]
+
+        const totalTodayCount = await prisma.schedule.count({
+            where: isSuperUser
+                ? { day: todayCapitalized }
+                : { courseCode: { in: courseCodes }, day: todayCapitalized }
+        });
 
         const todaysSchedule = await prisma.schedule.findMany({
             where: isSuperUser
@@ -261,7 +304,8 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                 course: { select: { name: true } },
                 academicLevel: { select: { name: true, displayName: true } }
             },
-            orderBy: { startTime: 'asc' }
+            orderBy: { startTime: 'asc' },
+            take: 6 // Take 6 to detect if "Voir plus" is needed
         });
 
         // 4. Fetch Faculty Announcements
@@ -337,7 +381,7 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                 expiredAt: a.dueDate,
                 submissionCount: a._count?.submissions || 0
             })),
-            todaySchedule: (todaysSchedule as any[]).map(s => ({
+            todaySchedule: (todaysSchedule as any[]).slice(0, 5).map(s => ({
                 id: s.id,
                 title: s.course?.name || 'Sans titre',
                 courseCode: s.courseCode,
@@ -348,6 +392,8 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                 type: 'Cours',
                 isUrgent: false
             })),
+            hasMoreSchedules: todaysSchedule.length > 5,
+            totalTodaySchedules: totalTodayCount,
             announcements: (announcements as any[]).map(a => ({
                 id: a.id,
                 title: a.title,

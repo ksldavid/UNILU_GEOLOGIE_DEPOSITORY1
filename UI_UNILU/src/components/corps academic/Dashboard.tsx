@@ -213,54 +213,68 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </div>
 
           <div className="space-y-4">
-            {todaysCourses.length === 0 ? (
+            {todaysCourses.slice(0, 5).length === 0 ? (
               <div className="bg-white border border-gray-200 rounded-xl p-6 text-gray-500">
                 Aucun cours aujourd'hui
               </div>
-            ) : todaysCourses.map((course: any, index: number) => {
-              const Icon = course.icon;
-              return (
-                <div
-                  key={index}
-                  className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={`${course.iconBg} w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0`}>
-                      <Icon className={`w-7 h-7 ${course.iconColor}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-gray-900 text-base mb-2 group-hover:text-teal-700 transition-colors uppercase leading-tight">
-                        {course.title}
-                      </h4>
-                      <div className="flex flex-wrap gap-4 items-center">
-                        <div className="flex items-center gap-1.5 text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg">
-                          <MapPin className="w-3.5 h-3.5 text-rose-500" />
-                          <span className="text-[11px] font-black uppercase tracking-wider">{course.room}</span>
+            ) : (
+              <>
+                {todaysCourses.slice(0, 5).map((course: any, index: number) => {
+                  const Icon = course.icon;
+                  return (
+                    <div
+                      key={index}
+                      className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className={`${course.iconBg} w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0`}>
+                          <Icon className={`w-7 h-7 ${course.iconColor}`} />
                         </div>
-                        <div className="flex items-center gap-1.5 text-gray-500 bg-teal-50 px-2.5 py-1 rounded-lg">
-                          <GraduationCap className="w-3.5 h-3.5 text-teal-600" />
-                          <span className="text-[11px] font-black uppercase tracking-wider">{course.level}</span>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-gray-900 text-base mb-2 group-hover:text-teal-700 transition-colors uppercase leading-tight">
+                            {course.title}
+                          </h4>
+                          <div className="flex flex-wrap gap-4 items-center">
+                            <div className="flex items-center gap-1.5 text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg">
+                              <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                              <span className="text-[11px] font-black uppercase tracking-wider">{course.room}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-gray-500 bg-teal-50 px-2.5 py-1 rounded-lg">
+                              <GraduationCap className="w-3.5 h-3.5 text-teal-600" />
+                              <span className="text-[11px] font-black uppercase tracking-wider">{course.level}</span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-white border border-gray-100 px-2.5 py-1 rounded-lg">
+                              {course.courseCode}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-white border border-gray-100 px-2.5 py-1 rounded-lg">
-                          {course.courseCode}
+                        <div className="text-right">
+                          <div className={`
+                            inline-block px-3 py-1 rounded-full text-sm font-medium mb-2
+                            ${course.time === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}
+                          `}>
+                            {course.time}
+                          </div>
+                          {course.timeDetail && (
+                            <div className="text-gray-900 font-semibold">{course.timeDetail}</div>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className={`
-                        inline-block px-3 py-1 rounded-full text-sm font-medium mb-2
-                        ${course.time === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}
-                      `}>
-                        {course.time}
-                      </div>
-                      {course.timeDetail && (
-                        <div className="text-gray-900 font-semibold">{course.timeDetail}</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+
+                {data?.hasMoreSchedules && (
+                  <button
+                    onClick={() => onNavigate('planning')}
+                    className="w-full py-4 bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-300 rounded-xl text-gray-600 font-bold text-sm transition-all flex items-center justify-center gap-2 group"
+                  >
+                    <span>VOIR PLUS ({data.totalTodaySchedules - 5} AUTRES COURS)</span>
+                    <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+                  </button>
+                )}
+              </>
+            )}
           </div>
 
           {/* Recently Expired Assignments Reminders */}
