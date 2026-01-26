@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2, MapPin, GraduationCap } from "lucide-react";
+import { BookOpen, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2, MapPin, GraduationCap, ChevronDown } from "lucide-react";
 import type { Page } from "../../App";
 import { professorService } from "../../services/professor";
 import "../../utils/auth-debug"; // Active les outils de débogage d'authentification
