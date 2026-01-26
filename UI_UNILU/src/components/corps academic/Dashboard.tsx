@@ -269,7 +269,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     onClick={() => onNavigate('planning')}
                     className="w-full py-4 bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-300 rounded-xl text-gray-600 font-bold text-sm transition-all flex items-center justify-center gap-2 group"
                   >
-                    <span>VOIR PLUS ({data.totalTodaySchedules - 5} AUTRES COURS)</span>
+                    <span>VOIR PLUS ({(data?.totalTodaySchedules || 0) - 5} AUTRES COURS)</span>
                     <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
                   </button>
                 )}
@@ -285,9 +285,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 Devoirs Clôturés
               </h3>
               <div className="space-y-4">
-                {data.expiredAssignments
-                  .filter((a: any) => !dismissedReminders.includes(a.id))
-                  .map((assignment: any) => (
+                {data?.expiredAssignments
+                  ?.filter((a: any) => !dismissedReminders.includes(a.id))
+                  ?.map((assignment: any) => (
                     <div
                       key={assignment.id}
                       className="group relative"

@@ -31,6 +31,9 @@ const app = express()
 const PORT = process.env.PORT || 3001
 const isProduction = process.env.NODE_ENV === 'production'
 
+// Activer le trust proxy pour Vercel (indispensable pour express-rate-limit)
+app.set('trust proxy', 1)
+
 // ============================================================
 // 🔒 SÉCURITÉ - MIDDLEWARES DE PROTECTION
 // ============================================================
