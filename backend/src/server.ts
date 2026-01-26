@@ -76,9 +76,25 @@ app.use(generalLimiter)
 
 // 4. CORS - Configuration sécurisée
 const corsOptions = {
-    origin: isProduction
-        ? ['https://uniluhub.com', 'https://www.uniluhub.com', 'https://unilu-geologie-depository-1-qtz2.vercel.app', 'https://unilu-geologie.vercel.app'] // Domaines autorisés en prod
-        : '*', // Tout accepter en développement
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        const allowedOrigins = [
+            'https://uniluhub.com',
+            'https://www.uniluhub.com',
+            'https://unilu-geologie-depository-1-qtz2.vercel.app',
+            'https://unilu-geologie.vercel.app',
+            'https://unilu-geologie-depository-1-a6kx.vercel.app'
+        ];
+
+        // Autoriser si :
+        // 1. Pas d'origine (cas des applications mobiles natives ou outils comme Postman/Curl)
+        // 2. L'origine est dans notre liste de confiance
+        // 3. On est en développement (localhost)
+        if (!origin || allowedOrigins.includes(origin) || !isProduction) {
+            callback(null, true);
+        } else {
+            callback(new Error('Non autorisé par CORS'));
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
