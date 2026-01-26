@@ -126,9 +126,9 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
                 parseFloat(longitude)
             );
 
-            if (distance > 50000) { // Limite augmentée à 50km (pour éviter les problèmes de "trop loin")
+            if (distance > 200) { // Limite de 200 mètres (Rayon de sécurité)
                 return res.status(403).json({
-                    message: `Vous êtes trop loin du lieu du cours pour valider votre présence (Distance: ${Math.round(distance)}m).`,
+                    message: `Vous êtes trop loin du lieu du cours pour valider votre présence (Distance actuelle: ${Math.round(distance)}m). Vous devez être à moins de 200m du professeur.`,
                     distance: Math.round(distance)
                 });
             }
