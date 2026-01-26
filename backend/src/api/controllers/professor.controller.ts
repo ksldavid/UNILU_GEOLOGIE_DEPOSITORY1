@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../../lib/prisma'
 import { uploadToCloudinary, deleteFromCloudinary } from '../../utils/cloudinaryHelper'
+import { sendPushNotifications } from '../../utils/pushNotifications'
 
 
 
@@ -1151,6 +1152,45 @@ export const publishAssessment = async (req: AuthRequest, res: Response) => {
         });
 
         await Promise.all(upsertPromises);
+
+        // --- ENVOI DES NOTIFICATIONS PUSH ---
+        try {
+            // Récupérer les tokens des étudiants du cours
+            const studentsWithTokens = await prisma.user.findMany({
+                where: {
+                    studentCourseEnrollments: {
+                        some: {
+                            courseCode: assessment.courseCode,
+                            isActive: true
+                        }
+                    },
+                    pushToken: { not: null }
+                },
+                select: { pushToken: true }
+            });
+
+            const tokens = studentsWithTokens.map(s => s.pushToken as string);
+
+            if (tokens.length > 0) {
+                // Récupérer le nom du cours pour le message
+                const course = await prisma.course.findUnique({
+                    where: { code: assessment.courseCode },
+                    select: { name: true }
+                });
+
+                await sendPushNotifications(tokens, {
+                    title: '📊 Points Disponibles !',
+                    body: `La note pour "${assessment.title}" (${course?.name || assessment.courseCode}) est en ligne. Viens voir ton résultat !`,
+                    data: {
+                        type: 'GRADE_PUBLISHED',
+                        assessmentId: assessment.id,
+                        courseCode: assessment.courseCode
+                    }
+                });
+            }
+        } catch (pushError) {
+            console.error('[Push] Erreur lors de la notification des notes:', pushError);
+        }
 
         res.json({ message: 'Évaluation publiée avec succès' });
     } catch (error) {
