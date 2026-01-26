@@ -205,6 +205,7 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
     try {
         const userId = req.user?.userId
         const userRole = req.user?.role
+
         // 0. Récupérer les infos du professeur
         const professor = await prisma.user.findUnique({
             where: { id: userId },
@@ -217,58 +218,55 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
 
         const isSuperUser = userRole === 'ADMIN' || professor.name.toLowerCase().includes('departement');
 
-        // 1. Récupérer les cours enseignés par ce professeur (ou tous si SuperUser)
+        // 1. Récupérer uniquement les CODES des cours (beaucoup plus léger)
         const taughtCourses = await prisma.courseEnrollment.findMany({
             where: isSuperUser ? {} : { userId },
-            include: {
-                course: {
-                    include: {
-                        studentCourseEnrollments: true,
-                        academicLevels: true
-                    }
-                }
+            select: {
+                courseCode: true,
+                status: true
             },
-            ...(isSuperUser ? { distinct: ['courseCode'] as const } : {})
-        }) as any[]
+            distinct: isSuperUser ? ['courseCode'] : undefined
+        });
 
-        const courseCodes = taughtCourses.map(tc => tc.courseCode)
+        const courseCodes = taughtCourses.map(tc => tc.courseCode);
+
+        // -- STATS OPTIMISÉES (Count direct en DB) --
 
         // Count active vs finished courses
         const activeCoursesCount = taughtCourses.filter(tc => tc.status === 'ACTIVE').length;
         const finishedCoursesCount = taughtCourses.filter(tc => tc.status === 'FINISHED').length;
 
-        // 2. Compter le nombre total d'étudiants (uniques)
-        const uniqueStudentIds = new Set<string>()
-        taughtCourses.forEach(tc => {
-            tc.course.studentCourseEnrollments.forEach((enrollment: any) => {
-                if (enrollment.isActive) {
-                    uniqueStudentIds.add(enrollment.userId)
-                }
-            })
-        })
-        const totalStudents = uniqueStudentIds.size
+        // Count unique students (Query SQL Count au lieu de charger les objets)
+        const totalStudents = await prisma.studentCourseEnrollment.count({
+            where: {
+                courseCode: isSuperUser ? undefined : { in: courseCodes },
+                isActive: true
+            }
+        });
 
-        // 3. Récupérer les cours de la journée (Planning)
+        // 3. Récupérer les cours de la journée (Planning) - Seulement le nécessaire
         const daysFr = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
         const today = new Date();
         const todayCapitalized = daysFr[today.getDay()]
 
         const todaysSchedule = await prisma.schedule.findMany({
             where: {
-                courseCode: { in: courseCodes },
+                courseCode: isSuperUser ? undefined : { in: courseCodes },
                 day: todayCapitalized
             },
-            include: {
-                course: true,
-                academicLevel: true
+            select: {
+                id: true,
+                courseCode: true,
+                room: true,
+                startTime: true,
+                endTime: true,
+                course: { select: { name: true } },
+                academicLevel: { select: { name: true, displayName: true } }
             },
             orderBy: { startTime: 'asc' }
-        }) as any[]
+        });
 
-        // 4. Fetch Faculty Announcements (Targeting ALL or ALL_PROFESSORS, assuming logic)
-        // Since we don't have explicit professor target in schema from limited view, 
-        // we'll fetch 'ALL' or 'ALL_STUDENTS' (often meant as everyone) or create a convention.
-        // Let's assume generic announcements for now.
+        // 4. Fetch Faculty Announcements
         const announcements = await prisma.announcement.findMany({
             where: {
                 OR: [
@@ -279,31 +277,50 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                 isActive: true
             },
             take: 5,
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true, title: true, content: true, createdAt: true, type: true, target: true
+            }
         });
 
-        // 5. Récupérer les devoirs qui viennent de se terminer (derniers 7 jours)
-        const recentlyExpiredAssignments = await prisma.assessment.findMany({
-            where: {
-                courseCode: { in: courseCodes },
-                type: { in: ['TP', 'TD'] },
-                dueDate: {
-                    lt: new Date(),
-                    gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // 7 jours
-                }
-            },
-            include: {
-                course: { select: { name: true } },
-                _count: { select: { submissions: true } }
-            },
-            orderBy: { dueDate: 'desc' },
-            take: 3
-        }) as any[];
+        // 5. Récupérer les devoirs récents (Seulement si nécessaire)
+        let recentlyExpiredAssignments = [];
+        if (courseCodes.length > 0) {
+            recentlyExpiredAssignments = await prisma.assessment.findMany({
+                where: {
+                    courseCode: isSuperUser ? undefined : { in: courseCodes },
+                    type: { in: ['TP', 'TD'] },
+                    dueDate: {
+                        lt: new Date(),
+                        gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                    }
+                },
+                include: {
+                    course: { select: { name: true } },
+                    _count: { select: { submissions: true } }
+                },
+                orderBy: { dueDate: 'desc' },
+                take: 3
+            });
+        }
 
         // 6. Get Unique Academic Levels for these courses
+        // This part needs to fetch academic levels based on courseCodes, not from taughtCourses directly anymore.
+        // We need to query `Course` table to get academic levels.
+        const coursesWithLevels = await prisma.course.findMany({
+            where: {
+                code: isSuperUser ? undefined : { in: courseCodes }
+            },
+            select: {
+                academicLevels: {
+                    select: { id: true, name: true, displayName: true }
+                }
+            }
+        });
+
         const levelsMap = new Map();
-        taughtCourses.forEach(tc => {
-            tc.course.academicLevels?.forEach((al: any) => {
+        coursesWithLevels.forEach(course => {
+            course.academicLevels.forEach(al => {
                 levelsMap.set(al.id, { id: al.id, name: al.name, displayName: al.displayName });
             });
         });
