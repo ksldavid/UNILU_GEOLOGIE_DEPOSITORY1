@@ -11,7 +11,13 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
         const userRole = req.user?.role;
         const { courseCode } = req.query;
 
-        const isSuperUser = userRole === 'ADMIN';
+        // 0. Récupérer les infos de l'utilisateur
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true }
+        });
+
+        const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
 
         // 1. Get courses (taught by professor or all if superuser)
         const taughtCourses = await prisma.courseEnrollment.findMany({
@@ -153,7 +159,13 @@ export const getProfessorSchedule = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
         const userRole = req.user?.role;
-        const isSuperUser = userRole === 'ADMIN';
+        // Fetch user context for SuperUser check
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true }
+        });
+
+        const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
 
         const taughtCourses = await prisma.courseEnrollment.findMany({
             where: { userId: isSuperUser ? undefined : userId },
@@ -194,17 +206,17 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
     try {
         const userId = req.user?.userId
         const userRole = req.user?.role
-        const isSuperUser = userRole === 'ADMIN'
-
-        if (!userId) {
-            return res.status(401).json({ message: 'Utilisateur non authentifié' })
-        }
-
         // 0. Récupérer les infos du professeur
         const professor = await prisma.user.findUnique({
             where: { id: userId },
             select: { name: true }
         });
+
+        if (!professor) {
+            return res.status(404).json({ message: 'Utilisateur non trouvé' })
+        }
+
+        const isSuperUser = userRole === 'ADMIN' || professor.name.toLowerCase().includes('departement');
 
         // 1. Récupérer les cours enseignés par ce professeur (ou tous si SuperUser)
         const taughtCourses = await prisma.courseEnrollment.findMany({
@@ -346,7 +358,8 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
         const userRole = req.user?.role;
-        const isSuperUser = userRole === 'ADMIN';
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+        const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
 
         const enrollments = await prisma.courseEnrollment.findMany({
             where: { userId: isSuperUser ? undefined : userId },
@@ -390,8 +403,12 @@ export const updateCourseStatus = async (req: AuthRequest, res: Response) => {
     try {
         const { courseCode, status, enrollmentId } = req.body;
         const userId = req.user?.userId;
+        const userRole = req.user?.role;
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+        const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
 
         if (enrollmentId) {
             await prisma.courseEnrollment.update({
@@ -402,7 +419,7 @@ export const updateCourseStatus = async (req: AuthRequest, res: Response) => {
             // Fallback to searching by code and year
             await prisma.courseEnrollment.updateMany({
                 where: {
-                    userId,
+                    userId: isSuperUser ? undefined : userId,
                     courseCode,
                     academicYear: { in: ['2023-2024', '2024-2025', '2025-2026'] }
                 },
@@ -452,11 +469,14 @@ export const saveAttendance = async (req: AuthRequest, res: Response) => {
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
         const enrollment = await prisma.courseEnrollment.findFirst({
             where: { userId, courseCode }
         });
 
-        if (!enrollment && req.user?.role !== 'ADMIN') {
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+
+        if (!enrollment && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
         }
 
@@ -623,12 +643,15 @@ export const unenrollStudent = async (req: AuthRequest, res: Response) => {
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
-        // Verify if professor has access to this course
+        // Verify if professor has access (Admins/Dept have access to all)
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
         const hasAccess = await prisma.courseEnrollment.findFirst({
             where: { userId, courseCode }
         });
 
-        if (!hasAccess) {
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+
+        if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
         }
 
@@ -704,12 +727,15 @@ export const enrollStudent = async (req: AuthRequest, res: Response) => {
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
-        // Verify if professor has access to this course
+        // Verify if professor has access (Admins/Dept have access to all)
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
         const hasAccess = await prisma.courseEnrollment.findFirst({
             where: { userId, courseCode }
         });
 
-        if (!hasAccess) {
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+
+        if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
         }
 
@@ -749,6 +775,18 @@ export const createAssessment = async (req: AuthRequest, res: Response) => {
         const userId = req.user?.userId;
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        // Verify if professor has access to this course
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+        const hasAccess = await prisma.courseEnrollment.findFirst({
+            where: { userId, courseCode }
+        });
+
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+
+        if (!hasAccess && !isSuperUser) {
+            return res.status(403).json({ message: "Vous n'êtes pas autorisé à créer un devoir pour ce cours." });
+        }
 
         const assessment = await prisma.assessment.create({
             data: {
@@ -807,12 +845,15 @@ export const saveGrades = async (req: AuthRequest, res: Response) => {
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
-        // Verify if professor owns the assessment
+        // Verify if professor owns the assessment (Admins/Dept can modify all)
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
         const assessment = await prisma.assessment.findUnique({
             where: { id: assessmentId }
         });
 
-        if (!assessment || assessment.creatorId !== userId) {
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+
+        if (!assessment || (assessment.creatorId !== userId && !isSuperUser)) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à modifier ces notes" });
         }
 
@@ -1112,11 +1153,14 @@ export const getCoursePerformance = async (req: AuthRequest, res: Response) => {
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
         const hasAccess = await prisma.courseEnrollment.findFirst({
             where: { userId, courseCode }
         });
 
-        if (!hasAccess) {
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+
+        if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Accès refusé" });
         }
 
@@ -1207,20 +1251,31 @@ export const getCoursePerformance = async (req: AuthRequest, res: Response) => {
  * Marque automatiquement comme ABSENT tous les étudiants inscrits
  * qui n'ont pas d'enregistrement de présence pour les sessions passées
  */
+// Update syncPastAttendance for security and 'Département'
 export const syncPastAttendance = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
+        const userRole = req.user?.role;
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
-        // Get all past sessions (before today)
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+        const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+
+        // Get course codes managed by this professor
+        const taughtCourses = await prisma.courseEnrollment.findMany({
+            where: { userId: isSuperUser ? undefined : userId },
+            select: { courseCode: true }
+        });
+        const courseCodes = taughtCourses.map(tc => tc.courseCode);
+
+        // Get past sessions for managed courses
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const pastSessions = await prisma.attendanceSession.findMany({
             where: {
-                date: {
-                    lt: today
-                }
+                courseCode: isSuperUser ? undefined : { in: courseCodes },
+                date: { lt: today }
             }
         });
 
