@@ -74,7 +74,9 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
                     courseCode: { in: filterCourseCodes },
                     isActive: true
                 },
-                take: 100,
+                // NO LIMIT when viewing a specific course (needed for full attendance list)
+                // Only limit if it's a general view without courseCode
+                take: (isSuperUser && !courseCode) ? 100 : undefined,
                 include: {
                     user: { select: { id: true, name: true, email: true } },
                     course: { include: { academicLevels: true } }

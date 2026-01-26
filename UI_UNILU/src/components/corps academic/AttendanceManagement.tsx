@@ -32,9 +32,8 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const allStudents = await professorService.getStudents();
-        // Filter students for the current course
-        const courseStudents = allStudents.filter((s: any) => s.courseCode === course.code || s.courseName === course.name);
+        // IMPORTANT: Pass course code to get ONLY relevant students and avoid limits
+        const courseStudents = await professorService.getStudents(course.code);
         setStudents(courseStudents);
 
         // Initialize status with today's attendance from QR scans
@@ -94,8 +93,7 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const allStudents = await professorService.getStudents();
-      const courseStudents = allStudents.filter((s: any) => s.courseCode === course.code || s.courseName === course.name);
+      const courseStudents = await professorService.getStudents(course.code);
       setStudents(courseStudents);
     } catch (error) {
       console.error("Error refreshing students:", error);
