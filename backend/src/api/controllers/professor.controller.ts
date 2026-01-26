@@ -330,14 +330,14 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                 finishedCourseCount: finishedCoursesCount
             },
             myLevels,
-            expiredAssignments: recentlyExpiredAssignments.map(a => ({
+            expiredAssignments: (recentlyExpiredAssignments as any[]).map(a => ({
                 id: a.id,
                 title: a.title,
                 courseName: a.course?.name || 'Inconnu',
                 expiredAt: a.dueDate,
                 submissionCount: a._count?.submissions || 0
             })),
-            todaySchedule: todaysSchedule.map(s => ({
+            todaySchedule: (todaysSchedule as any[]).map(s => ({
                 id: s.id,
                 title: s.course?.name || 'Sans titre',
                 courseCode: s.courseCode,
@@ -348,7 +348,7 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                 type: 'Cours',
                 isUrgent: false
             })),
-            announcements: announcements.map(a => ({
+            announcements: (announcements as any[]).map(a => ({
                 id: a.id,
                 title: a.title,
                 content: a.content,
