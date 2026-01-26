@@ -257,11 +257,27 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
 
         const courseCodes = taughtCourses.map(tc => tc.courseCode);
 
-        // -- STATS OPTIMISÉES (Count direct en DB) --
+        // -- STATS OPTIMISÉES --
 
-        // Count active vs finished courses
-        const activeCoursesCount = taughtCourses.filter(tc => tc.status === 'ACTIVE').length;
-        const finishedCoursesCount = taughtCourses.filter(tc => tc.status === 'FINISHED').length;
+        // Compter les cours actifs uniques
+        const activeGroup = await prisma.courseEnrollment.groupBy({
+            by: ['courseCode'],
+            where: {
+                ...(isSuperUser ? {} : { userId }),
+                status: 'ACTIVE'
+            }
+        });
+        const activeCoursesCount = activeGroup.length;
+
+        // Compter les cours terminés uniques
+        const finishedGroup = await prisma.courseEnrollment.groupBy({
+            by: ['courseCode'],
+            where: {
+                ...(isSuperUser ? {} : { userId }),
+                status: 'FINISHED'
+            }
+        });
+        const finishedCoursesCount = finishedGroup.length;
 
         // Count unique students (Corrected logic to avoid duplicates)
         let totalStudents = 0;
