@@ -8,16 +8,20 @@ import { uploadToCloudinary, deleteFromCloudinary } from '../../utils/cloudinary
 export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
+        const userRole = req.user?.role;
         const { courseCode } = req.query;
 
-        // 1. Get courses taught by professor
+        const isSuperUser = userRole === 'ADMIN';
+
+        // 1. Get courses (taught by professor or all if superuser)
         const taughtCourses = await prisma.courseEnrollment.findMany({
             where: {
-                userId,
+                userId: isSuperUser ? undefined : userId,
                 ...(courseCode ? { courseCode: String(courseCode) } : {})
             },
-            select: { courseCode: true, course: { select: { name: true } } }
-        });
+            select: { courseCode: true, course: { select: { name: true } } },
+            distinct: ['courseCode']
+        }) as any[];
 
         const filterCourseCodes = taughtCourses.map(tc => tc.courseCode);
         const courseMap = new Map(taughtCourses.map(tc => [tc.courseCode, tc.course.name] as [string, string]));
@@ -148,17 +152,20 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
 export const getProfessorSchedule = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
+        const userRole = req.user?.role;
+        const isSuperUser = userRole === 'ADMIN';
 
         const taughtCourses = await prisma.courseEnrollment.findMany({
-            where: { userId },
-            select: { courseCode: true }
+            where: { userId: isSuperUser ? undefined : userId },
+            select: { courseCode: true },
+            distinct: ['courseCode']
         });
         const courseCodes = taughtCourses.map(tc => tc.courseCode);
 
         // Get all schedules for these courses
         const schedules = await prisma.schedule.findMany({
             where: {
-                courseCode: { in: courseCodes }
+                courseCode: isSuperUser ? undefined : { in: courseCodes }
             },
             include: {
                 course: true,
@@ -186,6 +193,8 @@ export const getProfessorSchedule = async (req: AuthRequest, res: Response) => {
 export const getProfessorDashboard = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId
+        const userRole = req.user?.role
+        const isSuperUser = userRole === 'ADMIN'
 
         if (!userId) {
             return res.status(401).json({ message: 'Utilisateur non authentifié' })
@@ -197,10 +206,10 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
             select: { name: true }
         });
 
-        // 1. Récupérer les cours enseignés par ce professeur
+        // 1. Récupérer les cours enseignés par ce professeur (ou tous si SuperUser)
         const taughtCourses = await prisma.courseEnrollment.findMany({
             where: {
-                userId: userId
+                userId: isSuperUser ? undefined : userId
             },
             include: {
                 course: {
@@ -209,7 +218,8 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                         academicLevels: true
                     }
                 }
-            }
+            },
+            distinct: isSuperUser ? ['courseCode'] : undefined
         }) as any[]
 
         const courseCodes = taughtCourses.map(tc => tc.courseCode)
@@ -335,9 +345,11 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
 export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
+        const userRole = req.user?.role;
+        const isSuperUser = userRole === 'ADMIN';
 
         const enrollments = await prisma.courseEnrollment.findMany({
-            where: { userId },
+            where: { userId: isSuperUser ? undefined : userId },
             include: {
                 course: {
                     include: {
@@ -345,8 +357,9 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
                         schedules: true
                     }
                 }
-            }
-        });
+            },
+            distinct: isSuperUser ? ['courseCode'] : undefined
+        }) as any[];
 
         const courses = enrollments.map(e => {
             const c = e.course;
@@ -443,11 +456,11 @@ export const saveAttendance = async (req: AuthRequest, res: Response) => {
             where: { userId, courseCode }
         });
 
-        if (!enrollment) {
+        if (!enrollment && req.user?.role !== 'ADMIN') {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
         }
 
-        if (enrollment.status === 'FINISHED') {
+        if (enrollment?.status === 'FINISHED') {
             return res.status(403).json({ message: "Ce cours ne dispose plus de prise de présence vue que il a ete terminer" });
         }
 

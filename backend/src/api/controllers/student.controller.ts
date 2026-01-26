@@ -184,14 +184,19 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
                     ann.type === 'REMINDER' ? 'from-purple-500 to-purple-600' : 'from-teal-500 to-teal-600'
         }));
 
-        // 6. Récupérer les devoirs en cours (TP/TD non soumis)
+        // 6. Récupérer les devoirs en cours (TP/TD non soumis et non expirés)
+        const now = new Date();
         const pendingAssignments = await prisma.assessment.findMany({
             where: {
                 courseCode: { in: activeCourseCodes },
                 type: { in: ['TP', 'TD'] },
                 submissions: {
                     none: { studentId: userId }
-                }
+                },
+                OR: [
+                    { dueDate: null },
+                    { dueDate: { gt: now } }
+                ]
             },
             include: {
                 course: {
@@ -277,7 +282,11 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
                                 type: { in: ['TP', 'TD'] },
                                 submissions: {
                                     none: { studentId: userId }
-                                }
+                                },
+                                OR: [
+                                    { dueDate: null },
+                                    { dueDate: { gt: new Date() } }
+                                ]
                             }
                         },
                         attendanceSessions: {
