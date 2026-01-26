@@ -112,6 +112,9 @@ model User {
   readAnnouncements     AnnouncementRead[]
   submissions           Submission[] // Student submissions for assignments
 
+  // Notifications Push
+  pushToken String? // Expo Push Token for mobile notifications
+
   // Attendance change requests made by this user (Academic Office)
   attendanceChangeRequests AttendanceChangeRequest[]
 
@@ -128,6 +131,7 @@ model User {
   @@index([email])
   @@index([systemRole])
   @@index([deletedAt])
+  @@index([pushToken])
 }
 
 // --- SUPPORT TICKETS & MESSAGES ---

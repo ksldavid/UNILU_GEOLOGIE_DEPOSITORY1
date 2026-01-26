@@ -1,6 +1,7 @@
 import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../../lib/prisma'
+import { sendPushNotifications } from '../../utils/pushNotifications'
 
 export const createAnnouncement = async (req: AuthRequest, res: Response) => {
     try {
@@ -11,18 +12,20 @@ export const createAnnouncement = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Auteur non identifié' })
         }
 
+        const author = await prisma.user.findUnique({
+            where: { id: authorId },
+            select: { name: true }
+        })
+
         console.log('📢 Tentative de création d\'annonce:', { title, target, academicLevelId, courseCode });
 
-        // Clean values to avoid foreign key violations with empty strings
-        // Correction: On vérifie explicitement null/undefined car academicLevelId peut être 0 (Presciences)
+        // Clean values
         const cleanedAcademicLevelId = (academicLevelId !== undefined && academicLevelId !== null && academicLevelId !== '')
             ? parseInt(academicLevelId as string)
             : null
 
         const cleanedCourseCode = courseCode && courseCode.trim() !== '' ? courseCode : null
         const cleanedTargetUserId = targetUserId && targetUserId.trim() !== '' ? targetUserId : null
-
-        console.log('🧼 Valeurs nettoyées:', { cleanedAcademicLevelId, cleanedCourseCode, cleanedTargetUserId });
 
         const announcement = await prisma.announcement.create({
             data: {
@@ -35,8 +38,81 @@ export const createAnnouncement = async (req: AuthRequest, res: Response) => {
                 courseCode: cleanedCourseCode,
                 targetUserId: cleanedTargetUserId,
                 isActive: true
+            },
+            include: {
+                course: { select: { name: true } },
+                academicLevel: { select: { displayName: true } }
             }
         })
+
+        // --- ENVOI DES NOTIFICATIONS PUSH ---
+        try {
+            let targetTokens: string[] = [];
+            let notificationTitle = `📣 Nouvelle Annonce`;
+
+            if (announcement.course) {
+                notificationTitle = `📚 ${announcement.course.name}`;
+            } else if (announcement.academicLevel) {
+                notificationTitle = `🎓 ${announcement.academicLevel.displayName}`;
+            }
+
+            const authorLabel = author?.name ? `Pr. ${author.name}` : 'Espace Enseignant';
+
+            // Identifier les destinataires
+            if (target === 'GLOBAL') {
+                const users = await prisma.user.findMany({
+                    where: { pushToken: { not: null } },
+                    select: { pushToken: true }
+                });
+                targetTokens = users.map(u => u.pushToken as string);
+            } else if (target === 'ALL_STUDENTS') {
+                const users = await prisma.user.findMany({
+                    where: { systemRole: 'STUDENT', pushToken: { not: null } },
+                    select: { pushToken: true }
+                });
+                targetTokens = users.map(u => u.pushToken as string);
+            } else if (target === 'ACADEMIC_LEVEL' && cleanedAcademicLevelId !== null) {
+                const users = await prisma.user.findMany({
+                    where: {
+                        studentEnrollments: { some: { academicLevelId: cleanedAcademicLevelId } },
+                        pushToken: { not: null }
+                    },
+                    select: { pushToken: true }
+                });
+                targetTokens = users.map(u => u.pushToken as string);
+            } else if (target === 'COURSE_STUDENTS' && cleanedCourseCode) {
+                const enrollments = await prisma.studentCourseEnrollment.findMany({
+                    where: {
+                        courseCode: cleanedCourseCode,
+                        isActive: true,
+                        user: { pushToken: { not: null } }
+                    },
+                    include: { user: { select: { pushToken: true } } }
+                });
+                targetTokens = enrollments.map(e => e.user.pushToken as string);
+            } else if (target === 'SPECIFIC_USER' && cleanedTargetUserId) {
+                const user = await prisma.user.findUnique({
+                    where: { id: cleanedTargetUserId },
+                    select: { pushToken: true }
+                });
+                if (user?.pushToken) targetTokens = [user.pushToken];
+            }
+
+            if (targetTokens.length > 0) {
+                await sendPushNotifications(targetTokens, {
+                    title: notificationTitle,
+                    body: `${authorLabel}: ${title}`,
+                    data: {
+                        type: 'ANNOUNCEMENT',
+                        id: announcement.id,
+                        courseCode: cleanedCourseCode
+                    }
+                });
+            }
+        } catch (pushError) {
+            console.error('Erreur lors de l\'envoi des notifications push:', pushError);
+            // On n'échoue pas la création de l'annonce si les push plantent
+        }
 
         res.status(201).json({
             message: 'Annonce publiée avec succès',

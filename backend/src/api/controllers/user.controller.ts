@@ -137,3 +137,25 @@ export const updateUser = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Erreur serveur', error: error.message })
     }
 }
+
+// Mettre à jour le jeton de notification push
+export const updatePushToken = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.userId
+        const { pushToken } = req.body
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Non authentifié' })
+        }
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { pushToken }
+        })
+
+        res.json({ message: 'Push token mis à jour' })
+    } catch (error: any) {
+        console.error('Erreur push token:', error)
+        res.status(500).json({ message: 'Erreur serveur' })
+    }
+}
