@@ -20,11 +20,12 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
         const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
 
         // 1. Get courses (taught by professor or all if superuser)
+        const whereClause = isSuperUser
+            ? (courseCode ? { courseCode: String(courseCode) } : {})
+            : { userId, ...(courseCode ? { courseCode: String(courseCode) } : {}) };
+
         const taughtCourses = await prisma.courseEnrollment.findMany({
-            where: {
-                userId: isSuperUser ? undefined : userId,
-                ...(courseCode ? { courseCode: String(courseCode) } : {})
-            },
+            where: whereClause,
             select: { courseCode: true, course: { select: { name: true } } },
             distinct: ['courseCode']
         }) as any[];
@@ -168,7 +169,7 @@ export const getProfessorSchedule = async (req: AuthRequest, res: Response) => {
         const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
 
         const taughtCourses = await prisma.courseEnrollment.findMany({
-            where: { userId: isSuperUser ? undefined : userId },
+            where: isSuperUser ? {} : { userId },
             select: { courseCode: true },
             distinct: ['courseCode']
         });
@@ -176,9 +177,7 @@ export const getProfessorSchedule = async (req: AuthRequest, res: Response) => {
 
         // Get all schedules for these courses
         const schedules = await prisma.schedule.findMany({
-            where: {
-                courseCode: isSuperUser ? undefined : { in: courseCodes }
-            },
+            where: isSuperUser ? {} : { courseCode: { in: courseCodes } },
             include: {
                 course: true,
                 academicLevel: true
@@ -220,9 +219,7 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
 
         // 1. Récupérer les cours enseignés par ce professeur (ou tous si SuperUser)
         const taughtCourses = await prisma.courseEnrollment.findMany({
-            where: {
-                userId: isSuperUser ? undefined : userId
-            },
+            where: isSuperUser ? {} : { userId },
             include: {
                 course: {
                     include: {
@@ -231,7 +228,7 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                     }
                 }
             },
-            distinct: isSuperUser ? ['courseCode'] : undefined
+            ...(isSuperUser ? { distinct: ['courseCode'] as const } : {})
         }) as any[]
 
         const courseCodes = taughtCourses.map(tc => tc.courseCode)
@@ -362,7 +359,7 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
         const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
 
         const enrollments = await prisma.courseEnrollment.findMany({
-            where: { userId: isSuperUser ? undefined : userId },
+            where: isSuperUser ? {} : { userId },
             include: {
                 course: {
                     include: {
@@ -371,7 +368,7 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
                     }
                 }
             },
-            distinct: isSuperUser ? ['courseCode'] : undefined
+            ...(isSuperUser ? { distinct: ['courseCode'] as const } : {})
         }) as any[];
 
         const courses = enrollments.map(e => {
@@ -417,12 +414,12 @@ export const updateCourseStatus = async (req: AuthRequest, res: Response) => {
             });
         } else {
             // Fallback to searching by code and year
+            const updateWhere = isSuperUser
+                ? { courseCode, academicYear: { in: ['2023-2024', '2024-2025', '2025-2026'] } }
+                : { userId, courseCode, academicYear: { in: ['2023-2024', '2024-2025', '2025-2026'] } };
+
             await prisma.courseEnrollment.updateMany({
-                where: {
-                    userId: isSuperUser ? undefined : userId,
-                    courseCode,
-                    academicYear: { in: ['2023-2024', '2024-2025', '2025-2026'] }
-                },
+                where: updateWhere,
                 data: { status }
             });
         }
@@ -1263,7 +1260,7 @@ export const syncPastAttendance = async (req: AuthRequest, res: Response) => {
 
         // Get course codes managed by this professor
         const taughtCourses = await prisma.courseEnrollment.findMany({
-            where: { userId: isSuperUser ? undefined : userId },
+            where: isSuperUser ? {} : { userId },
             select: { courseCode: true }
         });
         const courseCodes = taughtCourses.map(tc => tc.courseCode);
@@ -1273,10 +1270,9 @@ export const syncPastAttendance = async (req: AuthRequest, res: Response) => {
         today.setHours(0, 0, 0, 0);
 
         const pastSessions = await prisma.attendanceSession.findMany({
-            where: {
-                courseCode: isSuperUser ? undefined : { in: courseCodes },
-                date: { lt: today }
-            }
+            where: isSuperUser
+                ? { date: { lt: today } }
+                : { courseCode: { in: courseCodes }, date: { lt: today } }
         });
 
         let totalSynced = 0;
