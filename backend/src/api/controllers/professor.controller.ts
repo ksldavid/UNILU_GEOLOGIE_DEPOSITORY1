@@ -878,6 +878,43 @@ export const createAssessment = async (req: AuthRequest, res: Response) => {
             }
         });
 
+        // --- ENVOI DES NOTIFICATIONS PUSH POUR LES DEVOIRS ---
+        if (type === 'ASSIGNMENT' || type === 'HOMEWORK') {
+            try {
+                // Récupérer les tokens des étudiants inscrits
+                const studentsWithTokens = await prisma.user.findMany({
+                    where: {
+                        studentCourseEnrollments: {
+                            some: { courseCode, isActive: true }
+                        },
+                        pushToken: { not: null }
+                    },
+                    select: { pushToken: true }
+                });
+
+                const tokens = studentsWithTokens.map(s => s.pushToken as string);
+
+                if (tokens.length > 0) {
+                    const course = await prisma.course.findUnique({
+                        where: { code: courseCode },
+                        select: { name: true }
+                    });
+
+                    const limitDate = dueDate ? new Date(dueDate).toLocaleString('fr-FR', {
+                        day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
+                    }) : "Non spécifiée";
+
+                    await sendPushNotifications(tokens, {
+                        title: `📝 Nouveau Devoir : ${course?.name || courseCode}`,
+                        body: `Le professeur a mis en ligne le devoir : "${title}". Vous avez jusqu'au ${limitDate} pour soumettre votre travail.`,
+                        data: { type: 'NEW_ASSIGNMENT', assessmentId: assessment.id, courseCode }
+                    });
+                }
+            } catch (pushError) {
+                console.error('[Push Assignment] Erreur:', pushError);
+            }
+        }
+
         res.json({ message: 'Évaluation créée avec succès', assessment });
     } catch (error) {
         console.error('Erreur création évaluation:', error);
