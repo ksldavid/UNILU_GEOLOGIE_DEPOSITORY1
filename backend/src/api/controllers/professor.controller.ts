@@ -878,8 +878,10 @@ export const createAssessment = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        // --- ENVOI DES NOTIFICATIONS PUSH POUR LES DEVOIRS ---
-        if (type === 'ASSIGNMENT' || type === 'HOMEWORK') {
+        // --- ENVOI DES NOTIFICATIONS PUSH POUR LES DEVOIRS ET TESTS ---
+        const notifyTypes = ['ASSIGNMENT', 'HOMEWORK', 'TP', 'INTERROGATION', 'QUIZ'];
+        if (notifyTypes.includes(type)) {
+            console.log(`[Push Assessment] Déclenchement pour type: ${type}, cours: ${courseCode}`);
             try {
                 // Récupérer les tokens des étudiants inscrits
                 const studentsWithTokens = await prisma.user.findMany({
@@ -889,10 +891,11 @@ export const createAssessment = async (req: AuthRequest, res: Response) => {
                         },
                         pushToken: { not: null }
                     },
-                    select: { pushToken: true }
+                    select: { pushToken: true, name: true }
                 });
 
                 const tokens = studentsWithTokens.map(s => s.pushToken as string);
+                console.log(`[Push Assessment] ${tokens.length} étudiants avec tokens trouvés.`);
 
                 if (tokens.length > 0) {
                     const course = await prisma.course.findUnique({
