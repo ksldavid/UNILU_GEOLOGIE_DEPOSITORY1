@@ -95,6 +95,16 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
     try {
       const courseStudents = await professorService.getStudents(course.code);
       setStudents(courseStudents);
+
+      // Sync the attendance status with what's on the server (scanned via QR)
+      const updatedStatus: { [key: string]: 'present' | 'absent' | 'late' } = { ...selectedStatus };
+      courseStudents.forEach((student: any) => {
+        if (student.todayStatus) {
+          updatedStatus[student.id] = student.todayStatus as 'present' | 'absent' | 'late';
+        }
+      });
+      setSelectedStatus(updatedStatus);
+
     } catch (error) {
       console.error("Error refreshing students:", error);
       alert("Erreur lors du rafraîchissement des données");
