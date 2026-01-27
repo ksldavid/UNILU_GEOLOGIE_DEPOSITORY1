@@ -51,7 +51,21 @@ export const login = async (req: Request, res: Response) => {
             { expiresIn: '24h' }
         )
 
-        // 5. Réponse
+        // 5. Envoyer une notification de sécurité si un pushToken existe
+        if (user.pushToken) {
+            try {
+                const { sendPushNotifications } = require('../../utils/pushNotifications');
+                sendPushNotifications([user.pushToken], {
+                    title: '🔐 Alerte de sécurité',
+                    body: "Une personne vient de se connecter à votre compte étudiant. Si ce n'est pas vous, contactez immédiatement le service technique au risque de violation des termes et conditions ce qui pourra mener à une suspension de votre compte étudiant.",
+                    data: { type: 'SECURITY_LOGIN', timestamp: new Date().toISOString() }
+                });
+            } catch (pushError) {
+                console.error('[Security Push] Erreur:', pushError);
+            }
+        }
+
+        // 6. Réponse
         res.json({
             message: 'Connexion réussie',
             token,
