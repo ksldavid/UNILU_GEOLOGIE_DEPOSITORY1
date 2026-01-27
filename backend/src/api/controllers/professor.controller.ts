@@ -1031,6 +1031,37 @@ export const uploadCourseResource = async (req: AuthRequest, res: Response) => {
             }
         });
 
+        // --- ENVOI DES NOTIFICATIONS PUSH POUR LES RESSOURCES ---
+        try {
+            const studentsWithTokens = await prisma.user.findMany({
+                where: {
+                    studentCourseEnrollments: {
+                        some: { courseCode, isActive: true }
+                    },
+                    pushToken: { not: null }
+                },
+                select: { pushToken: true }
+            });
+
+            const tokens = studentsWithTokens.map(s => s.pushToken as string);
+
+            if (tokens.length > 0) {
+                const course = await prisma.course.findUnique({
+                    where: { code: courseCode },
+                    select: { name: true }
+                });
+
+                const { sendPushNotifications } = require('../../utils/pushNotifications');
+                await sendPushNotifications(tokens, {
+                    title: `📚 Nouveau document : ${course?.name || courseCode}`,
+                    body: `Le support de cours "${resource.title}" vient d'être publié. Consultez-le dans votre section Documents.`,
+                    data: { type: 'NEW_RESOURCE', courseCode }
+                });
+            }
+        } catch (pushError) {
+            console.error('[Push Resource] Erreur:', pushError);
+        }
+
         res.json({ message: 'Document partagé avec succès', resource });
     } catch (error: any) {
         console.error('Erreur upload ressource:', error);
