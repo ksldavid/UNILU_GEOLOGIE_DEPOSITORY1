@@ -24,6 +24,8 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
   const [showScanner, setShowScanner] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [readAnnouncements, setReadAnnouncements] = useState<Set<number>>(new Set());
+  const [readAttendance, setReadAttendance] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const handleOnline = () => {
@@ -97,6 +99,26 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
     }, 8000);
     return () => clearInterval(timer);
   }, []);
+
+  // Charger les états de lecture depuis le localStorage
+  useEffect(() => {
+    const savedReadAnnouncements = JSON.parse(localStorage.getItem('read_announcements') || '[]');
+    const savedReadAttendance = JSON.parse(localStorage.getItem('read_attendance') || '[]');
+    setReadAnnouncements(new Set(savedReadAnnouncements));
+    setReadAttendance(new Set(savedReadAttendance));
+  }, []);
+
+  const markAnnouncementAsRead = (id: number) => {
+    const newRead = new Set(readAnnouncements).add(id);
+    setReadAnnouncements(newRead);
+    localStorage.setItem('read_announcements', JSON.stringify(Array.from(newRead)));
+  };
+
+  const markAttendanceAsRead = (id: number) => {
+    const newRead = new Set(readAttendance).add(id);
+    setReadAttendance(newRead);
+    localStorage.setItem('read_attendance', JSON.stringify(Array.from(newRead)));
+  };
 
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
@@ -385,6 +407,11 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
               <h3 className="text-xl font-black flex items-center gap-3">
                 <Megaphone className="w-6 h-6 text-teal-400" />
                 Dernières Annonces
+                {announcements.filter((ann: any) => !readAnnouncements.has(ann.id)).length > 0 && (
+                  <span className="flex items-center justify-center w-5 h-5 bg-teal-500 text-white text-[10px] rounded-full animate-bounce">
+                    {announcements.filter((ann: any) => !readAnnouncements.has(ann.id)).length}
+                  </span>
+                )}
               </h3>
               <button
                 onClick={() => onNavigate('announcements')}
@@ -395,8 +422,12 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
             </div>
 
             <div className="space-y-4">
-              {announcements.length === 0 ? <p className="text-gray-400 text-sm">Aucune annonce récente</p> : announcements.map((ann: any, i: number) => (
-                <div key={i} className="p-5 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group">
+              {announcements.length === 0 ? <p className="text-gray-400 text-sm">Aucune annonce récente</p> : announcements.slice(0, 3).map((ann: any, i: number) => (
+                <div
+                  key={i}
+                  onClick={() => { markAnnouncementAsRead(ann.id); onNavigate('announcements'); }}
+                  className={`p-5 rounded-3xl border transition-colors cursor-pointer group ${readAnnouncements.has(ann.id) ? 'bg-white/5 border-white/10' : 'bg-white/10 border-teal-500/30 shadow-lg shadow-teal-500/10'}`}
+                >
                   <div className="flex items-center justify-between mb-3">
                     <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full bg-gradient-to-r ${ann.color} text-white`}>
                       {ann.type}
@@ -441,10 +472,19 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
               <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
                 <CheckCircle className="w-6 h-6 text-blue-600" />
                 Dernières Présences
+                {data?.recentAttendance?.filter((r: any) => !readAttendance.has(r.id)).length > 0 && (
+                  <span className="flex items-center justify-center w-5 h-5 bg-blue-600 text-white text-[10px] rounded-full animate-bounce">
+                    {data.recentAttendance.filter((r: any) => !readAttendance.has(r.id)).length}
+                  </span>
+                )}
               </h3>
               <div className="space-y-4">
-                {data.recentAttendance.map((record: any) => (
-                  <div key={record.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-gray-100 transition-all">
+                {data.recentAttendance.slice(0, 3).map((record: any) => (
+                  <div
+                    key={record.id}
+                    onMouseEnter={() => markAttendanceAsRead(record.id)}
+                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${readAttendance.has(record.id) ? 'bg-gray-50 border-transparent' : 'bg-blue-50 border-blue-200 shadow-sm'}`}
+                  >
                     <div className="flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full ${record.status === 'PRESENT' ? 'bg-green-500' : 'bg-orange-500'}`} />
                       <div>
