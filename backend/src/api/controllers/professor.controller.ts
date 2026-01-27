@@ -1179,8 +1179,8 @@ export const publishAssessment = async (req: AuthRequest, res: Response) => {
                 });
 
                 await sendPushNotifications(tokens, {
-                    title: '📊 Points Disponibles !',
-                    body: `La note pour "${assessment.title}" (${course?.name || assessment.courseCode}) est en ligne. Viens voir ton résultat !`,
+                    title: '📊 Publication des résultats',
+                    body: `Les résultats de l'épreuve "${assessment.title}" (${course?.name || assessment.courseCode}) ont été publiés. Nous vous invitons à consulter votre profil sur la plateforme pour prendre connaissance de votre performance.`,
                     data: {
                         type: 'GRADE_PUBLISHED',
                         assessmentId: assessment.id,
