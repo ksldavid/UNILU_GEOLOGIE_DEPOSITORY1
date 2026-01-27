@@ -215,6 +215,25 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             feedbackMessage = `Incroyable ! Ta présence est confirmée. ${attendanceRate}% de présence : tu es un étudiant modèle. Ne lâche rien ! 🏆`;
         }
 
+        // 9. Envoyer aussi une notification Push pour confirmer
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { pushToken: true }
+            });
+
+            if (user?.pushToken) {
+                const { sendPushNotifications } = require('../../utils/pushNotifications');
+                await sendPushNotifications([user.pushToken], {
+                    title: `✅ Présence confirmée (${attendanceRate}%)`,
+                    body: feedbackMessage,
+                    data: { type: 'ATTENDANCE_CONFIRMED', courseCode: session.courseCode }
+                });
+            }
+        } catch (pushError) {
+            console.error('[Push Attendance] Erreur:', pushError);
+        }
+
         res.json({
             message: feedbackMessage,
             courseCode: session.courseCode,
