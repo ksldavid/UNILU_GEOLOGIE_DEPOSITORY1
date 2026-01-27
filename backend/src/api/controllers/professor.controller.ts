@@ -1180,7 +1180,7 @@ export const publishAssessment = async (req: AuthRequest, res: Response) => {
 
                 await sendPushNotifications(tokens, {
                     title: '📊 Publication des résultats',
-                    body: `Les résultats de l'épreuve "${assessment.title}" (${course?.name || assessment.courseCode}) ont été publiés. Nous vous invitons à consulter votre profil sur la plateforme pour prendre connaissance de votre performance.`,
+                    body: `Les résultats de l'épreuve "${assessment.title}" (${course?.name || assessment.courseCode}) ont été publiés. Vas sur uniluhub.com sur ton profil étudiant pour voir tes résultats.`,
                     data: {
                         type: 'GRADE_PUBLISHED',
                         assessmentId: assessment.id,
