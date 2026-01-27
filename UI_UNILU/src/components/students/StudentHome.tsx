@@ -407,11 +407,6 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
               <h3 className="text-xl font-black flex items-center gap-3">
                 <Megaphone className="w-6 h-6 text-teal-400" />
                 Dernières Annonces
-                {announcements.filter((ann: any) => !readAnnouncements.has(ann.id)).length > 0 && (
-                  <span className="flex items-center justify-center w-5 h-5 bg-teal-500 text-white text-[10px] rounded-full animate-bounce">
-                    {announcements.filter((ann: any) => !readAnnouncements.has(ann.id)).length}
-                  </span>
-                )}
               </h3>
               <button
                 onClick={() => onNavigate('announcements')}
@@ -472,11 +467,6 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
               <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
                 <CheckCircle className="w-6 h-6 text-blue-600" />
                 Dernières Présences
-                {data?.recentAttendance?.filter((r: any) => !readAttendance.has(r.id)).length > 0 && (
-                  <span className="flex items-center justify-center w-5 h-5 bg-blue-600 text-white text-[10px] rounded-full animate-bounce">
-                    {data.recentAttendance.filter((r: any) => !readAttendance.has(r.id)).length}
-                  </span>
-                )}
               </h3>
               <div className="space-y-4">
                 {data.recentAttendance.slice(0, 3).map((record: any) => (
