@@ -169,7 +169,6 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
         }
 
         // 6. Enregistrer ou Mettre à jour la présence 
-        // Si le statut était 'ABSENT' (mis par le prof ou le système), on le passe à 'PRESENT'
         await (prisma as any).attendanceRecord.upsert({
             where: {
                 sessionId_studentId: {
@@ -177,9 +176,7 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
                     studentId: userId
                 }
             },
-            update: {
-                status: 'PRESENT'
-            },
+            update: { status: 'PRESENT' },
             create: {
                 sessionId: session.id,
                 studentId: userId,
@@ -187,9 +184,45 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             }
         });
 
+        // 7. Calculer les statistiques pour le message de feedback
+        const allCourseSessions = await prisma.attendanceSession.findMany({
+            where: { courseCode: session.courseCode },
+            select: { id: true }
+        });
+        const sessionIds = allCourseSessions.map(s => s.id);
+
+        const studentAttendances = await prisma.attendanceRecord.count({
+            where: {
+                studentId: userId,
+                sessionId: { in: sessionIds },
+                status: { in: ['PRESENT', 'LATE'] }
+            }
+        });
+
+        const totalSessions = allCourseSessions.length;
+        const attendanceRate = totalSessions > 0 ? Math.round((studentAttendances / totalSessions) * 100) : 100;
+
+        // 8. Générer le message de feedback personnalisé
+        let feedbackMessage = `Présence validée ! Ton taux est de ${attendanceRate}%.`;
+
+        if (attendanceRate <= 40) {
+            feedbackMessage = `Présence validée ! Tu es à ${attendanceRate}% de présence. C'est un bon début, encore un petit effort et tu seras bien ! 💪`;
+        } else if (attendanceRate <= 70) {
+            feedbackMessage = `Bravo ! Ta présence est enregistrée. Tu as atteint ${attendanceRate}% de taux de présence. La régularité est la clé du succès ! 🚀`;
+        } else if (attendanceRate <= 90) {
+            feedbackMessage = `Superbe régularité ! Présence validée. Avec ${attendanceRate}%, tu es sur la voie de l'excellence. Garde ce rythme ! ✨`;
+        } else {
+            feedbackMessage = `Incroyable ! Ta présence est confirmée. ${attendanceRate}% de présence : tu es un étudiant modèle. Ne lâche rien ! 🏆`;
+        }
+
         res.json({
-            message: `Présence validée avec succès pour le cours : ${session.course.name}`,
-            courseCode: session.courseCode
+            message: feedbackMessage,
+            courseCode: session.courseCode,
+            stats: {
+                attendanceRate,
+                totalPresent: studentAttendances,
+                totalSessions
+            }
         });
 
     } catch (error) {
