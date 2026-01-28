@@ -62,12 +62,8 @@ export default function App() {
   const [currentView, setCurrentView] = useState<AppView>(() => {
     return sessionStorage.getItem('token') ? 'logged-in' : 'student-login';
   });
-  const [currentPage, setCurrentPage] = useState<Page>(() => {
-    return (sessionStorage.getItem('currentPage') as Page) || 'dashboard';
-  });
-  const [studentCurrentPage, setStudentCurrentPage] = useState<StudentPage>(() => {
-    return (sessionStorage.getItem('studentCurrentPage') as StudentPage) || 'dashboard';
-  });
+  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [studentCurrentPage, setStudentCurrentPage] = useState<StudentPage>('dashboard');
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(() => {
     const saved = sessionStorage.getItem('selectedCourse');
     return saved ? JSON.parse(saved) : null;
@@ -126,6 +122,62 @@ export default function App() {
   // On retire l'effet automatique qui marquait tout comme lu au chargement du dashboard
   // pour permettre le marquage individuel par clic comme demandé.
 
+  // ÉTAPE 1 : Initialiser la page depuis l'URL au chargement
+  useEffect(() => {
+    const path = window.location.pathname.slice(1) || 'dashboard';
+    const validProfPages: Page[] = ['dashboard', 'courses', 'planning', 'students', 'course-detail', 'attendance', 'announcements'];
+    const validStudentPages: StudentPage[] = ['dashboard', 'courses', 'planning', 'grades', 'announcements', 'settings'];
+
+    if (userData?.role === 'USER' && validProfPages.includes(path as Page)) {
+      setCurrentPage(path as Page);
+    } else if (userData?.role === 'STUDENT' && validStudentPages.includes(path as StudentPage)) {
+      setStudentCurrentPage(path as StudentPage);
+    }
+  }, []); // S'exécute une seule fois au chargement
+
+  // ÉTAPE 2 : Écouter les événements de navigation (swipe, bouton retour)
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const page = event.state?.page || 'dashboard';
+
+      if (userData?.role === 'USER') {
+        setCurrentPage(page as Page);
+      } else if (userData?.role === 'STUDENT') {
+        setStudentCurrentPage(page as StudentPage);
+      }
+
+      // Remonter en haut lors de la navigation
+      window.scrollTo({
+        top: 0,
+        behavior: 'instant'
+      });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [userData]);
+
+  // ÉTAPE 3 : Scroll automatique en haut lors du changement de page (Professeur)
+  useEffect(() => {
+    if (userData?.role === 'USER') {
+      window.scrollTo({
+        top: 0,
+        behavior: 'instant'
+      });
+    }
+  }, [currentPage]);
+
+  // ÉTAPE 4 : Scroll automatique en haut lors du changement de page (Étudiant)
+  useEffect(() => {
+    if (userData?.role === 'STUDENT') {
+      window.scrollTo({
+        top: 0,
+        behavior: 'instant'
+      });
+    }
+  }, [studentCurrentPage]);
+
   // Sync pages to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('currentPage', currentPage);
@@ -143,12 +195,7 @@ export default function App() {
     }
   }, [selectedCourse]);
 
-  // Protection: redirect to courses if on attendance page without selected course
-  useEffect(() => {
-    if (currentPage === 'attendance' && !selectedCourse && userData?.role === 'USER') {
-      setCurrentPage('courses');
-    }
-  }, [currentPage, selectedCourse, userData]);
+
 
 
   const handleLogin = async (id: string, password: string, role: UserRole): Promise<'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'> => {
@@ -206,8 +253,10 @@ export default function App() {
         // S'assurer que l'étudiant arrive sur le tableau de bord par défaut
         if (actualRole === 'STUDENT') {
           setStudentCurrentPage('dashboard');
+          window.history.replaceState({ page: 'dashboard' }, '', '/dashboard');
         } else if (actualRole === 'USER') {
           setCurrentPage('dashboard');
+          window.history.replaceState({ page: 'dashboard' }, '', '/dashboard');
         }
 
         return 'SUCCESS';
@@ -232,17 +281,65 @@ export default function App() {
   };
   const handleCourseSelect = (course: Course) => {
     setSelectedCourse(course);
-    setCurrentPage('course-detail');
+    handleProfessorNavigate('course-detail');
   };
 
   const handleTakeAttendance = () => {
-    setCurrentPage('attendance');
+    handleProfessorNavigate('attendance');
   };
 
   const handleBackToCourses = () => {
-    setCurrentPage('courses');
+    handleProfessorNavigate('courses');
     setSelectedCourse(null);
   };
+
+  // ÉTAPE 3 : Fonction de navigation personnalisée pour Professeur
+  const handleProfessorNavigate = (page: Page) => {
+    if (page !== currentPage) {
+      setCurrentPage(page);
+
+      // Ajoute une entrée dans l'historique du navigateur
+      window.history.pushState(
+        { page },
+        '',
+        `/${page}`
+      );
+
+      // Remonter en haut
+      window.scrollTo({
+        top: 0,
+        behavior: 'instant'
+      });
+    }
+  };
+
+  // ÉTAPE 4 : Fonction de navigation personnalisée pour Étudiant
+  const handleStudentNavigate = (page: StudentPage) => {
+    if (page !== studentCurrentPage) {
+      setStudentCurrentPage(page);
+
+      // Ajoute une entrée dans l'historique du navigateur
+      window.history.pushState(
+        { page },
+        '',
+        `/${page}`
+      );
+
+      // Remonter en haut
+      window.scrollTo({
+        top: 0,
+        behavior: 'instant'
+      });
+    }
+  };
+
+  // Protection: redirect to courses if on attendance page without selected course
+  useEffect(() => {
+    if (currentPage === 'attendance' && !selectedCourse && userData?.role === 'USER') {
+      handleProfessorNavigate('courses');
+    }
+  }, [currentPage, selectedCourse, userData]);
+
 
   // Login Views
   if (currentView === 'student-login') {
@@ -273,7 +370,7 @@ export default function App() {
         <div className="flex h-screen bg-gray-50">
           <StudentSidebar
             currentPage={studentCurrentPage}
-            onNavigate={setStudentCurrentPage}
+            onNavigate={handleStudentNavigate}
             onLogout={handleLogout}
             isOpen={isMobileMenuOpen}
             onClose={() => setIsMobileMenuOpen(false)}
@@ -284,10 +381,10 @@ export default function App() {
               studentData={{ ...userData, role: 'student' as any }}
               onMenuClick={() => setIsMobileMenuOpen(true)}
               hasUnreadAnnouncements={hasUnreadAnnouncements}
-              onBellClick={() => setStudentCurrentPage('announcements')}
+              onBellClick={() => handleStudentNavigate('announcements')}
             />
             <main className="flex-1 overflow-y-auto">
-              {studentCurrentPage === 'dashboard' && <StudentDashboard onNavigate={setStudentCurrentPage} />}
+              {studentCurrentPage === 'dashboard' && <StudentDashboard onNavigate={handleStudentNavigate} />}
               {studentCurrentPage === 'courses' && <StudentCourses />}
               {studentCurrentPage === 'planning' && <StudentPlanning />}
               {studentCurrentPage === 'grades' && <StudentGrades />}
@@ -328,7 +425,7 @@ export default function App() {
         <div className="flex h-screen bg-gray-50">
           <Sidebar
             currentPage={currentPage}
-            onNavigate={setCurrentPage}
+            onNavigate={handleProfessorNavigate}
             onLogout={handleLogout}
             isOpen={isMobileMenuOpen}
             onClose={() => setIsMobileMenuOpen(false)}
@@ -339,10 +436,10 @@ export default function App() {
               onLogout={handleLogout}
               onMenuClick={() => setIsMobileMenuOpen(true)}
               hasUnreadAnnouncements={hasUnreadProfAnnouncements}
-              onBellClick={() => setCurrentPage('dashboard')}
+              onBellClick={() => handleProfessorNavigate('dashboard')}
             />
             <main className="flex-1 overflow-y-auto">
-              {currentPage === 'dashboard' && <Dashboard onNavigate={setCurrentPage} />}
+              {currentPage === 'dashboard' && <Dashboard onNavigate={handleProfessorNavigate} />}
               {currentPage === 'courses' && <CourseList onCourseSelect={handleCourseSelect} />}
               {currentPage === 'course-detail' && selectedCourse && (
                 <CourseManagement
@@ -354,7 +451,7 @@ export default function App() {
               {currentPage === 'attendance' && selectedCourse && (
                 <AttendanceManagement
                   course={selectedCourse}
-                  onBack={() => setCurrentPage('course-detail')}
+                  onBack={() => handleProfessorNavigate('course-detail')}
                 />
               )}
               {currentPage === 'planning' && <Planning />}
