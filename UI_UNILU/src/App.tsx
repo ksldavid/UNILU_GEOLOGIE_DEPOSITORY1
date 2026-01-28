@@ -130,15 +130,22 @@ export default function App() {
 
     if (userData?.role === 'USER' && validProfPages.includes(path as Page)) {
       setCurrentPage(path as Page);
+      window.history.replaceState({ page: path }, '', `/${path}`);
     } else if (userData?.role === 'STUDENT' && validStudentPages.includes(path as StudentPage)) {
       setStudentCurrentPage(path as StudentPage);
+      window.history.replaceState({ page: path }, '', `/${path}`);
+    } else {
+      // Si on est sur / ou une page inconnue, on force dashboard
+      window.history.replaceState({ page: 'dashboard' }, '', '/dashboard');
     }
-  }, []); // S'exécute une seule fois au chargement
+  }, [userData?.role]); // S'assurer que ça se relance si le rôle change (connexion/déconnexion)
 
   // ÉTAPE 2 : Écouter les événements de navigation (swipe, bouton retour)
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
-      const page = event.state?.page || 'dashboard';
+      // Si event.state est nul, on essaie de récupérer la page via l'URL
+      const pageFromUrl = window.location.pathname.slice(1) || 'dashboard';
+      const page = event.state?.page || pageFromUrl;
 
       if (userData?.role === 'USER') {
         setCurrentPage(page as Page);
