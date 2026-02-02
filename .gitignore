@@ -72,4 +72,5 @@ check*.ts
 debug*.js
 debug*.ts
 verify*.js
-list*.ts
+# =============== DOSSIERS EXCLUS (PRIVÉ) ===============
+application UNILU/
