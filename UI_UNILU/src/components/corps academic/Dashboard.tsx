@@ -129,14 +129,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const handleDismissReminder = (id: number) => {
     const updated = [...dismissedReminders, id];
     setDismissedReminders(updated);
-    sessionStorage.setItem('professor_dismissed_reminders', JSON.stringify(updated));
+    localStorage.setItem('professor_dismissed_reminders', JSON.stringify(updated));
   };
 
   const handleMarkAsRead = (id: string) => {
     if (!readAnnouncementIds.includes(id)) {
       const updated = [...readAnnouncementIds, id];
       setReadAnnouncementIds(updated);
-      sessionStorage.setItem('readProfAnnouncements', JSON.stringify(updated));
+      localStorage.setItem('readProfAnnouncements', JSON.stringify(updated));
       // Trigger a storage event so App.tsx can pick up the change if listening
       window.dispatchEvent(new Event('storage'));
     }
@@ -337,7 +337,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           )}
 
           {/* Faculty Announcements */}
-          <div className="mt-8">
+          <div className="mt-8" id="announcements-section">
             <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
               <Megaphone className="w-5 h-5 text-blue-600" />
               Annonces Récentes
@@ -345,58 +345,70 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
             <div className="space-y-4">
               {data?.announcements?.length > 0 ? (
-                data.announcements.map((ann: any) => {
-                  const isRead = readAnnouncementIds.includes(ann.id);
-                  return (
-                    <div
-                      key={ann.id}
-                      onClick={() => handleMarkAsRead(ann.id)}
-                      className={`bg-white border rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group cursor-pointer ${isRead ? 'border-gray-100 opacity-75' : 'border-teal-200 shadow-teal-100/50 animate-subtle-shake'
-                        }`}
-                    >
-                      <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${ann.target === 'ALL_STUDENTS' ? 'bg-indigo-500' : 'bg-pink-500'}`}></div>
+                <>
+                  {data.announcements.slice(0, 5).map((ann: any) => {
+                    const isRead = readAnnouncementIds.includes(ann.id);
+                    return (
+                      <div
+                        key={ann.id}
+                        onClick={() => handleMarkAsRead(ann.id)}
+                        className={`bg-white border rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group cursor-pointer ${isRead ? 'border-gray-100 opacity-75' : 'border-teal-200 shadow-teal-100/50 animate-subtle-shake'
+                          }`}
+                      >
+                        <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${ann.target === 'ALL_STUDENTS' ? 'bg-indigo-500' : 'bg-pink-500'}`}></div>
 
-                      {!isRead && (
-                        <div className="absolute top-4 right-4 flex items-center gap-2">
-                          <span className="text-[10px] font-black text-teal-600 uppercase tracking-widest animate-pulse">Nouveau</span>
-                          <div className="w-2.5 h-2.5 bg-teal-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(20,184,166,0.6)]"></div>
+                        {!isRead && (
+                          <div className="absolute top-4 right-4 flex items-center gap-2">
+                            <span className="text-[10px] font-black text-teal-600 uppercase tracking-widest animate-pulse">Nouveau</span>
+                            <div className="w-2.5 h-2.5 bg-teal-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(20,184,166,0.6)]"></div>
+                          </div>
+                        )}
+
+                        <div className="flex items-start justify-between mb-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ann.target === 'ALL_STUDENTS' ? 'bg-indigo-50 text-indigo-700' : 'bg-pink-50 text-pink-700'
+                            }`}>
+                            {ann.target === 'ALL_STUDENTS' ? 'Annonce Générale' : 'Annonce Faculté'}
+                          </span>
+                          <span className="text-xs text-gray-400 font-medium">
+                            {new Date(ann.date).toLocaleDateString()}
+                          </span>
                         </div>
-                      )}
 
-                      <div className="flex items-start justify-between mb-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ann.target === 'ALL_STUDENTS' ? 'bg-indigo-50 text-indigo-700' : 'bg-pink-50 text-pink-700'
-                          }`}>
-                          {ann.target === 'ALL_STUDENTS' ? 'Annonce Générale' : 'Annonce Faculté'}
-                        </span>
-                        <span className="text-xs text-gray-400 font-medium">
-                          {new Date(ann.date).toLocaleDateString()}
-                        </span>
+                        <h4 className={`font-bold text-lg mb-2 group-hover:text-teal-700 transition-colors ${isRead ? 'text-gray-700' : 'text-gray-900 underline decoration-teal-500/30 underline-offset-4'}`}>
+                          {ann.title}
+                        </h4>
+                        <p className={`leading-relaxed text-sm ${isRead ? 'text-gray-500' : 'text-gray-600'}`}>
+                          {ann.content}
+                        </p>
+
+                        {!isRead && (
+                          <div className="mt-4 pt-4 border-t border-teal-50 flex items-center justify-end">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsRead(ann.id);
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-teal-600/20 active:scale-95"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              Marquer comme lue
+                            </button>
+                          </div>
+                        )}
                       </div>
+                    );
+                  })}
 
-                      <h4 className={`font-bold text-lg mb-2 group-hover:text-teal-700 transition-colors ${isRead ? 'text-gray-700' : 'text-gray-900 underline decoration-teal-500/30 underline-offset-4'}`}>
-                        {ann.title}
-                      </h4>
-                      <p className={`leading-relaxed text-sm ${isRead ? 'text-gray-500' : 'text-gray-600'}`}>
-                        {ann.content}
-                      </p>
-
-                      {!isRead && (
-                        <div className="mt-4 pt-4 border-t border-teal-50 flex items-center justify-end">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMarkAsRead(ann.id);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-teal-600/20 active:scale-95"
-                          >
-                            <CheckCircle2 className="w-4 h-4" />
-                            Marquer comme lue
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
+                  {data.announcements.length > 5 && (
+                    <button
+                      onClick={() => onNavigate('announcements')}
+                      className="w-full py-4 bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-300 rounded-xl text-gray-600 font-bold text-sm transition-all flex items-center justify-center gap-2 group"
+                    >
+                      <span>VOIR TOUTES LES ANNONCES ({data.announcements.length})</span>
+                      <ChevronDown className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  )}
+                </>
               ) : (
                 <div className="bg-gray-50 rounded-xl p-8 text-center text-gray-500 border border-dashed border-gray-200">
                   <Megaphone className="w-8 h-8 mx-auto mb-3 text-gray-300" />

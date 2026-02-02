@@ -443,7 +443,13 @@ export default function App() {
               onLogout={handleLogout}
               onMenuClick={() => setIsMobileMenuOpen(true)}
               hasUnreadAnnouncements={hasUnreadProfAnnouncements}
-              onBellClick={() => handleProfessorNavigate('dashboard')}
+              onBellClick={() => {
+                handleProfessorNavigate('dashboard');
+                // Petit délai pour laisser le temps à la navigation de se faire si nécessaire
+                setTimeout(() => {
+                  document.getElementById('announcements-section')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }}
             />
             <main className="flex-1 overflow-y-auto">
               {currentPage === 'dashboard' && <Dashboard onNavigate={handleProfessorNavigate} />}
