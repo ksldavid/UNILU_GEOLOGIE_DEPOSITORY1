@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import logoImage from '../../assets/da1a2f529aca98b88831def6f2dc64f21ceb1b65.png';
+import logoImage from '../../assets/unilu-official-logo.png';
 
 interface AdminLoginPageProps {
   onLogin: (id: string, password: string, role: 'admin' | 'service-academique') => Promise<void | boolean | 'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'>;

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Lock, Eye, EyeOff, ArrowRight, Shield, Play, Pause } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ContactSupportModal } from './ContactSupportModal';
-import logoImage from '../assets/da1a2f529aca98b88831def6f2dc64f21ceb1b65.png';
+import logoImage from '../assets/unilu-official-logo.png';
 import slide1 from '../assets/slide1.png';
 import slide2 from '../assets/slide2.png';
 import slide3 from '../assets/slide3.png';

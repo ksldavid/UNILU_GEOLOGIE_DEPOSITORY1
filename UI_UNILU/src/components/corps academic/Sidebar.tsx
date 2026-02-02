@@ -1,5 +1,5 @@
 import { LayoutGrid, GraduationCap, Calendar, Users, LogOut, Megaphone } from "lucide-react";
-import logoImage from "../../assets/da1a2f529aca98b88831def6f2dc64f21ceb1b65.png";
+import logoImage from "../../assets/unilu-official-logo.png";
 import type { Page } from "../../App";
 
 interface SidebarProps {
