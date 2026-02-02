@@ -1,5 +1,5 @@
 import { LayoutGrid, GraduationCap, Calendar, Users, LogOut, Megaphone } from "lucide-react";
-import logoImage from "../../assets/unilu-official-logo.png";
+// import logoImage from "../../assets/unilu-official-logo.png";
 import type { Page } from "../../App";
 
 interface SidebarProps {
@@ -29,7 +29,7 @@ export function Sidebar({ currentPage, onNavigate, onLogout, isOpen, onClose }: 
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 md:translate-x-0 md:static md:flex ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <img src={logoImage} alt="UNILU Logo" className="w-10 h-auto" />
+            {/* Logo supprimé */}
             <span className="font-semibold text-xl tracking-tight text-gray-900">UNILU</span>
           </div>
         </div>

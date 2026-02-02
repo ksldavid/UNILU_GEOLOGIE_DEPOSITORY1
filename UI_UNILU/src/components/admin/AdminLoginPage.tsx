@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import logoImage from '../../assets/unilu-official-logo.png';
+// import logoImage from '../../assets/unilu-official-logo.png';
 
 interface AdminLoginPageProps {
   onLogin: (id: string, password: string, role: 'admin' | 'service-academique') => Promise<void | boolean | 'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'>;
@@ -88,8 +88,8 @@ export function AdminLoginPage({ onLogin, onBack }: AdminLoginPageProps) {
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-4 group cursor-pointer"
           >
-            <div className="p-2 bg-white/40 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm group-hover:bg-white/60 transition-all">
-              <img src={logoImage} alt="Logo" className="h-10 w-auto" />
+            <div className="p-2 bg-white/40 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
+              <span className="text-xl font-black text-[#1B4332]">UNILU</span>
             </div>
             <div className="flex flex-col">
               <span className="text-xs font-black uppercase tracking-[0.2em] text-[#1B4332]/50">Portail Admin</span>

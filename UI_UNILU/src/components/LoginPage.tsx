@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Lock, Eye, EyeOff, ArrowRight, Shield, Play, Pause } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ContactSupportModal } from './ContactSupportModal';
-import logoImage from '../assets/unilu-official-logo.png';
+// import logoImage from '../assets/unilu-official-logo.png';
 import slide1 from '../assets/slide1.png';
 import slide2 from '../assets/slide2.png';
 import slide3 from '../assets/slide3.png';
@@ -118,14 +118,9 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
 
                 {/* Content Container */}
                 <div className="relative z-10 flex flex-col justify-between p-16 w-full h-full">
-                    {/* Floating Shield Logo Top Left */}
-                    <div className="animate-fadeIn">
-                        <img
-                            src={logoImage}
-                            alt="UNILU Logo"
-                            className="w-44 h-auto drop-shadow-xl"
-                        />
-                    </div>
+                    {/* Logo supprimé */}
+                    <div className="h-20" />
+
 
                     {/* Text content at bottom left - MORE RAISED */}
                     <div className="mb-80">
