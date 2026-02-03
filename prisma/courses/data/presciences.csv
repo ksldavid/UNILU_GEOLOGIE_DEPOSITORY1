@@ -1,0 +1,19 @@
+code,name,description,academicYear,level
+MATH191A,Mathématiques 1 (Algèbre),Algèbre linéaire et vectorielle,2025-2026,presciences
+MATH191B,Mathématiques 2 (Analyse),Analyse mathématique,2025-2026,presciences
+MATH192A,Mathématiques 3 (Géométrie analytique et Trigonométrie),Géométrie,2025-2026,presciences
+MATH192B,Géométrie descriptive,Dessin technique,2025-2026,presciences
+GEOS199A,Introduction aux sciences géologiques,Géologie fondamentale,2025-2026,presciences
+GEOS199B,Géographie générale,Sciences de la Terre,2025-2026,presciences
+CHIM193A,Chimie générale,Chimie de base,2025-2026,presciences
+CHIM193B,Biologie générale,Sciences de la vie,2025-2026,presciences
+PHYS194A,Physique générale,Physique de base,2025-2026,presciences
+PHYS194B,Informatique générale,Introduction à l'informatique,2025-2026,presciences
+SCIV195A,Introduction aux sciences géomatiques et géospatiales,Géomatique,2025-2026,presciences
+SCIV195B,Introduction aux Sciences de l'Environnement et Développement durable,Environnement,2025-2026,presciences
+COMM196A,Anglais,"Langues et communication 1",2025-2026,presciences
+COMM196B,Expression orale et écrite,"Langues et communication 1",2025-2026,presciences
+COMM196C,Logique,"Langues et communication 1",2025-2026,presciences
+SPA198A,Éducation à la Citoyenneté et VIH/Sida,Sciences civiques,2025-2026,presciences
+SPA198B,Travail en Équipe et Leadership,Sciences civiques,2025-2026,presciences
+SPA198C,Stage d'imprégnation,Stage sur terrain,2025-2026,presciences

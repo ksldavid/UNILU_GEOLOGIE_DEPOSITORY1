@@ -3,11 +3,11 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // --- ENUMS ---
@@ -15,13 +15,13 @@ datasource db {
 enum SystemRole {
   ADMIN // Super user, has full access
   ACADEMIC_OFFICE // Approves grades, manages global academic data
+  STUDENT
   USER // Standard user (Professor, Assistant, Student)
 }
 
 enum CourseRole {
   PROFESSOR // Can create assessments, grade (with approval), manage course
   ASSISTANT // Can take attendance, view students, limited assessment creation
-  STUDENT // Can view own grades, attendance, download docs
 }
 
 enum RequestStatus {
@@ -30,11 +30,15 @@ enum RequestStatus {
   REJECTED
 }
 
+enum EnrollmentStatus {
+  ACTIVE
+  FINISHED
+}
+
 enum AttendanceStatus {
   PRESENT
   ABSENT
   LATE
-  EXCUSED
 }
 
 enum AssessmentType {
@@ -42,7 +46,6 @@ enum AssessmentType {
   INTERROGATION
   TP
   TD
-  // "Interrogation"
 }
 
 enum AnnouncementType {
@@ -53,6 +56,7 @@ enum AnnouncementType {
 }
 
 enum AnnouncementTarget {
+  GLOBAL // Toute l'Université
   ALL_STUDENTS // Tous les étudiants
   ACADEMIC_LEVEL // Étudiants d'un niveau spécifique
   COURSE_STUDENTS // Étudiants d'un cours spécifique
@@ -63,19 +67,39 @@ enum AnnouncementTarget {
 // --- MODELS ---
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id        String   @id // On utilise le studentID/Matricule comme ID principal
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   email     String   @unique
   password  String // Hashed password
-  firstName String
-  lastName  String
+  name      String
+  whatsapp  String?  @unique
 
   systemRole SystemRole @default(USER)
 
+  // Statistiques Étudiant (Optionnel)
+  sex         String? // "M", "F"
+  birthday    DateTime?
+  nationality String? // "Congolaise", etc.
+
+  // Accès et Sécurité
+  isBlocked   Boolean   @default(false)
+  blockReason String?
+  isArchived  Boolean   @default(false)
+  deletedAt   DateTime?
+
+  // Password reset
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+
   // Relations
-  enrollments         CourseEnrollment[]
-  gradeChangeRequests GradeChangeRequest[] // Requests made by this user (Prof)
-  attendances         AttendanceRecord[] // Attendance records for this student
+  adminProfile             AdminProfile?
+  academicProfile          AcademicProfile?
+  professorProfile         ProfessorProfile?
+  enrollments              CourseEnrollment[]
+  studentCourseEnrollments StudentCourseEnrollment[] // NEW: Student enrollments in courses
+  gradeChangeRequests      GradeChangeRequest[] // Requests made by this user (Prof)
+  attendances              AttendanceRecord[] // Attendance records for this student
 
   // For audit/logs or assessments created
   createdAssessments Assessment[]
@@ -86,14 +110,103 @@ model User {
   authoredAnnouncements Announcement[]     @relation("AuthoredAnnouncements")
   targetedAnnouncements Announcement[]     @relation("TargetedAnnouncements")
   readAnnouncements     AnnouncementRead[]
+  submissions           Submission[] // Student submissions for assignments
+
+  // Notifications Push
+  pushToken String? // Expo Push Token for mobile notifications
 
   // Attendance change requests made by this user (Academic Office)
   attendanceChangeRequests AttendanceChangeRequest[]
+
+  // Course retakes (for students repeating specific courses)
+  courseRetakes CourseRetake[]
+
+  // Notifications
+  notifications Notification[] @relation("UserNotifications")
+
+  // Support Tickets
+  supportTickets  SupportTicket[]  @relation("UserTickets")
+  supportMessages SupportMessage[] @relation("SenderMessages")
+
+  @@index([email])
+  @@index([systemRole])
+  @@index([deletedAt])
+  @@index([pushToken])
+}
+
+// --- SUPPORT TICKETS & MESSAGES ---
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model SupportTicket {
+  id       String         @id @default(cuid())
+  subject  String
+  category String // e.g., "Technique", "Inscription", "Notes", "Autre"
+  priority TicketPriority @default(MEDIUM)
+  status   TicketStatus   @default(OPEN)
+
+  userId String
+  user   User   @relation("UserTickets", fields: [userId], references: [id])
+
+  messages SupportMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model SupportMessage {
+  id       String        @id @default(cuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation("SenderMessages", fields: [senderId], references: [id])
+
+  content   String
+  isAdmin   Boolean  @default(false) // If true, sent by technical support
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([senderId])
+}
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  title   String
+  message String
+  type    String  @default("INFO") // "SUPPORT", "GRADE", "INFO", etc.
+  isRead  Boolean @default(false)
+
+  linkTo   String? // Optional path to redirect to
+  metadata Json? // Optional additional data
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
 }
 
 // NEW: Academic Levels (Presciences, B1, B2, B3, M1, M2)
 model AcademicLevel {
-  id          Int     @id @default(autoincrement())
+  id          Int     @id // On enlève autoincrement pour maîtriser les numéros (0, 1, 2...)
   code        String  @unique // "presciences", "b1", "b2", "b3", "m1", "m2"
   name        String // "Presciences", "Licence 1", "Licence 2", etc.
   displayName String // "Presciences / Géologie", "B1 / Géologie", etc.
@@ -104,12 +217,13 @@ model AcademicLevel {
   courses            Course[]
   studentEnrollments StudentEnrollment[]
   announcements      Announcement[] // Announcements targeting this level
+  schedules          Schedule[]
 }
 
 // NEW: Student enrollment in academic levels per year
 model StudentEnrollment {
   id              Int      @id @default(autoincrement())
-  userId          Int
+  userId          String
   academicLevelId Int
   academicYear    String // e.g. "2024-2025"
   enrolledAt      DateTime @default(now())
@@ -120,97 +234,234 @@ model StudentEnrollment {
   @@unique([userId, academicLevelId, academicYear])
 }
 
-model Course {
-  id              Int     @id @default(autoincrement())
-  code            String  @unique // e.g. "GEOL101"
-  name            String
-  description     String?
-  academicYear    String // e.g. "2024-2025"
-  academicLevelId Int // NEW: Link to academic level
+model ProfessorProfile {
+  id     String  @id // Match User.id
+  userId String  @unique
+  title  String? // Academic title: PhD, Assistant, etc.
 
-  // Relations
-  academicLevel      AcademicLevel       @relation(fields: [academicLevelId], references: [id])
-  enrollments        CourseEnrollment[]
-  assessments        Assessment[]
-  attendanceSessions AttendanceSession[]
-  resources          CourseResource[]
-  announcements      Announcement[] // Announcements for this course
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseAssignments CourseEnrollment[]
+
+  @@index([userId])
 }
 
-// The Pivot Table: Links User <-> Course with a specific Role
-model CourseEnrollment {
-  id       Int        @id @default(autoincrement())
-  userId   Int
-  courseId Int
-  role     CourseRole
-  joinedAt DateTime   @default(now())
+model AdminProfile {
+  id     String @id // Match User.id
+  userId String @unique
+  name   String // Nom de l'administrateur
+  role   String // Role spécifique (ex: Administrateur Principal, Support Technique)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AcademicProfile {
+  id     String @id // Match User.id
+  userId String @unique
+  name   String // Nom de l'agent du service académique
+  title  String // Titre ou poste (ex: Chef de service, Agent d'inscription)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Course retakes: For students who need to retake specific courses from lower levels
+model CourseRetake {
+  id           Int      @id @default(autoincrement())
+  userId       String
+  courseCode   String
+  academicYear String // e.g. "2024-2025"
+  reason       String? // "Échec", "Abandon", etc.
+  createdAt    DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id])
-  course Course @relation(fields: [courseId], references: [id])
+  course Course @relation(fields: [courseCode], references: [code])
 
-  @@unique([userId, courseId]) // A user has only one role per course
+  @@unique([userId, courseCode, academicYear])
+}
+
+model Course {
+  code                     String                    @id // Clé primaire : e.g. "GEOL101"
+  name                     String
+  description              String?
+  // Relations
+  academicLevels           AcademicLevel[] // Many-to-Many implicite
+  enrollments              CourseEnrollment[]
+  studentCourseEnrollments StudentCourseEnrollment[]
+  assessments              Assessment[]
+  attendanceSessions       AttendanceSession[]
+  resources                CourseResource[]
+  announcements            Announcement[]
+  retakes                  CourseRetake[]
+  schedules                Schedule[]
+}
+
+// The Pivot Table: Links User <-> Course with a specific Role (PROFESSOR, ASSISTANT)
+model CourseEnrollment {
+  id           Int              @id @default(autoincrement())
+  userId       String
+  courseCode   String
+  role         CourseRole
+  academicYear String
+  status       EnrollmentStatus @default(ACTIVE)
+  joinedAt     DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id], map: "CourseEnrollment_user_fkey")
+  professor ProfessorProfile @relation(fields: [userId], references: [userId], map: "CourseEnrollment_professor_fkey")
+  course    Course           @relation(fields: [courseCode], references: [code])
+
+  @@unique([userId, courseCode, academicYear])
+  @@index([userId])
+  @@index([courseCode])
+  @@index([academicYear])
+}
+
+// NEW: Student enrollment in courses (separate from staff enrollment)
+model StudentCourseEnrollment {
+  id           Int      @id @default(autoincrement())
+  userId       String
+  courseCode   String
+  academicYear String
+  enrolledAt   DateTime @default(now())
+
+  // Status management
+  isActive    Boolean   @default(true)
+  withdrawnAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseCode], references: [code])
+
+  @@unique([userId, courseCode, academicYear])
+  @@index([userId])
+  @@index([courseCode])
+  @@index([academicYear])
+  @@index([courseCode, academicYear])
+  @@index([userId, academicYear])
 }
 
 model Assessment {
-  id          Int            @id @default(autoincrement())
-  courseId    Int
-  creatorId   Int
-  title       String
-  type        AssessmentType
-  maxPoints   Float
-  date        DateTime       @default(now())
-  isPublished Boolean        @default(false)
+  id           Int            @id @default(autoincrement())
+  courseCode   String
+  creatorId    String
+  title        String
+  instructions String?
+  type         AssessmentType
+  maxPoints    Float
+  date         DateTime       @default(now())
+  dueDate      DateTime?
+  weight       Float          @default(1.0)
+  isPublished  Boolean        @default(false)
 
-  course  Course @relation(fields: [courseId], references: [id])
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course  Course @relation(fields: [courseCode], references: [code])
   creator User   @relation(fields: [creatorId], references: [id])
 
   grades Grade[]
+
+  submissions Submission[]
+
+  @@index([courseCode])
+  @@index([creatorId])
+  @@index([isPublished])
+}
+
+model Submission {
+  id           Int      @id @default(autoincrement())
+  assessmentId Int
+  studentId    String
+  fileUrl      String // URL from Cloudinary
+  fileName     String
+  publicId     String? // Add this to handle deletions from Cloudinary
+  submittedAt  DateTime @default(now())
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  student    User       @relation(fields: [studentId], references: [id])
+
+  @@unique([assessmentId, studentId])
+  @@index([assessmentId])
+  @@index([studentId])
 }
 
 model Grade {
   id           Int     @id @default(autoincrement())
   assessmentId Int
-  studentId    Int // Note: This refers to the User ID of the student
+  studentId    String // Note: This refers to the User ID of the student
   score        Float
   feedback     String?
+
+  // Timestamps for audit
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  modifiedBy String? // Who made the last modification
 
   assessment Assessment @relation(fields: [assessmentId], references: [id])
   student    User       @relation(fields: [studentId], references: [id], name: "StudentGrades")
 
   changeRequests GradeChangeRequest[]
+
+  @@unique([assessmentId, studentId]) // NEW: A student can only have ONE grade per assessment
+  @@index([studentId])
+  @@index([assessmentId])
 }
 
 // Workflow: Prof requests change -> Academic Office approves -> Grade User updated
 model GradeChangeRequest {
   id            Int           @id @default(autoincrement())
   gradeId       Int
-  requesterId   Int // The Professor asking for change
+  requesterId   String // The Professor asking for change
   newScore      Float
   reason        String
   proofImageUrl String? // "Photo des notes"
   status        RequestStatus @default(PENDING)
   createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   resolvedAt    DateTime?
+  resolvedBy    String? // Who approved/rejected the request
 
   grade     Grade @relation(fields: [gradeId], references: [id])
   requester User  @relation(fields: [requesterId], references: [id])
+
+  @@index([status])
+  @@index([requesterId])
+  @@index([gradeId])
 }
 
 model AttendanceSession {
-  id       Int      @id @default(autoincrement())
-  courseId Int
-  date     DateTime @default(now())
-  isLocked Boolean  @default(false) // Lock after 24h
+  id         Int      @id @default(autoincrement())
+  courseCode String
+  date       DateTime @default(now()) // Represents the day of the session
+  isLocked   Boolean  @default(false)
 
-  course  Course             @relation(fields: [courseId], references: [id])
+  // Security & QR Code
+  qrToken   String? @unique
+  latitude  Float?
+  longitude Float?
+
+  course  Course             @relation(fields: [courseCode], references: [code])
   records AttendanceRecord[]
+
+  @@unique([courseCode, date]) // One session per course per day
+  @@index([courseCode])
+  @@index([date])
 }
 
 model AttendanceRecord {
   id        Int              @id @default(autoincrement())
   sessionId Int
-  studentId Int
+  studentId String
   status    AttendanceStatus
+
+  // Timestamps for audit
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  modifiedBy String? // Who made the last modification
 
   session AttendanceSession @relation(fields: [sessionId], references: [id])
   student User              @relation(fields: [studentId], references: [id])
@@ -219,31 +470,40 @@ model AttendanceRecord {
   changeRequests AttendanceChangeRequest[]
 
   @@unique([sessionId, studentId])
+  @@index([studentId])
+  @@index([sessionId])
 }
 
 // Workflow: Academic Office requests change -> Professor approves -> Attendance updated
 model AttendanceChangeRequest {
   id           Int              @id @default(autoincrement())
   attendanceId Int // The attendance record to modify
-  requesterId  Int // Academic Office user making the request
+  requesterId  String // Academic Office user making the request
   newStatus    AttendanceStatus // Requested new status
   reason       String
   status       RequestStatus    @default(PENDING)
   createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
   resolvedAt   DateTime?
+  resolvedBy   String? // Who approved/rejected the request
 
   attendance AttendanceRecord @relation(fields: [attendanceId], references: [id])
   requester  User             @relation(fields: [requesterId], references: [id])
+
+  @@index([status])
+  @@index([requesterId])
+  @@index([attendanceId])
 }
 
 model CourseResource {
   id         Int      @id @default(autoincrement())
-  courseId   Int
+  courseCode String
   title      String
-  url        String // Link to file storage
+  url        String
+  publicId   String? // Add this to handle deletions from Cloudinary
   uploadedAt DateTime @default(now())
 
-  course Course @relation(fields: [courseId], references: [id])
+  course Course @relation(fields: [courseCode], references: [code])
 }
 
 // --- ANNOUNCEMENTS ---
@@ -256,19 +516,19 @@ model Announcement {
   target  AnnouncementTarget
 
   // Author
-  authorId Int
-  author   User @relation("AuthoredAnnouncements", fields: [authorId], references: [id])
+  authorId String
+  author   User   @relation("AuthoredAnnouncements", fields: [authorId], references: [id])
 
   // Optional targeting
   academicLevelId Int? // If target = ACADEMIC_LEVEL
   academicLevel   AcademicLevel? @relation(fields: [academicLevelId], references: [id])
 
-  courseId Int? // If target = COURSE_STUDENTS
-  course   Course? @relation(fields: [courseId], references: [id])
+  courseCode String?
+  course     Course? @relation(fields: [courseCode], references: [code])
 
   // For targeting a specific user
-  targetUserId Int? // If target = SPECIFIC_USER
-  targetUser   User? @relation("TargetedAnnouncements", fields: [targetUserId], references: [id])
+  targetUserId String? // If target = SPECIFIC_USER
+  targetUser   User?   @relation("TargetedAnnouncements", fields: [targetUserId], references: [id])
 
   // Dates
   createdAt DateTime  @default(now())
@@ -284,11 +544,55 @@ model Announcement {
 model AnnouncementRead {
   id             Int      @id @default(autoincrement())
   announcementId Int
-  userId         Int
+  userId         String
   readAt         DateTime @default(now())
 
   announcement Announcement @relation(fields: [announcementId], references: [id])
   user         User         @relation(fields: [userId], references: [id])
 
   @@unique([announcementId, userId])
+}
+
+// Timetable / Weekly Schedule for a class
+model Schedule {
+  id              Int      @id @default(autoincrement())
+  academicLevelId Int
+  courseCode      String
+  day             String // "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"
+  startTime       String // e.g. "08:00"
+  endTime         String // e.g. "10:00"
+  room            String
+  academicYear    String // "2025-2026"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  academicLevel AcademicLevel @relation(fields: [academicLevelId], references: [id])
+  course        Course        @relation(fields: [courseCode], references: [code])
+
+  @@unique([academicLevelId, day, startTime, academicYear])
+  @@index([academicLevelId])
+  @@index([courseCode])
+  @@index([academicYear])
+}
+
+// --- ADVERTISEMENTS ---
+
+model Advertisement {
+  id        String   @id @default(cuid())
+  title     String
+  imageUrl  String
+  linkUrl   String
+  isActive  Boolean  @default(true)
+  
+  // Notification configuration
+  pushTitle    String?  // Custom title for the push notification
+  pushBody     String?  // Custom body for the push notification
+  dailyLimit   Int      @default(1) // Max notifications per user per day for this ad
+  sentToday    Int      @default(0) // Internal counter (resets daily)
+  lastSentAt   DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
 }

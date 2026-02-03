@@ -1,20 +1,53 @@
 {
   "name": "backend",
   "version": "1.0.0",
+  "type": "commonjs",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
+    "start": "node dist/src/server.js",
+    "dev": "npx tsx watch src/server.ts",
+    "build": "prisma generate && tsc",
+    "postinstall": "prisma generate",
+    "import:bac3": "ts-node prisma/bac-trois/import.ts",
+    "import:m2-geotech": "ts-node prisma/scripts/import-m2-geotech.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.10.1",
-    "prisma": "^7.1.0",
-    "ts-node": "^10.9.2"
+    "@types/pg": "^8.15.6",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@prisma/client": "^7.1.0"
+    "@prisma/client": "^6.19.1",
+    "@prisma/extension-accelerate": "^3.0.1",
+    "@types/multer": "^2.0.0",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.8.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.2.3",
+    "expo-server-sdk": "^4.0.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.0.2",
+    "pg": "^8.16.3",
+    "prisma": "^6.19.1"
   }
 }
