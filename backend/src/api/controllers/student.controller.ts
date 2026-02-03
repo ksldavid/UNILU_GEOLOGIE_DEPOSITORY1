@@ -781,6 +781,7 @@ export const getStudentProfile = async (req: AuthRequest, res: Response) => {
             idNumber: student.id, // Use the actual ID as the matricule
             name: student.name,
             email: student.email,
+            role: student.role, // Added role
             sex: student.sex,
             birthday: student.birthday,
             nationality: student.nationality,

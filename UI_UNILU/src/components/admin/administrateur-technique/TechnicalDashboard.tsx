@@ -13,6 +13,7 @@ import { UserModal } from './components/UserModal';
 import { SupportTicketsAdmin } from './components/SupportTicketsAdmin';
 import { ConfigManager } from './components/ConfigManager';
 import { CommunicationManager } from './components/CommunicationManager';
+import { AdsManager } from './components/AdsManager';
 import { API_URL } from '../../../services/config';
 
 export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
@@ -71,6 +72,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
         { id: 'Logs', icon: Terminal, label: 'Logs' },
         { id: 'Communication', icon: Megaphone, label: 'Communication' },
         { id: 'Support', icon: MessageSquare, label: 'Support' },
+        { id: 'Ads', icon: Globe, label: 'Régie Pub' },
         { id: 'Config', icon: Settings, label: 'Configuration' },
     ];
 
@@ -90,6 +92,8 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                 return <CommunicationManager />;
             case 'Support':
                 return <SupportTicketsAdmin />;
+            case 'Ads':
+                return <AdsManager />;
             case 'Config':
                 return <ConfigManager />;
             default:

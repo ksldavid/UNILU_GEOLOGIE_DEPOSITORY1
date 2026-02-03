@@ -574,3 +574,25 @@ model Schedule {
   @@index([courseCode])
   @@index([academicYear])
 }
+
+// --- ADVERTISEMENTS ---
+
+model Advertisement {
+  id        String   @id @default(cuid())
+  title     String
+  imageUrl  String
+  linkUrl   String
+  isActive  Boolean  @default(true)
+  
+  // Notification configuration
+  pushTitle    String?  // Custom title for the push notification
+  pushBody     String?  // Custom body for the push notification
+  dailyLimit   Int      @default(1) // Max notifications per user per day for this ad
+  sentToday    Int      @default(0) // Internal counter (resets daily)
+  lastSentAt   DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
