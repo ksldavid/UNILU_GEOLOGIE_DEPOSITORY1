@@ -1,12 +1,13 @@
 
-import { useState, useEffect } from 'react';
-import { Trash2, Plus, Bell, Image as ImageIcon, Upload, MousePointer2, Clock, MessageSquareText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Trash2, Plus, Bell, Image as ImageIcon, Upload, MousePointer2, Clock, MessageSquareText, X } from 'lucide-react';
 import { API_URL } from '../../../../services/config';
 
 export function AdsManager() {
     const [ads, setAds] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     const [newAd, setNewAd] = useState({
         title: '',
@@ -14,11 +15,26 @@ export function AdsManager() {
         dailyLimit: 1,
         pushTitle: '',
         pushBody: '',
-        description: '', // Nouveau: Texte style Instagram
-        durationDays: 7, // Nouveau: Durée par défaut
-        targetPushCount: 0 // Nouveau: Cible totale
+        description: '',
+        durationDays: 7,
+        targetPushCount: 0,
+        scheduledTimes: [] as string[]
     });
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [timeInput, setTimeInput] = useState('');
+
+    const addTime = () => {
+        if (!timeInput.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+            alert("Format invalide. Utilisez HH:mm (ex: 08:30)");
+            return;
+        }
+        if (newAd.scheduledTimes.includes(timeInput)) return;
+        setNewAd({ ...newAd, scheduledTimes: [...newAd.scheduledTimes, timeInput].sort() });
+        setTimeInput('');
+    };
+
+    const removeTime = (t: string) => {
+        setNewAd({ ...newAd, scheduledTimes: newAd.scheduledTimes.filter(time => time !== t) });
+    };
 
     const fetchAds = async () => {
         try {
@@ -57,6 +73,9 @@ export function AdsManager() {
             formData.append('durationDays', newAd.durationDays.toString());
             formData.append('targetPushCount', newAd.targetPushCount.toString());
 
+            // On envoie le tableau d'heures
+            newAd.scheduledTimes.forEach(t => formData.append('scheduledTimes[]', t));
+
             if (selectedFile) {
                 formData.append('image', selectedFile);
             }
@@ -78,7 +97,8 @@ export function AdsManager() {
                     pushBody: '',
                     description: '',
                     durationDays: 7,
-                    targetPushCount: 0
+                    targetPushCount: 0,
+                    scheduledTimes: []
                 });
                 setSelectedFile(null);
                 setIsCreating(false);
@@ -235,6 +255,34 @@ export function AdsManager() {
                                         <input type="number" value={newAd.targetPushCount} onChange={e => setNewAd({ ...newAd, targetPushCount: parseInt(e.target.value) })} className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-white" placeholder="Optionnel" />
                                     </div>
                                 </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-emerald-500 uppercase tracking-widest ml-1">Planning de Diffusion (Heures)</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={timeInput}
+                                            onChange={e => setTimeInput(e.target.value)}
+                                            placeholder="HH:mm"
+                                            className="w-24 bg-black/40 border border-white/5 rounded-xl px-4 py-2 text-sm text-white font-mono"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={addTime}
+                                            className="px-4 py-2 bg-emerald-600/20 text-emerald-500 rounded-xl text-xs font-black"
+                                        >
+                                            AJOUTER
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {newAd.scheduledTimes.map(t => (
+                                            <span key={t} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-2">
+                                                {t}
+                                                <X className="w-3 h-3 cursor-pointer" onClick={() => removeTime(t)} />
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -262,7 +310,7 @@ export function AdsManager() {
                     ads.map(ad => (
                         <div key={ad.id} className="bg-[#111827]/50 border border-white/5 rounded-[40px] overflow-hidden group hover:border-emerald-500/30 transition-all flex flex-col shadow-2xl relative">
                             {/* Stats Flottantes */}
-                            <div className="absolute top-4 left-6 z-10 flex gap-2">
+                            <div className="absolute top-4 left-6 z-10 flex gap-2 flex-wrap max-w-[80%]">
                                 <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
                                     <MousePointer2 className="w-3 h-3 text-blue-400" />
                                     <span className="text-[10px] font-black text-white">{ad.clickCount || 0} clics</span>
@@ -271,6 +319,12 @@ export function AdsManager() {
                                     <Clock className="w-3 h-3 text-emerald-400" />
                                     <span className="text-[10px] font-black text-white">{getRemainingDays(ad.expiresAt)}</span>
                                 </div>
+                                {ad.scheduledTimes && ad.scheduledTimes.map((t: string) => (
+                                    <div key={t} className="bg-emerald-500/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-emerald-500/30 flex items-center gap-2">
+                                        <Bell className="w-3 h-3 text-emerald-400" />
+                                        <span className="text-[10px] font-black text-white">{t}</span>
+                                    </div>
+                                ))}
                             </div>
 
                             <div className="h-56 bg-slate-900 relative">

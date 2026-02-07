@@ -67,6 +67,29 @@ export const createAd = async (req: Request, res: Response) => {
             expiresAt.setDate(expiresAt.getDate() + parseInt(durationDays));
         }
 
+        // --- NOUVEAU: Vérification des conflits d'horaires ---
+        const scheduledTimes = req.body.scheduledTimes || []; // ex: ["08:30", "12:00"]
+        if (scheduledTimes.length > 0) {
+            const conflictAds = await prisma.advertisement.findMany({
+                where: {
+                    isActive: true,
+                    scheduledTimes: { hasSome: scheduledTimes },
+                    OR: [
+                        { expiresAt: null },
+                        { expiresAt: { gt: new Date() } }
+                    ]
+                },
+                select: { title: true, scheduledTimes: true }
+            });
+
+            if (conflictAds.length > 0) {
+                const busyTimes = conflictAds.map(a => `${a.title} (${a.scheduledTimes.join(', ')})`).join(', ');
+                return res.status(400).json({
+                    message: `Conflit d'horaire ! Ces créneaux sont déjà réservés par : ${busyTimes}`
+                });
+            }
+        }
+
         const ad = await prisma.advertisement.create({
             data: {
                 title,

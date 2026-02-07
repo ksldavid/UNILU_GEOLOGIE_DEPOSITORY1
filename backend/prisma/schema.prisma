@@ -594,7 +594,9 @@ model Advertisement {
 
   expiresAt       DateTime? // Date when the ad is automatically deactivated
   targetPushCount Int? // Total number of pushes intended
-  clickCount      Int       @default(0) // New: Count how many times the link was clicked
+  clickCount      Int       @default(0) // Count how many times the link was clicked
+
+  scheduledTimes String[] // New: List of times (ex: ["08:00", "18:30"]) for automatic push
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

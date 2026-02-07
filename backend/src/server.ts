@@ -188,7 +188,11 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 // 🚀 DÉMARRAGE DU SERVEUR
 // ============================================================
 
+// Démarrer les services de background
+import { startAdScheduler } from './services/adScheduler';
+
 app.listen(PORT, () => {
+    startAdScheduler();
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
