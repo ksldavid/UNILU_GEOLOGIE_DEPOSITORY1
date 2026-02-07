@@ -12,16 +12,27 @@ const getHeaders = () => {
 
 export const attendanceService = {
     async generateQR(courseCode: string, latitude?: number, longitude?: number) {
-        const response = await fetch(`${API_URL}/generate`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify({ courseCode, latitude, longitude })
-        });
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Erreur lors de la génération du QR Code');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
+
+        try {
+            const response = await fetch(`${API_URL}/generate`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ courseCode, latitude, longitude }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Erreur lors de la génération du QR Code');
+            }
+            return response.json();
+        } catch (error: any) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') throw new Error('Délai d\'attente dépassé (vérifiez votre connexion)');
+            throw error;
         }
-        return response.json();
     },
 
     async scanQR(qrToken: string, latitude: number, longitude: number) {

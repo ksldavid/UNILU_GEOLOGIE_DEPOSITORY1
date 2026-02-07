@@ -135,8 +135,21 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
   const handleGenerateQR = async () => {
     setGeneratingQR(true);
     setLocationError(null);
+    setQrToken(""); // Reset pour montrer l'état de chargement
+    setShowQRModal(true);
 
-    // 1. Demander la géolocalisation
+    const callApi = async (lat?: number, long?: number) => {
+      try {
+        const result = await attendanceService.generateQR(course.code, lat, long);
+        setQrToken(result.qrToken);
+        setGeneratingQR(false);
+      } catch (error: any) {
+        // En cas d'erreur API, on affiche l'erreur dans le modal au lieu d'une alerte bloquante
+        setLocationError(error.message || "Erreur de connexion au serveur.");
+        setGeneratingQR(false);
+      }
+    };
+
     if (!navigator.geolocation) {
       setLocationError("La géolocalisation n'est pas supportée par votre navigateur.");
       setGeneratingQR(false);
@@ -145,35 +158,23 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        try {
-          setLocationError(null); // Nettoyer l'erreur si on réussit enfin
-          const { latitude, longitude } = position.coords;
-          const result = await attendanceService.generateQR(course.code, latitude, longitude);
-          setQrToken(result.qrToken);
-          setShowQRModal(true);
-          // Garder le chargement actif pendant l'ouverture du modal pour une transition fluide
-          setTimeout(() => {
-            setGeneratingQR(false);
-          }, 800);
-        } catch (error: any) {
-          alert(error.message || "Erreur lors de la génération du QR Code");
-          setGeneratingQR(false);
-        }
+        const { latitude, longitude } = position.coords;
+        await callApi(latitude, longitude);
       },
       (error) => {
         let msg = "Erreur de géolocalisation : ";
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            msg = "Accès refusé. Veuillez autoriser la localisation dans les paramètres de votre navigateur et de Windows.";
+            msg = "Accès refusé. Veuillez autoriser la localisation dans vos paramètres.";
             break;
           case error.POSITION_UNAVAILABLE:
-            msg = "Position indisponible. Vérifiez que votre GPS ou Wifi est activé.";
+            msg = "Position indisponible. Vérifiez votre GPS.";
             break;
           case error.TIMEOUT:
-            msg = "Délai d'attente dépassé. Réessayez dans un endroit avec une meilleure réception.";
+            msg = "Délai d'attente dépassé. Réessayez dans un endroit plus dégagé.";
             break;
           default:
-            msg = "Impossible de récupérer votre position. Vérifiez les paramètres de confidentialité de Windows.";
+            msg = "Impossible de récupérer votre position.";
         }
         setLocationError(msg);
         setGeneratingQR(false);
@@ -393,33 +394,61 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
                     <p className="text-gray-500 text-sm font-medium">{course.name}</p>
                   </div>
 
-                  <div className="bg-white p-4 border-2 border-dashed border-teal-200 rounded-2xl mb-4 shadow-sm inline-block min-w-[232px] min-h-[232px] flex items-center justify-center">
+                  <div className="bg-white p-4 border-2 border-dashed border-teal-200 rounded-2xl mb-4 shadow-sm inline-block min-w-[232px] min-h-[232px] flex items-center justify-center relative overflow-hidden">
                     {qrToken ? (
-                      <QRCodeSVG
-                        value={qrToken}
-                        size={200}
-                        level="H"
-                        includeMargin={true}
-                        className="rounded-lg"
-                        animate-in="fade-in duration-500"
-                      />
+                      <div className="animate-in fade-in zoom-in duration-500">
+                        <QRCodeSVG
+                          value={qrToken}
+                          size={200}
+                          level="H"
+                          includeMargin={true}
+                          className="rounded-lg"
+                        />
+                      </div>
                     ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="w-10 h-10 text-teal-600 animate-spin" />
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Génération...</p>
+                      <div className="flex flex-col items-center gap-4 text-center p-6">
+                        <div className="relative">
+                          <Loader2 className="w-12 h-12 text-teal-600 animate-spin" />
+                          <div className="absolute inset-0 bg-teal-400/20 blur-xl rounded-full animate-pulse"></div>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-black text-gray-900 uppercase tracking-tight">
+                            {generatingQR ? "Sécurisation..." : "Échec"}
+                          </p>
+                          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
+                            {locationError ? "Localisation requise" : "Vérification de la zone..."}
+                          </p>
+                        </div>
+                        {locationError && (
+                          <button
+                            onClick={handleGenerateQR}
+                            className="mt-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95"
+                          >
+                            Réessayer
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
 
                   <div className="space-y-3">
-                    <div className="bg-teal-50 border border-teal-100 rounded-xl p-3 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-teal-600 shrink-0" />
-                      <p className="text-[11px] text-teal-800 text-left leading-tight">
-                        Zone de sécurité : Étudiants à moins de <b>200m</b> uniquement.
-                      </p>
-                    </div>
+                    {locationError ? (
+                      <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 flex items-start gap-2 text-left">
+                        <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-rose-600 font-medium leading-tight">
+                          {locationError}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-teal-50 border border-teal-100 rounded-xl p-3 flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-teal-600 shrink-0" />
+                        <p className="text-[11px] text-teal-800 text-left leading-tight">
+                          Zone de sécurité : Étudiants à moins de <b>400m</b> uniquement.
+                        </p>
+                      </div>
+                    )}
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                      Expire à la fin de la journée
+                      {qrToken ? "Valide pour toute la séance" : "Veuillez patienter..."}
                     </p>
                   </div>
                 </div>

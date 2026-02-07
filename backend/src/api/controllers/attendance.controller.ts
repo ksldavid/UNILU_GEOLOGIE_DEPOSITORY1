@@ -39,13 +39,42 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         }
 
         // 2. Définir la date d'aujourd'hui (format YYYY-MM-DD)
-        // On se base sur le fuseau horaire de Lubumbashi (UTC+2) pour la cohérence
         const now = new Date();
         const lubumbashiTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
         const todayStr = lubumbashiTime.toISOString().split('T')[0];
-        const today = new Date(todayStr); // Sera stocké à 00:00:00 UTC par Prisma
+        const today = new Date(todayStr);
 
-        // 3. Générer ou mettre à jour la session d'aujourd'hui
+        // 3. Vérifier si une session existe déjà pour aujourd'hui
+        // Si elle existe, on réutilise le MÊME token pour permettre l'impression à l'avance
+        const existingSession = await (prisma as any).attendanceSession.findUnique({
+            where: {
+                courseCode_date: {
+                    courseCode,
+                    date: today
+                }
+            }
+        });
+
+        if (existingSession && !existingSession.isLocked && existingSession.qrToken) {
+            // Optionnel: Mettre à jour la localisation si le prof est plus précis maintenant
+            if (latitude && longitude) {
+                await (prisma as any).attendanceSession.update({
+                    where: { id: existingSession.id },
+                    data: {
+                        latitude: parseFloat(latitude),
+                        longitude: parseFloat(longitude)
+                    }
+                });
+            }
+
+            return res.json({
+                qrToken: existingSession.qrToken,
+                sessionId: existingSession.id,
+                expiresAt: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
+            });
+        }
+
+        // Sinon, on génère un nouveau token (première fois de la journée)
         const qrToken = crypto.randomBytes(32).toString('hex');
 
         const session = await (prisma as any).attendanceSession.upsert({
@@ -74,7 +103,7 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         res.json({
             qrToken,
             sessionId: session.id,
-            expiresAt: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1) // Fin de journée
+            expiresAt: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
         });
 
     } catch (error) {
@@ -126,14 +155,15 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
                 parseFloat(longitude)
             );
 
-            if (distance > 200) { // Limite de 200 mètres (Rayon de sécurité)
+            // Rayon augmenté à 400m pour tenir compte des campus et murs épais
+            if (distance > 400) {
                 return res.status(403).json({
-                    message: `Vous êtes trop loin du lieu du cours pour valider votre présence (Distance actuelle: ${Math.round(distance)}m). Vous devez être à moins de 200m du professeur.`,
+                    message: `Vous êtes trop loin du lieu du cours pour valider votre présence (Distance: ${Math.round(distance)}m). Vous devez être à moins de 400m du professeur.`,
                     distance: Math.round(distance)
                 });
             }
         } else if (!latitude || !longitude) {
-            return res.status(400).json({ message: "La géolocalisation est requise pour valider la présence." });
+            return res.status(400).json({ message: "La géolocalisation est strictement requise pour valider la présence." });
         }
 
         // 4. Vérifier si l'étudiant est inscrit au cours
