@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react';
 import {
     Activity, Cpu, Database,
     ShieldAlert, RefreshCcw,
-    Clock, Terminal, Zap, Users, BookOpen, GraduationCap, MessageSquare, Monitor
+    Clock, Terminal, Zap, Users, BookOpen, GraduationCap, MessageSquare, Monitor, TrendingUp
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function SystemStatus() {
     const [stats, setStats] = useState<any>(null);
@@ -14,16 +15,32 @@ export function SystemStatus() {
     const [isClearingCache, setIsClearingCache] = useState(false);
     const [isOffline, setIsOffline] = useState(false);
     const [uptime, setUptime] = useState('14d 2h 12m');
+    const [trafficData, setTrafficData] = useState<any>(null);
 
     useEffect(() => {
         fetchData();
-        const statsInterval = setInterval(fetchData, 5000);
-        const logsInterval = setInterval(fetchLogs, 3000);
+        fetchTraffic();
+        const statsInterval = setInterval(fetchData, 10000);
+        const trafficInterval = setInterval(fetchTraffic, 15000);
+        const logsInterval = setInterval(fetchLogs, 5000);
         return () => {
             clearInterval(statsInterval);
+            clearInterval(trafficInterval);
             clearInterval(logsInterval);
         };
     }, []);
+
+    const fetchTraffic = async () => {
+        try {
+            const token = sessionStorage.getItem('token');
+            const res = await fetch(`${API_URL}/stats/traffic-insights`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) setTrafficData(await res.json());
+        } catch (error) {
+            console.error("Erreur traffic:", error);
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -143,7 +160,7 @@ export function SystemStatus() {
             </div>
 
             {/* Principal Stat Cards */}
-            <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 transition-opacity duration-500 ${isOffline ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 transition-opacity duration-500 ${isOffline ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
                 <StatCardSmall
                     label="RAM Système"
                     value={`${stats?.system?.memUsed || '0'} / ${stats?.system?.memTotal || '0'} GB`}
@@ -169,13 +186,74 @@ export function SystemStatus() {
                     icon={<Activity className="w-5 h-5" />}
                 />
                 <StatCardSmall
+                    label="Utilisateurs Actifs"
+                    value={trafficData?.activeUsers || '0'}
+                    unit="Live"
+                    subLabel="Last 5 minutes"
+                    color="orange"
+                    icon={<Users className="w-5 h-5" />}
+                />
+                <StatCardSmall
                     label="Temps d'Activité"
                     value={uptime}
                     unit="Actif"
                     subLabel={`Platform: ${stats?.system?.platform}`}
-                    color="orange"
+                    color="emerald"
                     icon={<Clock className="w-5 h-5" />}
                 />
+            </div>
+
+            {/* Traffic Insights Chart */}
+            <div className={`bg-[#111827] border border-white/5 rounded-2xl overflow-hidden shadow-2xl transition-opacity ${isOffline ? 'opacity-30' : 'opacity-100'}`}>
+                <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <TrendingUp className="w-4 h-4 text-orange-500" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Analyse des Piques de Trafic (24h)</span>
+                    </div>
+                    <div className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Live Data Stream</div>
+                </div>
+                <div className="h-[250px] w-full p-6">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={trafficData?.trafficHistory || []}>
+                            <defs>
+                                <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                            <XAxis
+                                dataKey="hour"
+                                stroke="#ffffff20"
+                                fontSize={10}
+                                tickLine={false}
+                                axisLine={false}
+                                tick={{ fill: '#64748b' }}
+                            />
+                            <YAxis
+                                stroke="#ffffff20"
+                                fontSize={10}
+                                tickLine={false}
+                                axisLine={false}
+                                tick={{ fill: '#64748b' }}
+                            />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#0B0F19', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                                itemStyle={{ color: '#f97316', fontWeight: 'bold' }}
+                                labelStyle={{ color: '#64748b', marginBottom: '4px' }}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="requests"
+                                stroke="#f97316"
+                                fillOpacity={1}
+                                fill="url(#colorRequests)"
+                                strokeWidth={3}
+                                animationDuration={2000}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
             </div>
 
             {/* Spec Row */}
@@ -196,7 +274,7 @@ export function SystemStatus() {
                 </div>
 
                 {/* Terminal */}
-                <div className="bg-[#0B0F19] border border-white/5 rounded-2xl overflow-hidden flex flex-col shadow-2xl h-[400px]">
+                <div className="bg-[#0B0F19] border border-white/5 rounded-2xl overflow-hidden flex flex-col shadow-2xl h-[300px]">
                     <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <Terminal className="w-4 h-4 text-blue-500" />

@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getAcademicStats, getRecentActivities, getAttendanceStatsByLevel, getCourseAttendance, getTechnicalStats, getApiLogs, restartServer, clearCache, getStudentDemographics, getDemographicFilters } from '../controllers/stats.controller'
+import { getAcademicStats, getRecentActivities, getAttendanceStatsByLevel, getCourseAttendance, getTechnicalStats, getApiLogs, restartServer, clearCache, getStudentDemographics, getDemographicFilters, getTrafficInsights } from '../controllers/stats.controller'
 import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 
 const router = Router()
@@ -15,6 +15,7 @@ router.get('/student-demographics-filters', authenticateToken, authorizeRole(['A
 
 // Route technique (ADMIN uniquement)
 router.get('/technical', authenticateToken, authorizeRole(['ADMIN']), getTechnicalStats)
+router.get('/traffic-insights', authenticateToken, authorizeRole(['ADMIN']), getTrafficInsights)
 router.get('/api-logs', authenticateToken, authorizeRole(['ADMIN']), getApiLogs)
 router.post('/restart', authenticateToken, authorizeRole(['ADMIN']), restartServer)
 router.post('/clear-cache', authenticateToken, authorizeRole(['ADMIN']), clearCache)

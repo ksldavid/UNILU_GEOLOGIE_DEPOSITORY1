@@ -6,7 +6,7 @@ import path from 'path'
 
 // Stockage temporaire des logs API pour le dashboard technique
 const apiLogs: any[] = []
-const MAX_LOGS = 100
+const MAX_LOGS = 1000 // Augmenté pour avoir assez de données pour les piques
 
 export const captureLog = (req: Request, res: Response, next: any) => {
     const start = Date.now()
@@ -19,7 +19,7 @@ export const captureLog = (req: Request, res: Response, next: any) => {
             path: req.originalUrl,
             status: res.statusCode,
             duration,
-            ip: req.ip
+            ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress
         }
         apiLogs.unshift(logEntry)
         if (apiLogs.length > MAX_LOGS) apiLogs.pop()
@@ -421,6 +421,56 @@ export const getTechnicalStats = async (req: Request, res: Response) => {
             database: { serverName: "PRISMA CLOUD", status: 'DISCONNECTED', sizeUsed: "0 MB", sizeLimit: "512 MB" },
             system: { serverName: "API NODE.JS", uptime: 0, memPercent: 0 }
         });
+    }
+}
+
+// Récupérer les données de trafic (utilisateurs actifs et piques)
+export const getTrafficInsights = async (req: Request, res: Response) => {
+    try {
+        const now = new Date();
+        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+        const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+        // 1. Utilisateurs actifs (IPs uniques dans les 5 dernières minutes)
+        const activeUsersCount = new Set(
+            apiLogs
+                .filter(log => new Date(log.time) >= fiveMinutesAgo)
+                .map(log => log.ip)
+        ).size;
+
+        // 2. Histogramme des piques (trafic par heure sur 24h)
+        const hourlyTraffic: any = {};
+
+        // Initialiser les 24 dernières heures avec 0
+        for (let i = 0; i < 24; i++) {
+            const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+            const hourKey = `${time.getHours()}h`;
+            hourlyTraffic[hourKey] = 0;
+        }
+
+        // Remplir avec les données réelles
+        apiLogs
+            .filter(log => new Date(log.time) >= twentyFourHoursAgo)
+            .forEach(log => {
+                const hour = new Date(log.time).getHours();
+                const hourKey = `${hour}h`;
+                if (hourlyTraffic[hourKey] !== undefined) {
+                    hourlyTraffic[hourKey]++;
+                }
+            });
+
+        // Convertir en tableau formaté pour le frontend (Recharts)
+        const trafficData = Object.entries(hourlyTraffic)
+            .map(([hour, count]) => ({ hour, requests: count }))
+            .reverse(); // Ordre chronologique
+
+        res.json({
+            activeUsers: activeUsersCount,
+            trafficHistory: trafficData
+        });
+    } catch (error) {
+        console.error('Erreur traffic insights:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
     }
 }
 
