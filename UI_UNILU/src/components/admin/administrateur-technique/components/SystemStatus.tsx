@@ -275,7 +275,7 @@ export function SystemStatus() {
 
             {/* Metrics Section */}
             <div className="space-y-4">
-                <div className={`grid grid-cols-2 lg:grid-cols-5 gap-4 transition-opacity ${isOffline ? 'opacity-30' : 'opacity-100'}`}>
+                <div className={`grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-5 gap-4 transition-opacity ${isOffline ? 'opacity-30' : 'opacity-100'}`}>
                     <MetricBadge label="Étudiants" value={stats?.database?.totalUsers} icon={<Users className="w-4 h-4" />} color="blue" />
                     <MetricBadge label="Cours" value={stats?.database?.totalCourses} icon={<BookOpen className="w-4 h-4" />} color="emerald" />
                     <MetricBadge label="Inscriptions" value={stats?.database?.totalEnrollments} icon={<GraduationCap className="w-4 h-4" />} color="purple" />
@@ -391,9 +391,9 @@ function SpecItem({ label, value, icon }: any) {
     return (
         <div className="flex items-center gap-3">
             <div className="text-slate-600">{icon}</div>
-            <div>
-                <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mb-1">{label}</p>
-                <p className="text-[10px] font-black text-white uppercase tracking-tight">{value || "Detecting..."}</p>
+            <div className="min-w-0">
+                <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mb-1 truncate">{label}</p>
+                <p className="text-[10px] font-black text-white uppercase tracking-tight truncate">{value || "Detecting..."}</p>
             </div>
         </div>
     );
@@ -407,14 +407,14 @@ function MetricBadge({ label, value, icon, color }: any) {
         orange: "text-orange-400 border-orange-500/10"
     };
     return (
-        <div className={`bg-white/[0.02] border p-4 rounded-xl flex items-center justify-between group hover:bg-white/[0.04] transition-all ${colors[color]}`}>
-            <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform">
+        <div className={`bg-white/[0.02] border p-4 rounded-xl flex items-center justify-between group hover:bg-white/[0.04] transition-all min-w-0 ${colors[color]}`}>
+            <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform flex-shrink-0">
                     {icon}
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-50">{label}</span>
+                <span className="text-[9px] font-black uppercase tracking-tighter opacity-50 truncate">{label}</span>
             </div>
-            <p className="text-xl font-black text-white tracking-tighter">{value || "0"}</p>
+            <p className="text-lg font-black text-white tracking-tighter ml-2 flex-shrink-0">{value || "0"}</p>
         </div>
     );
 }
