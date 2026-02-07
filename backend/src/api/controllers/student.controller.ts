@@ -681,11 +681,18 @@ export const getStudentGrades = async (req: AuthRequest, res: Response) => {
             return c;
         });
 
+        // 6. Récupérer le nom du niveau
+        const level = await prisma.academicLevel.findUnique({
+            where: { id: currentEnrollment.academicLevelId },
+            select: { name: true }
+        });
+
         res.json({
             grades: finalizedGrades,
             stats: {
                 rank: studentRank,
-                totalStudents: peerIds.length
+                totalStudents: peerIds.length,
+                levelName: level?.name || 'Non défini'
             }
         });
 

@@ -112,7 +112,7 @@ export function StudentGrades() {
           <p className="text-3xl text-gray-900 font-bold">
             {stats?.rank || '--'}<span className="text-lg text-gray-500">/{stats?.totalStudents || '--'}</span>
           </p>
-          <p className="text-xs text-gray-500 mt-2">Licence 3 - Géologie</p>
+          <p className="text-xs text-gray-500 mt-2">{stats?.levelName || '--'}{stats?.levelName && " - Géologie"}</p>
         </div>
       </div>
 
