@@ -1,7 +1,7 @@
 import { API_URL } from '../../../../services/config';
 import { useState, useEffect } from 'react';
 import {
-    Activity, Cpu, Database,
+    Activity, Cpu, Database, Cloud, Image,
     ShieldAlert, RefreshCcw,
     Clock, Terminal, Zap, Users, BookOpen, GraduationCap, MessageSquare, Monitor, TrendingUp
 } from 'lucide-react';
@@ -160,7 +160,7 @@ export function SystemStatus() {
             </div>
 
             {/* Principal Stat Cards */}
-            <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 transition-opacity duration-500 ${isOffline ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4 transition-opacity duration-500 ${isOffline ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
                 <StatCardSmall
                     label="RAM Système"
                     value={`${stats?.system?.memUsed || '0'} / ${stats?.system?.memTotal || '0'} GB`}
@@ -178,6 +178,14 @@ export function SystemStatus() {
                     progress={stats?.database?.sizeUsedRaw ? (stats.database.sizeUsedRaw / (512 * 1024 * 1024)) * 100 : 0}
                 />
                 <StatCardSmall
+                    label="Cloudinary (Média)"
+                    value={stats?.cloudinary?.storage?.used || '0 GB'}
+                    subLabel={`Limite: ${stats?.cloudinary?.storage?.limit || '25 GB'}`}
+                    color="purple"
+                    icon={<Cloud className="w-5 h-5" />}
+                    progress={stats?.cloudinary?.storage?.percent || 0}
+                />
+                <StatCardSmall
                     label="Latence API"
                     value={stats?.database?.latency || '--'}
                     unit="ms"
@@ -187,7 +195,7 @@ export function SystemStatus() {
                 />
                 <StatCardSmall
                     label="Utilisateurs Actifs"
-                    value={trafficData?.activeUsers || '0'}
+                    value={trafficData?.activeUsersCount || '0'}
                     unit="Live"
                     subLabel="Last 5 minutes"
                     color="orange"
@@ -257,20 +265,22 @@ export function SystemStatus() {
             </div>
 
             {/* Spec Row */}
-            <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-2xl transition-opacity ${isOffline ? 'opacity-30' : 'opacity-100'}`}>
+            <div className={`grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-2xl transition-opacity ${isOffline ? 'opacity-30' : 'opacity-100'}`}>
                 <SpecItem label="Architecture" value={stats?.system?.arch} icon={<Monitor className="w-3.5 h-3.5" />} />
                 <SpecItem label="Processeur" value={stats?.system?.cpuCores ? `${stats.system.cpuCores} Cores` : '--'} icon={<Cpu className="w-3.5 h-3.5" />} />
                 <SpecItem label="Enregistrements" value="Postgres SQL" icon={<Database className="w-3.5 h-3.5" />} />
+                <SpecItem label="Cloud Média" value={stats?.cloudinary?.plan ? `Plan ${stats.cloudinary.plan}` : 'Image Cloud'} icon={<Cloud className="w-3.5 h-3.5" />} />
                 <SpecItem label="Sécurité" value="SSL/JWT Cloud" icon={<ShieldAlert className="w-3.5 h-3.5" />} />
             </div>
 
             {/* Metrics Section */}
             <div className="space-y-4">
-                <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity ${isOffline ? 'opacity-30' : 'opacity-100'}`}>
+                <div className={`grid grid-cols-2 lg:grid-cols-5 gap-4 transition-opacity ${isOffline ? 'opacity-30' : 'opacity-100'}`}>
                     <MetricBadge label="Étudiants" value={stats?.database?.totalUsers} icon={<Users className="w-4 h-4" />} color="blue" />
                     <MetricBadge label="Cours" value={stats?.database?.totalCourses} icon={<BookOpen className="w-4 h-4" />} color="emerald" />
                     <MetricBadge label="Inscriptions" value={stats?.database?.totalEnrollments} icon={<GraduationCap className="w-4 h-4" />} color="purple" />
                     <MetricBadge label="Tickets Support" value={stats?.database?.totalTickets} icon={<MessageSquare className="w-4 h-4" />} color="orange" />
+                    <MetricBadge label="Médias Cloud" value={stats?.cloudinary?.objects} icon={<Image className="w-4 h-4" />} color="blue" />
                 </div>
 
                 {/* Terminal */}

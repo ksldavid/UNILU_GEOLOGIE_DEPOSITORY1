@@ -3,6 +3,7 @@ import prisma from '../../lib/prisma'
 import * as os from 'os'
 import fs from 'fs'
 import path from 'path'
+import cloudinary from '../../lib/cloudinary'
 
 // Stockage temporaire des logs API pour le dashboard technique
 const apiLogs: any[] = []
@@ -19,7 +20,9 @@ export const captureLog = (req: Request, res: Response, next: any) => {
             path: req.originalUrl,
             status: res.statusCode,
             duration,
-            ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress
+            ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+            userId: (req as any).user?.userId,
+            role: (req as any).user?.role
         }
         apiLogs.unshift(logEntry)
         if (apiLogs.length > MAX_LOGS) apiLogs.pop()
@@ -371,6 +374,28 @@ export const getTechnicalStats = async (req: Request, res: Response) => {
         const sizeBytes = Number(dbSizeRaw[0]?.size_bytes || 0);
         const dbSizePretty = (sizeBytes / (1024 * 1024)).toFixed(2) + " MB";
 
+        // Cloudinary Stats
+        let cloudinaryStats = null;
+        try {
+            const usage = await cloudinary.api.usage();
+            cloudinaryStats = {
+                storage: {
+                    used: (usage.storage.usage / (1024 * 1024 * 1024)).toFixed(2) + " GB",
+                    limit: (usage.storage.limit / (1024 * 1024 * 1024)).toFixed(2) + " GB",
+                    percent: usage.storage.used_percent
+                },
+                bandwidth: {
+                    used: (usage.bandwidth.usage / (1024 * 1024 * 1024)).toFixed(2) + " GB",
+                    limit: (usage.bandwidth.limit / (1024 * 1024 * 1024)).toFixed(2) + " GB",
+                    percent: usage.bandwidth.used_percent
+                },
+                objects: usage.objects.usage,
+                plan: usage.plan
+            };
+        } catch (cErr) {
+            console.error("Cloudinary error:", cErr);
+        }
+
         const totalUsers = await prisma.user.count({
             where: {
                 systemRole: 'STUDENT',
@@ -413,13 +438,15 @@ export const getTechnicalStats = async (req: Request, res: Response) => {
                 memPercent: memUsagePercent,
                 cpuCores: cpus.length,
                 uptime: Math.round(os.uptime())
-            }
+            },
+            cloudinary: cloudinaryStats
         });
     } catch (error) {
         console.error('Erreur technical stats:', error);
         res.status(500).json({
             database: { serverName: "PRISMA CLOUD", status: 'DISCONNECTED', sizeUsed: "0 MB", sizeLimit: "512 MB" },
-            system: { serverName: "API NODE.JS", uptime: 0, memPercent: 0 }
+            system: { serverName: "API NODE.JS", uptime: 0, memPercent: 0 },
+            cloudinary: null
         });
     }
 }
@@ -431,12 +458,38 @@ export const getTrafficInsights = async (req: Request, res: Response) => {
         const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
         const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-        // 1. Utilisateurs actifs (IPs uniques dans les 5 dernières minutes)
-        const activeUsersCount = new Set(
-            apiLogs
-                .filter(log => new Date(log.time) >= fiveMinutesAgo)
-                .map(log => log.ip)
-        ).size;
+        // 1. Utilisateurs actifs (Détails des sessions dans les 5 dernières minutes)
+        const recentLogs = apiLogs.filter(log => new Date(log.time) >= fiveMinutesAgo && log.userId);
+
+        // Map pour garder uniquement la dernière activité par utilisateur
+        const activeUserMap = new Map();
+        recentLogs.forEach(log => {
+            if (!activeUserMap.has(log.userId)) {
+                activeUserMap.set(log.userId, {
+                    userId: log.userId,
+                    lastSeen: log.time,
+                    role: log.role,
+                    ip: log.ip
+                });
+            }
+        });
+
+        const activeUserIds = Array.from(activeUserMap.keys());
+
+        // Récupérer les noms des utilisateurs depuis la DB
+        const userData = await prisma.user.findMany({
+            where: { id: { in: activeUserIds } },
+            select: { id: true, name: true }
+        });
+
+        // Fusionner les données
+        const activeUsersDetails = Array.from(activeUserMap.values()).map(session => {
+            const user = userData.find(u => u.id === session.userId);
+            return {
+                ...session,
+                name: user?.name || "Utilisateur Inconnu"
+            };
+        });
 
         // 2. Histogramme des piques (trafic par heure sur 24h)
         const hourlyTraffic: any = {};
@@ -465,7 +518,8 @@ export const getTrafficInsights = async (req: Request, res: Response) => {
             .reverse(); // Ordre chronologique
 
         res.json({
-            activeUsers: activeUsersCount,
+            activeUsersCount: activeUsersDetails.length,
+            activeUsers: activeUsersDetails,
             trafficHistory: trafficData
         });
     } catch (error) {
