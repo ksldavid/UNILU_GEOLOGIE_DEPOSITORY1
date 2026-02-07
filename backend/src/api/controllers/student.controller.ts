@@ -589,7 +589,7 @@ export const getStudentGrades = async (req: AuthRequest, res: Response) => {
             include: { assessment: true }
         });
 
-        // 4. Fonction pour calculer la moyenne d'un étudiant (Base 10)
+        // 4. Fonction pour calculer la moyenne réelle d'un étudiant (Base 10, avec coefficients)
         const calculateStudentAvg = (studentId: string) => {
             const sGrades = allGrades.filter(g => g.studentId === studentId);
             if (sGrades.length === 0) return 0;
@@ -597,20 +597,35 @@ export const getStudentGrades = async (req: AuthRequest, res: Response) => {
             const courseGrades: any = {};
             sGrades.forEach(g => {
                 const code = g.assessment.courseCode;
-                if (!courseGrades[code]) courseGrades[code] = { tp: null, exam: null, maxPoints: g.assessment.maxPoints };
+                // On assume un coefficient par défaut de 3 si non spécifié, ou on pourrait le chercher
+                // Pour le classement, on doit être cohérent.
+                if (!courseGrades[code]) courseGrades[code] = {
+                    tp: null,
+                    exam: null,
+                    coef: 3 // Coefficient standard par défaut pour le classement
+                };
 
-                if (g.assessment.type === 'EXAM') courseGrades[code].exam = (g.score / g.assessment.maxPoints) * 10;
-                else courseGrades[code].tp = (g.score / g.assessment.maxPoints) * 10;
+                const score10 = (g.score / g.assessment.maxPoints) * 10;
+                if (g.assessment.type === 'EXAM') courseGrades[code].exam = score10;
+                else courseGrades[code].tp = score10;
             });
 
-            const finalScores = Object.values(courseGrades).map((c: any) => {
+            let totalWeightedPoints = 0;
+            let totalCoefs = 0;
+
+            Object.values(courseGrades).forEach((c: any) => {
                 let sum = 0, count = 0;
                 if (c.tp !== null) { sum += c.tp; count++; }
                 if (c.exam !== null) { sum += c.exam; count++; }
-                return count > 0 ? (sum / count) : 0;
+
+                if (count > 0) {
+                    const courseAvg = sum / count;
+                    totalWeightedPoints += courseAvg * c.coef;
+                    totalCoefs += c.coef;
+                }
             });
 
-            return finalScores.length > 0 ? finalScores.reduce((a, b) => a + b, 0) / finalScores.length : 0;
+            return totalCoefs > 0 ? (totalWeightedPoints / totalCoefs) : 0;
         };
 
         // 5. Calculer le classement
