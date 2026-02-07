@@ -322,7 +322,7 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                                         key={course.id}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, course)}
-                                        className="group p-4 rounded-2xl bg-white border border-[#1B4332]/5 hover:border-[#1B4332] hover:shadow-md cursor-grab active:cursor-grabbing transition-all relative overflow-hidden"
+                                        className="group p-6 py-8 rounded-2xl bg-white border border-[#1B4332]/5 hover:border-[#1B4332] hover:shadow-md cursor-grab active:cursor-grabbing transition-all relative overflow-hidden"
                                     >
                                         <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: course.color }} />
                                         <div className="flex justify-between items-start mb-1">
@@ -385,7 +385,7 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                                 <div className="grid grid-cols-[80px_repeat(6,1fr)] gap-2">
                                     {TIME_SLOTS.map(time => (
                                         <Fragment key={time}>
-                                            <div className="h-[85px] flex items-center justify-center">
+                                            <div className="h-[150px] flex items-center justify-center">
                                                 <span className="text-[11px] font-black text-[#1B4332]/30">{time}</span>
                                             </div>
                                             {DAYS.map(day => {
@@ -397,17 +397,17 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                                                         key={`${day}-${time}`}
                                                         onDragOver={handleDragOver}
                                                         onDrop={() => handleDrop(day, time)}
-                                                        className="h-[85px] bg-white rounded-2xl border border-[#1B4332]/5 hover:border-[#1B4332]/20 hover:bg-white transition-all relative group/slot shadow-sm"
+                                                        className="h-[150px] bg-white rounded-2xl border border-[#1B4332]/5 hover:border-[#1B4332]/20 hover:bg-white transition-all relative group/slot shadow-sm"
                                                     >
                                                         {isFirstSlot && coursesAtSlot.map(course => {
                                                             const durationSlots = (toMinutes(course.endTime) - toMinutes(course.startTime)) / 30;
                                                             return (
                                                                 <div
                                                                     key={`${course.id}-${course.startTime}`}
-                                                                    className="absolute inset-[1px] p-3 rounded-2xl text-white shadow-lg animate-in zoom-in-95 duration-500 z-10 group/course flex flex-col"
+                                                                    className="absolute inset-[1px] p-6 rounded-2xl text-white shadow-lg animate-in zoom-in-95 duration-500 z-10 group/course flex flex-col"
                                                                     style={{
                                                                         backgroundColor: course.color,
-                                                                        height: `${durationSlots * 85 + (durationSlots - 1) * 8 - 2}px`,
+                                                                        height: `${durationSlots * 150 + (durationSlots - 1) * 8 - 2}px`,
                                                                         background: `linear-gradient(135deg, ${course.color}, ${course.color}dd)`,
                                                                         boxShadow: `0 8px 20px -5px ${course.color}66`
                                                                     }}
