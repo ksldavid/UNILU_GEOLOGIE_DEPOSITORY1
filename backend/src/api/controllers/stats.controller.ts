@@ -378,18 +378,29 @@ export const getTechnicalStats = async (req: Request, res: Response) => {
         let cloudinaryStats = null;
         try {
             const usage = await cloudinary.api.usage();
+            // Logging to help debug if needed
+            // console.debug("Cloudinary raw usage:", JSON.stringify(usage, null, 2));
+
+            const storageUsage = usage.storage?.usage || 0;
+            const storageLimit = usage.storage?.limit || (usage.credits?.limit ? usage.credits.limit * 1024 * 1024 * 1024 : 0);
+            const storagePercent = usage.storage?.used_percent || 0;
+
+            const bandwidthUsage = usage.bandwidth?.usage || 0;
+            const bandwidthLimit = usage.bandwidth?.limit || 0;
+            const bandwidthPercent = usage.bandwidth?.used_percent || 0;
+
             cloudinaryStats = {
                 storage: {
-                    used: (usage.storage.usage / (1024 * 1024 * 1024)).toFixed(2) + " GB",
-                    limit: (usage.storage.limit / (1024 * 1024 * 1024)).toFixed(2) + " GB",
-                    percent: usage.storage.used_percent
+                    used: (storageUsage / (1024 * 1024 * 1024)).toFixed(2) + " GB",
+                    limit: storageLimit > 0 ? (storageLimit / (1024 * 1024 * 1024)).toFixed(2) + " GB" : "--",
+                    percent: storagePercent
                 },
                 bandwidth: {
-                    used: (usage.bandwidth.usage / (1024 * 1024 * 1024)).toFixed(2) + " GB",
-                    limit: (usage.bandwidth.limit / (1024 * 1024 * 1024)).toFixed(2) + " GB",
-                    percent: usage.bandwidth.used_percent
+                    used: (bandwidthUsage / (1024 * 1024 * 1024)).toFixed(2) + " GB",
+                    limit: bandwidthLimit > 0 ? (bandwidthLimit / (1024 * 1024 * 1024)).toFixed(2) + " GB" : "--",
+                    percent: bandwidthPercent
                 },
-                objects: usage.objects.usage,
+                objects: usage.objects?.usage || 0,
                 plan: usage.plan
             };
         } catch (cErr) {
