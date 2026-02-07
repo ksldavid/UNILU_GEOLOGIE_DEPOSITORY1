@@ -169,7 +169,7 @@ export const getMyAnnouncements = async (req: AuthRequest, res: Response) => {
 
 export const updateAnnouncement = async (req: AuthRequest, res: Response) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params as { id: string };
         const { title, content, type, target, academicLevelId, courseCode, targetUserId } = req.body;
         const userId = req.user?.userId;
 
@@ -206,7 +206,7 @@ export const updateAnnouncement = async (req: AuthRequest, res: Response) => {
 
 export const deleteAnnouncement = async (req: AuthRequest, res: Response) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params as { id: string };
         const userId = req.user?.userId;
 
         const existing = await prisma.announcement.findUnique({ where: { id: parseInt(id) } });

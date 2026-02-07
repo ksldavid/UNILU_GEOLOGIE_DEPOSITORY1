@@ -366,7 +366,7 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
 export const getStudentCourseDetails = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
-        const { courseCode } = req.params;
+        const { courseCode } = req.params as { courseCode: string };
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
@@ -981,7 +981,7 @@ export const submitAssignment = async (req: AuthRequest, res: Response) => {
 
 export const markAnnouncementAsRead = async (req: AuthRequest, res: Response) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params as { id: string };
         const userId = req.user?.userId;
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });

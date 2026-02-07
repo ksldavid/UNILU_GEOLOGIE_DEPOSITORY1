@@ -4,12 +4,34 @@ import { sendPushNotifications } from '../../utils/pushNotifications'
 import { uploadToCloudinary } from '../../utils/cloudinaryHelper'
 
 /**
+ * Récupérer TOUTES les publicités pour le panel admin
+ */
+export const getAllAds = async (req: Request, res: Response) => {
+    try {
+        const ads = await prisma.advertisement.findMany({
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(ads);
+    } catch (error) {
+        console.error('Erreur récupération toutes les pubs:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}
+
+/**
  * Récupérer les publicités actives pour le carousel mobile
  */
 export const getActiveAds = async (req: Request, res: Response) => {
     try {
+        const now = new Date();
         const ads = await prisma.advertisement.findMany({
-            where: { isActive: true },
+            where: {
+                isActive: true,
+                OR: [
+                    { expiresAt: null },
+                    { expiresAt: { gt: now } }
+                ]
+            },
             orderBy: { createdAt: 'desc' }
         });
         res.json(ads);
@@ -24,7 +46,7 @@ export const getActiveAds = async (req: Request, res: Response) => {
  */
 export const createAd = async (req: Request, res: Response) => {
     try {
-        const { title, linkUrl, dailyLimit, pushTitle, pushBody } = req.body;
+        const { title, linkUrl, dailyLimit, pushTitle, pushBody, description, durationDays, targetPushCount } = req.body;
         let imageUrl = req.body.imageUrl;
 
         // Si une image est uploadée, on l'envoie sur Cloudinary
@@ -38,6 +60,13 @@ export const createAd = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Une image est obligatoire pour la publicité' });
         }
 
+        // Calcul de la date d'expiration si une durée est fournie
+        let expiresAt = null;
+        if (durationDays) {
+            expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + parseInt(durationDays));
+        }
+
         const ad = await prisma.advertisement.create({
             data: {
                 title,
@@ -46,6 +75,9 @@ export const createAd = async (req: Request, res: Response) => {
                 dailyLimit: parseInt(dailyLimit) || 1,
                 pushTitle,
                 pushBody,
+                description,
+                expiresAt,
+                targetPushCount: parseInt(targetPushCount) || 0,
                 isActive: true
             }
         });
@@ -62,7 +94,7 @@ export const createAd = async (req: Request, res: Response) => {
  */
 export const updateAd = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params as { id: string };
         const data = req.body;
 
         const ad = await prisma.advertisement.update({
@@ -82,7 +114,7 @@ export const updateAd = async (req: Request, res: Response) => {
  */
 export const deleteAd = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params as { id: string };
         await prisma.advertisement.delete({ where: { id } });
         res.json({ message: 'Publicité supprimée' });
     } catch (error) {
@@ -96,7 +128,7 @@ export const deleteAd = async (req: Request, res: Response) => {
  */
 export const triggerAdNotifications = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params as { id: string };
 
         const ad = await prisma.advertisement.findUnique({ where: { id } });
         if (!ad) return res.status(404).json({ message: 'Publicité non trouvée' });
@@ -159,5 +191,21 @@ export const triggerAdNotifications = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Erreur notification pub:', error);
         res.status(500).json({ message: 'Erreur lors de l\'envoi des notifications' });
+    }
+}
+/**
+ * Enregistrer un clic sur le lien d'une publicité
+ */
+export const trackClick = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params as { id: string };
+        await prisma.advertisement.update({
+            where: { id },
+            data: { clickCount: { increment: 1 } }
+        });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Erreur track click:', error);
+        res.status(500).json({ message: 'Erreur lors de l\'enregistrement du clic' });
     }
 }

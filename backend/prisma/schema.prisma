@@ -578,19 +578,24 @@ model Schedule {
 // --- ADVERTISEMENTS ---
 
 model Advertisement {
-  id        String   @id @default(cuid())
-  title     String
-  imageUrl  String
-  linkUrl   String
-  isActive  Boolean  @default(true)
-  
+  id       String  @id @default(cuid())
+  title    String
+  imageUrl String
+  linkUrl  String
+  isActive Boolean @default(true)
+
   // Notification configuration
-  pushTitle    String?  // Custom title for the push notification
-  pushBody     String?  // Custom body for the push notification
-  dailyLimit   Int      @default(1) // Max notifications per user per day for this ad
-  sentToday    Int      @default(0) // Internal counter (resets daily)
-  lastSentAt   DateTime?
-  
+  pushTitle   String? // Custom title for the push notification
+  pushBody    String? // Custom body for the push notification
+  description String?   @db.Text // Detailed text like an Instagram post
+  dailyLimit  Int       @default(1) // Max notifications per user per day for this ad
+  sentToday   Int       @default(0) // Internal counter (resets daily)
+  lastSentAt  DateTime?
+
+  expiresAt       DateTime? // Date when the ad is automatically deactivated
+  targetPushCount Int? // Total number of pushes intended
+  clickCount      Int       @default(0) // New: Count how many times the link was clicked
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
