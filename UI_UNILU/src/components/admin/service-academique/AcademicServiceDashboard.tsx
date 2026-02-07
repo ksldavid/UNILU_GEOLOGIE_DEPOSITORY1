@@ -274,8 +274,8 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                 </div>
             </aside>
 
-            <div className="flex-1 overflow-y-auto bg-[#F1F8F4] custom-scrollbar">
-                <header className="bg-white/60 backdrop-blur-md border-b border-[#1B4332]/10 px-6 md:px-8 py-4 relative z-30">
+            <div className={`flex-1 flex flex-col min-w-0 bg-[#F1F8F4] ${activeSection !== 'planning' ? 'overflow-y-auto custom-scrollbar' : 'overflow-hidden'}`}>
+                <header className="bg-white/60 backdrop-blur-md border-b border-[#1B4332]/10 px-6 md:px-8 py-4 sticky top-0 z-40">
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="text-2xl font-bold text-[#1B4332]">Bonjour, Service Académique</h2>
@@ -376,7 +376,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                     </div>
                 </header>
 
-                <main className="p-6 md:p-8">
+                <main className={`p-6 md:p-8 ${activeSection === 'planning' ? 'flex-1 min-h-0' : ''}`}>
                     {activeSection === "supervision" && (
                         <div className="space-y-6">
                             <div>

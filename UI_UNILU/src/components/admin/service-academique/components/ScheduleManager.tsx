@@ -240,7 +240,7 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
     };
 
     return (
-        <div className="flex flex-col h-full space-y-4 animate-in fade-in duration-500">
+        <div className="flex flex-col h-full space-y-4 animate-in fade-in duration-500 overflow-hidden">
             {/* Action Bar */}
             <div className="bg-white/80 backdrop-blur-md p-4 rounded-[24px] shadow-sm border border-[#1B4332]/10 flex justify-between items-center sticky top-0 z-40">
                 <div className="flex items-center gap-4">
@@ -343,8 +343,8 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                     </div>
                 </aside>
 
-                {/* Main Calendar Frame - Taller and independent height */}
-                <div className="flex-1 flex flex-col min-w-0 min-h-[850px] bg-white rounded-[40px] border border-[#1B4332]/15 overflow-hidden shadow-2xl">
+                {/* Main Calendar Frame - Flexible height and independent overflow */}
+                <div className="flex-1 flex flex-col min-w-0 bg-white rounded-[40px] border border-[#1B4332]/15 overflow-hidden shadow-2xl">
                     {/* Level Selector - Integrated into the frame */}
                     <div className="px-6 py-4 bg-[#F1F8F4] border-b border-[#1B4332]/10 flex items-center justify-between">
                         <div className="flex gap-2 overflow-x-auto no-scrollbar">
