@@ -292,7 +292,7 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
             <div className="flex flex-1 gap-6 min-h-0 relative">
                 {/* Course Sidebar - Thinner for a bigger calendar box */}
                 <aside className={`
-                    absolute lg:relative z-30 h-full w-[260px] transition-all duration-300 transform
+                    absolute lg:relative z-30 h-full w-[350px] transition-all duration-300 transform
                     ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:w-0 overflow-hidden'}
                 `}>
                     <div className="bg-white/90 backdrop-blur-sm h-full rounded-[32px] border border-[#1B4332]/10 shadow-xl lg:shadow-sm flex flex-col overflow-hidden">
@@ -368,21 +368,20 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                         </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col min-h-0 p-4 bg-[#F1F8F4]/30">
-                        {/* Days Header */}
-                        <div className="grid grid-cols-[80px_repeat(6,1fr)] gap-2 mb-2">
-                            <div />
-                            {DAYS.map(day => (
-                                <div key={day} className="text-center py-2 bg-white rounded-xl border border-[#1B4332]/10 shadow-sm">
-                                    <span className="text-[10px] font-black text-[#1B4332] uppercase tracking-[0.2em] opacity-60">{day}</span>
+                    <div className="flex-1 flex flex-col min-h-0 p-4 bg-[#F1F8F4]/30 overflow-hidden">
+                        {/* Scrollable Container for both Header and Grid */}
+                        <div className="flex-1 overflow-auto custom-scrollbar pr-1">
+                            <div className="min-w-fit space-y-2">
+                                {/* Days Header - Now inside the scroll to follow alignment */}
+                                <div className="grid grid-cols-[80px_repeat(6,minmax(200px,1fr))] gap-2">
+                                    <div />
+                                    {DAYS.map(day => (
+                                        <div key={day} className="text-center py-2 bg-white rounded-xl border border-[#1B4332]/10 shadow-sm">
+                                            <span className="text-[10px] font-black text-[#1B4332] uppercase tracking-[0.2em] opacity-60">{day}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-
-                        {/* Scrollable Grid Area */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                            <div className="w-full">
-                                <div className="grid grid-cols-[80px_repeat(6,1fr)] gap-2">
+                                <div className="grid grid-cols-[80px_repeat(6,minmax(200px,1fr))] gap-2">
                                     {TIME_SLOTS.map(time => (
                                         <Fragment key={time}>
                                             <div className="h-[85px] flex items-center justify-center">
