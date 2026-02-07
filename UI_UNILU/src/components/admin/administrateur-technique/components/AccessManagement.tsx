@@ -6,7 +6,7 @@ import {
     ChevronRight, RefreshCw, ShieldCheck, User as UserIcon,
     GraduationCap, School, Settings, Eye, Ban,
     UserCircle, Mail, Globe,
-    Activity, X, Lock
+    Activity, X, Lock, Copy, CheckCircle, Terminal, HelpCircle
 } from 'lucide-react';
 
 export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void }) {
@@ -403,6 +403,25 @@ function PasswordEditModal({ user, onClose, onSuccess }: { user: any, onClose: (
     const [newPassword, setNewPassword] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
+    const [copied, setCopied] = useState(false);
+
+    const generateRandomPassword = () => {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let pass = "";
+        for (let i = 0; i < 6; i++) {
+            pass += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        setNewPassword(pass);
+        setCopied(false);
+    };
+
+    const handleCopy = () => {
+        if (!newPassword) return;
+        navigator.clipboard.writeText(newPassword);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     const handleSave = async () => {
         if (!newPassword) return alert("Veuillez saisir un mot de passe.");
         setIsSaving(true);
@@ -417,7 +436,7 @@ function PasswordEditModal({ user, onClose, onSuccess }: { user: any, onClose: (
                 body: JSON.stringify({ password: newPassword })
             });
             if (res.ok) {
-                alert(`Mot de passe mis à jour pour ${user.name}`);
+                alert(`Succès : Mot de passe réinitialisé pour l'utilisateur ${user.id}`);
                 onSuccess();
                 onClose();
             }
@@ -447,16 +466,32 @@ function PasswordEditModal({ user, onClose, onSuccess }: { user: any, onClose: (
                 </div>
                 <div className="p-8 space-y-6">
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nouveau Mot de Passe</label>
+                        <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nouveau Mot de Passe</label>
+                            <button
+                                onClick={generateRandomPassword}
+                                className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                            >
+                                <RefreshCw className="w-3 h-3" /> Générer
+                            </button>
+                        </div>
                         <div className="relative">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500" />
                             <input
                                 type="text"
-                                className="w-full bg-[#0B0F19] border border-slate-800 rounded-2xl pl-12 pr-4 py-4 text-xl text-white font-mono outline-none focus:border-blue-500/50 transition-all font-black"
+                                className="w-full bg-[#0B0F19] border border-slate-800 rounded-2xl pl-12 pr-12 py-4 text-xl text-white font-mono outline-none focus:border-blue-500/50 transition-all font-black text-center tracking-widest shadow-inner"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
-                                placeholder="Nouveau code..."
+                                placeholder="SAISIR_NOUVEAU_CODE"
                             />
+                            {newPassword && (
+                                <button
+                                    onClick={handleCopy}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
+                                >
+                                    {copied ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                                </button>
+                            )}
                         </div>
                     </div>
                     <div className="flex gap-4">
@@ -466,10 +501,10 @@ function PasswordEditModal({ user, onClose, onSuccess }: { user: any, onClose: (
                         <button
                             onClick={handleSave}
                             disabled={isSaving}
-                            className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2"
+                            className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30"
                         >
                             {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                            Enregistrer
+                            Confirmer
                         </button>
                     </div>
                 </div>
@@ -503,16 +538,69 @@ function UserInspectionModal({ user, onClose, onAction, onModifyPassword }: { us
                 </div>
 
                 <div className="p-8 overflow-y-auto custom-scrollbar space-y-8">
+                    {/* Credentials Section */}
+                    <div className="bg-blue-600/5 border border-blue-500/20 rounded-[24px] p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-400 flex items-center gap-2">
+                                <Terminal className="w-4 h-4" /> identifiants de connexion
+                            </h4>
+                            <span className="text-[9px] font-mono text-blue-500/50 tracking-wider">SECURED_CREDENTIALS</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-[#0B0F19] p-4 rounded-xl border border-white/5 relative group">
+                                <p className="text-[8px] text-slate-500 font-black uppercase mb-1">Identifiant (ID)</p>
+                                <p className="text-sm font-mono font-bold text-white tracking-widest">{user.id}</p>
+                                <button
+                                    onClick={() => { navigator.clipboard.writeText(user.id); alert('ID Copié !'); }}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <Copy className="w-3.5 h-3.5 text-blue-500" />
+                                </button>
+                            </div>
+                            <div className="bg-[#0B0F19] p-4 rounded-xl border border-white/5 relative group">
+                                <p className="text-[8px] text-slate-500 font-black uppercase mb-1">Sécurité du Compte</p>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[9px] font-mono font-bold text-emerald-500/50 tracking-widest uppercase italic">Protégé_Crypté</p>
+                                    <button
+                                        onClick={onModifyPassword}
+                                        className="text-[9px] font-black text-blue-400 hover:text-blue-300 uppercase tracking-widest underline decoration-blue-500/30 flex items-center gap-1.5"
+                                    >
+                                        <Key className="w-3 h-3" /> Nouveau Code
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <InfoItem icon={<Mail className="w-4 h-4" />} label="Email Académique" value={user.email} />
                         <InfoItem icon={<Globe className="w-4 h-4" />} label="Promotion / Service" value={user.class} />
                     </div>
 
                     <div className="bg-slate-900/40 p-6 rounded-[24px] border border-white/5 space-y-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-500 flex items-center gap-2">
-                            <Activity className="w-4 h-4" /> Détails de l'Accès
-                        </h4>
-                        <p className="text-xs text-slate-400">Le matricule <span className="text-white font-mono font-bold">{user.id}</span> est actuellement {user.status === 'Actif' ? 'autorisé' : 'bloqué'} sur le réseau UNILU.</p>
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-500 flex items-center gap-2">
+                                <Activity className="w-4 h-4" /> Détails de l'Accès & Statut
+                            </h4>
+                            <div className="flex items-center gap-2">
+                                <HelpCircle className="w-3.5 h-3.5 text-slate-700 cursor-help" />
+                                <RoleBadge role={user.role} color={user.color} />
+                            </div>
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            Le matricule <span className="text-white font-mono font-bold">{user.id}</span> ({user.name}) est actuellement
+                            <span className={user.status === 'Actif' ? 'text-emerald-500' : 'text-red-500'}> {user.status === 'Actif' ? 'AUTORISÉ' : 'BLOQUÉ'}</span> sur l'ensemble du réseau UNILU.
+                        </p>
+                        <div className="flex gap-2">
+                            <div className="flex-1 p-3 bg-white/5 rounded-xl border border-white/5">
+                                <p className="text-[8px] text-slate-500 font-black uppercase mb-1">Dernière Connexion</p>
+                                <p className="text-[10px] text-white font-bold">{user.lastLogin}</p>
+                            </div>
+                            <div className="flex-1 p-3 bg-white/5 rounded-xl border border-white/5">
+                                <p className="text-[8px] text-slate-500 font-black uppercase mb-1">Source Directory</p>
+                                <p className="text-[10px] text-white font-bold">Local Repository</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
