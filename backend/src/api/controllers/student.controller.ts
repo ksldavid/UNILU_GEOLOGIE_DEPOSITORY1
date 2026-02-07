@@ -629,15 +629,19 @@ export const getStudentGrades = async (req: AuthRequest, res: Response) => {
         };
 
         // 5. Calculer le classement
-        const rankings = peerIds.map(id => ({
-            id,
-            avg: calculateStudentAvg(id)
-        })).sort((a, b) => b.avg - a.avg);
+        const myGrades = allGrades.filter(g => g.studentId === userId);
+        let studentRank = null;
 
-        const studentRank = rankings.findIndex(r => r.id === userId) + 1;
+        if (myGrades.length > 0) {
+            const rankings = peerIds.map(id => ({
+                id,
+                avg: calculateStudentAvg(id)
+            })).sort((a, b) => b.avg - a.avg);
+
+            studentRank = rankings.findIndex(r => r.id === userId) + 1;
+        }
 
         // 6. Formater les notes pour l'étudiant actuel (Même logique que l'original mais sur notes publiées)
-        const myGrades = allGrades.filter(g => g.studentId === userId);
         const formattedGradesMap: any = {};
 
         // Récupérer aussi les noms des cours pour être propre
