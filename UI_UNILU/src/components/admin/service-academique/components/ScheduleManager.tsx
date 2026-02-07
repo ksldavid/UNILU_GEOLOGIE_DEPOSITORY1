@@ -240,7 +240,7 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
     };
 
     return (
-        <div className="flex flex-col h-full space-y-4 animate-in fade-in duration-500 overflow-hidden">
+        <div className="flex flex-col space-y-4 animate-in fade-in duration-500">
             {/* Action Bar */}
             <div className="bg-white/80 backdrop-blur-md p-4 rounded-[24px] shadow-sm border border-[#1B4332]/10 flex justify-between items-center sticky top-0 z-40">
                 <div className="flex items-center gap-4">
@@ -292,10 +292,10 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
             <div className="flex flex-1 gap-6 min-h-0 relative">
                 {/* Course Sidebar - Thinner for a bigger calendar box */}
                 <aside className={`
-                    absolute lg:relative z-30 h-full w-[350px] transition-all duration-300 transform
+                    absolute lg:sticky lg:top-24 z-30 w-[350px] transition-all duration-300 transform self-start
                     ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:w-0 overflow-hidden'}
                 `}>
-                    <div className="bg-white/90 backdrop-blur-sm h-full rounded-[32px] border border-[#1B4332]/10 shadow-xl lg:shadow-sm flex flex-col overflow-hidden">
+                    <div className="bg-white/90 backdrop-blur-sm h-fit max-h-[calc(100vh-120px)] rounded-[32px] border border-[#1B4332]/10 shadow-xl lg:shadow-sm flex flex-col overflow-hidden">
                         <div className="p-5 border-b border-[#1B4332]/5">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="font-bold text-[#1B4332]">Banque de Cours</h3>
@@ -322,7 +322,7 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                                         key={course.id}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, course)}
-                                        className="group p-6 py-8 rounded-2xl bg-white border border-[#1B4332]/5 hover:border-[#1B4332] hover:shadow-md cursor-grab active:cursor-grabbing transition-all relative overflow-hidden"
+                                        className="group p-4 rounded-2xl bg-white border border-[#1B4332]/5 hover:border-[#1B4332] hover:shadow-md cursor-grab active:cursor-grabbing transition-all relative overflow-hidden"
                                     >
                                         <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: course.color }} />
                                         <div className="flex justify-between items-start mb-1">
@@ -368,7 +368,7 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                         </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col min-h-0 p-4 bg-[#F1F8F4]/30">
+                    <div className="flex flex-col p-4 bg-[#F1F8F4]/30">
                         {/* Days Header */}
                         <div className="grid grid-cols-[80px_repeat(6,1fr)] gap-2 mb-2">
                             <div />
@@ -379,14 +379,14 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                             ))}
                         </div>
 
-                        {/* Scrollable Grid Area */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                        {/* Grid Area - No inner scroll, grows naturally */}
+                        <div className="pr-1">
                             <div className="w-full">
                                 <div className="grid grid-cols-[80px_repeat(6,1fr)] gap-2">
                                     {TIME_SLOTS.map(time => (
                                         <Fragment key={time}>
-                                            <div className="h-[150px] flex items-center justify-center">
-                                                <span className="text-[11px] font-black text-[#1B4332]/30">{time}</span>
+                                            <div className="h-[40px] flex items-center justify-center">
+                                                <span className="text-[10px] font-black text-[#1B4332]/30">{time}</span>
                                             </div>
                                             {DAYS.map(day => {
                                                 const coursesAtSlot = getCoursesForDayAndTime(day, time);
@@ -397,19 +397,19 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                                                         key={`${day}-${time}`}
                                                         onDragOver={handleDragOver}
                                                         onDrop={() => handleDrop(day, time)}
-                                                        className="h-[150px] bg-white rounded-2xl border border-[#1B4332]/5 hover:border-[#1B4332]/20 hover:bg-white transition-all relative group/slot shadow-sm"
+                                                        className="h-[40px] bg-white rounded-2xl border border-[#1B4332]/5 hover:border-[#1B4332]/20 hover:bg-white transition-all relative group/slot shadow-sm"
                                                     >
                                                         {isFirstSlot && coursesAtSlot.map(course => {
                                                             const durationSlots = (toMinutes(course.endTime) - toMinutes(course.startTime)) / 30;
                                                             return (
                                                                 <div
                                                                     key={`${course.id}-${course.startTime}`}
-                                                                    className="absolute inset-[1px] p-6 rounded-2xl text-white shadow-lg animate-in zoom-in-95 duration-500 z-10 group/course flex flex-col"
+                                                                    className="absolute inset-[1px] p-2 rounded-xl text-white shadow-lg animate-in zoom-in-95 duration-500 z-10 group/course flex flex-col"
                                                                     style={{
                                                                         backgroundColor: course.color,
-                                                                        height: `${durationSlots * 150 + (durationSlots - 1) * 8 - 2}px`,
+                                                                        height: `${durationSlots * 40 + (durationSlots - 1) * 8 - 2}px`,
                                                                         background: `linear-gradient(135deg, ${course.color}, ${course.color}dd)`,
-                                                                        boxShadow: `0 8px 20px -5px ${course.color}66`
+                                                                        boxShadow: `0 8px 16px -5px ${course.color}44`
                                                                     }}
                                                                 >
                                                                     <div className="flex justify-between items-start mb-1">
