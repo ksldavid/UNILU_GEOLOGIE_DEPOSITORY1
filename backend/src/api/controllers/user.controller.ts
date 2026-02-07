@@ -28,7 +28,8 @@ export const getUsers = async (req: Request, res: Response) => {
                 email: true,
                 systemRole: true,
                 createdAt: true,
-                // TOUJOURS récupérer les inscriptions (on filtrera côté front si besoin)
+                isBlocked: true,
+                // TOUJOURS récupérer les inscriptions
                 studentEnrollments: {
                     take: 1,
                     orderBy: { enrolledAt: 'desc' },
@@ -40,18 +41,34 @@ export const getUsers = async (req: Request, res: Response) => {
                         }
                     }
                 },
-                // Récupérer les cours auxquels l'étudiant est inscrit
+                // Récupérer les présences de l'étudiant pour calculer le taux
+                attendances: {
+                    select: {
+                        status: true,
+                        session: {
+                            select: {
+                                courseCode: true
+                            }
+                        }
+                    }
+                },
+                // Récupérer les cours auxquels l'étudiant est inscrit + nombre total de sessions par cours
                 studentCourseEnrollments: {
                     select: {
                         course: {
                             select: {
                                 name: true,
-                                code: true
+                                code: true,
+                                _count: {
+                                    select: {
+                                        attendanceSessions: true
+                                    }
+                                }
                             }
                         }
                     }
                 },
-                // Récupérer les cours enseignés par le professeur (Utilise le nom de relation Prisma)
+                // Récupérer les cours enseignés par le professeur
                 enrollments: {
                     select: {
                         role: true,
@@ -70,13 +87,11 @@ export const getUsers = async (req: Request, res: Response) => {
                         }
                     }
                 },
-                // Récupérer le profil enseignant (Vrais professeurs)
                 professorProfile: {
                     select: {
                         title: true
                     }
                 },
-                // Récupérer le profil administratif (Direction/Service Académique)
                 academicProfile: {
                     select: {
                         name: true,
@@ -89,16 +104,37 @@ export const getUsers = async (req: Request, res: Response) => {
             }
         })
 
-        const debuggingUsers = users.map((u: any) => ({
-            ...u,
-            _debugStudentEnrollments: u.studentEnrollments
-        }));
+        // Calculer les taux de présence côté serveur pour chaque étudiant
+        const formattedUsers = users.map((u: any) => {
+            if (u.systemRole === 'STUDENT') {
+                const studentCourseEnrollments = u.studentCourseEnrollments.map((enrollment: any) => {
+                    const courseCode = enrollment.course.code;
+                    const totalSessions = enrollment.course._count.attendanceSessions;
 
-        if (role === 'STUDENT' && users.length > 0) {
-            // Debug désactivé en production
-        }
+                    // On compte les présences (PRESENT ou LATE) pour ce cours spécifique
+                    const presentCount = u.attendances.filter((a: any) =>
+                        a.session.courseCode === courseCode &&
+                        (a.status === 'PRESENT' || a.status === 'LATE')
+                    ).length;
 
-        res.json(debuggingUsers)
+                    const attendanceRate = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : 0;
+
+                    return {
+                        ...enrollment,
+                        attendanceRate
+                    };
+                });
+
+                return {
+                    ...u,
+                    studentCourseEnrollments,
+                    _debugStudentEnrollments: u.studentEnrollments
+                };
+            }
+            return u;
+        });
+
+        res.json(formattedUsers)
 
     } catch (error) {
         console.error('Erreur lors de la récupération des utilisateurs:', error)
@@ -109,7 +145,7 @@ export const getUsers = async (req: Request, res: Response) => {
 // Mettre à jour les informations d'un utilisateur
 export const updateUser = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params
+        const id = req.params.id as string;
         const { name, email, title } = req.body
 
         // Mise à jour de l'utilisateur de base

@@ -491,45 +491,51 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <button
-                onClick={() => setFilterStatus('all')}
-                className={`text-left bg-white rounded-xl p-6 border transition-all ${filterStatus === 'all' ? 'border-teal-500 ring-2 ring-teal-500 ring-opacity-50 shadow-md' : 'border-gray-200 shadow-sm hover:border-teal-300'}`}
-              >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
                 <div className="text-3xl font-bold text-gray-900 mb-1">
                   {students.length}
                 </div>
-                <div className="text-gray-600 font-medium">Total étudiants</div>
-              </button>
+                <div className="text-gray-500 font-bold uppercase tracking-wider text-[10px]">Total inscrits</div>
+              </div>
 
               <button
                 onClick={() => setFilterStatus('present')}
-                className={`text-left bg-white rounded-xl p-6 border transition-all ${filterStatus === 'present' ? 'border-emerald-500 ring-2 ring-emerald-500 ring-opacity-50 shadow-md' : 'border-emerald-200 shadow-sm hover:border-emerald-400'}`}
+                className={`text-left bg-white rounded-xl p-6 border transition-all ${filterStatus === 'present' ? 'border-emerald-500 ring-2 ring-emerald-500 ring-opacity-50 shadow-md' : 'border-emerald-100 shadow-sm hover:border-emerald-400'}`}
               >
-                <div className="text-3xl font-bold text-emerald-600 mb-1">
-                  {Object.values(selectedStatus).filter(s => s === 'present').length}
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-emerald-600">
+                    {Object.values(selectedStatus).filter(s => s === 'present').length}
+                  </span>
+                  <span className="text-emerald-300 font-bold">/ {students.length}</span>
                 </div>
-                <div className="text-gray-600 font-medium">Présents</div>
-              </button>
-
-              <button
-                onClick={() => setFilterStatus('absent')}
-                className={`text-left bg-white rounded-xl p-6 border transition-all ${filterStatus === 'absent' ? 'border-red-500 ring-2 ring-red-500 ring-opacity-50 shadow-md' : 'border-red-200 shadow-sm hover:border-red-400'}`}
-              >
-                <div className="text-3xl font-bold text-red-600 mb-1">
-                  {Object.values(selectedStatus).filter(s => s === 'absent').length}
-                </div>
-                <div className="text-gray-600 font-medium">Absents</div>
+                <div className="text-gray-600 font-bold uppercase tracking-wider text-[10px]">Présents</div>
               </button>
 
               <button
                 onClick={() => setFilterStatus('late')}
-                className={`text-left bg-white rounded-xl p-6 border transition-all ${filterStatus === 'late' ? 'border-amber-500 ring-2 ring-amber-500 ring-opacity-50 shadow-md' : 'border-amber-200 shadow-sm hover:border-amber-400'}`}
+                className={`text-left bg-white rounded-xl p-6 border transition-all ${filterStatus === 'late' ? 'border-amber-500 ring-2 ring-amber-500 ring-opacity-50 shadow-md' : 'border-amber-100 shadow-sm hover:border-amber-400'}`}
               >
-                <div className="text-3xl font-bold text-amber-600 mb-1">
-                  {Object.values(selectedStatus).filter(s => s === 'late').length}
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-amber-600">
+                    {Object.values(selectedStatus).filter(s => s === 'late').length}
+                  </span>
+                  <span className="text-amber-300 font-bold">/ {students.length}</span>
                 </div>
-                <div className="text-gray-600 font-medium">En retard</div>
+                <div className="text-gray-600 font-bold uppercase tracking-wider text-[10px]">En retard</div>
+              </button>
+
+              <button
+                onClick={() => setFilterStatus('absent')}
+                className={`text-left bg-white rounded-xl p-6 border transition-all ${filterStatus === 'absent' ? 'border-red-500 ring-2 ring-red-500 ring-opacity-50 shadow-md' : 'border-red-100 shadow-sm hover:border-red-400'}`}
+              >
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-red-600">
+                    {students.length - Object.values(selectedStatus).filter(s => s === 'present' || s === 'late').length}
+                  </span>
+                  <span className="text-red-300 font-bold">/ {students.length}</span>
+                </div>
+                <div className="text-gray-600 font-bold uppercase tracking-wider text-[10px]">Absents</div>
               </button>
             </div>
           </div>
@@ -709,18 +715,27 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-6 p-8 bg-white">
-              <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-2xl">
-                <p className="text-emerald-600 text-sm font-bold uppercase tracking-wider mb-1">Présents</p>
-                <p className="text-3xl font-black text-emerald-700">{selectedHistorySession.present}</p>
+            <div className="grid grid-cols-3 gap-6 p-8 bg-white text-center">
+              <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-2xl">
+                <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest mb-2">Présents</p>
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-3xl font-black text-emerald-700">{selectedHistorySession.present}</span>
+                  <span className="text-emerald-300 font-bold">/ {selectedHistorySession.totalStudents}</span>
+                </div>
               </div>
-              <div className="bg-orange-50 border border-orange-100 p-5 rounded-2xl">
-                <p className="text-orange-600 text-sm font-bold uppercase tracking-wider mb-1">En retard</p>
-                <p className="text-3xl font-black text-orange-700">{selectedHistorySession.late}</p>
+              <div className="bg-orange-50 border border-orange-100 p-6 rounded-2xl">
+                <p className="text-orange-500 text-[10px] font-black uppercase tracking-widest mb-2">En retard</p>
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-3xl font-black text-orange-700">{selectedHistorySession.late}</span>
+                  <span className="text-orange-300 font-bold">/ {selectedHistorySession.totalStudents}</span>
+                </div>
               </div>
-              <div className="bg-red-50 border border-red-100 p-5 rounded-2xl">
-                <p className="text-red-600 text-sm font-bold uppercase tracking-wider mb-1">Absents</p>
-                <p className="text-3xl font-black text-red-700">{selectedHistorySession.absent}</p>
+              <div className="bg-red-50 border border-red-100 p-6 rounded-2xl">
+                <p className="text-red-500 text-[10px] font-black uppercase tracking-widest mb-2">Absents</p>
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-3xl font-black text-red-700">{selectedHistorySession.absent}</span>
+                  <span className="text-red-300 font-bold">/ {selectedHistorySession.totalStudents}</span>
+                </div>
               </div>
             </div>
 
