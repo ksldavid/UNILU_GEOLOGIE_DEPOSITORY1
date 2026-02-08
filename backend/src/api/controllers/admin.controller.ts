@@ -307,7 +307,7 @@ export const deleteUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.params as { id: string }
 
-        if (id === (req as any).user.id) {
+        if (id === (req as any).user.userId) {
             return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte.' })
         }
 

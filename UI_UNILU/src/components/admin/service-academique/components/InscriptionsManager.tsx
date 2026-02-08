@@ -67,7 +67,7 @@ const AVAILABLE_COURSES: Course[] = [
 // Mock Data (Garder pour référence ou fallback si besoin, mais on va charger via API)
 const INITIAL_USERS: User[] = [];
 
-export function InscriptionsManager() {
+export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -312,6 +312,7 @@ Mot de passe: ${formData.password}
       });
 
       alert("Les informations ont été envoyées au service technique avec succès via le système de support !");
+      if (onUpdate) onUpdate();
       resetForm();
     } catch (error) {
       console.error("Erreur d'envoi de l'inscription:", error);

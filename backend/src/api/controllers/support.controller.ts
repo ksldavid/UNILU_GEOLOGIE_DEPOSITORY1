@@ -4,8 +4,10 @@ import prisma from '../../lib/prisma'
 // Créer un ticket de support
 export const createTicket = async (req: Request, res: Response) => {
     try {
-        const { id: userId } = (req as any).user
+        const { userId } = (req as any).user
         const { subject, category, priority, message, metadata } = req.body
+        console.log('DEBUG: Creating ticket for user:', userId);
+        console.log('DEBUG: Ticket data:', { subject, category, priority, message, metadata });
 
         const ticket = await prisma.supportTicket.create({
             data: {
@@ -36,7 +38,7 @@ export const createTicket = async (req: Request, res: Response) => {
 // Récupérer les tickets de l'utilisateur
 export const getMyTickets = async (req: Request, res: Response) => {
     try {
-        const { id: userId } = (req as any).user
+        const { userId } = (req as any).user
         const tickets = await prisma.supportTicket.findMany({
             where: { userId },
             include: {
@@ -57,7 +59,7 @@ export const getMyTickets = async (req: Request, res: Response) => {
 // Récupérer les détails d'un ticket (avec messages)
 export const getTicketDetails = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params
+        const id = req.params.id as string
         const ticket = await prisma.supportTicket.findUnique({
             where: { id },
             include: {
@@ -76,7 +78,7 @@ export const getTicketDetails = async (req: Request, res: Response) => {
 // Ajouter un message à un ticket
 export const addMessage = async (req: Request, res: Response) => {
     try {
-        const { id: userId } = (req as any).user
+        const { userId } = (req as any).user
         const { ticketId, content, isAdmin } = req.body
 
         const message = await prisma.supportMessage.create({
@@ -118,7 +120,7 @@ export const addMessage = async (req: Request, res: Response) => {
 // Récupérer les notifications de l'utilisateur
 export const getMyNotifications = async (req: Request, res: Response) => {
     try {
-        const { id: userId } = (req as any).user
+        const { userId } = (req as any).user
         const notifications = await prisma.notification.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' },
@@ -134,7 +136,7 @@ export const getMyNotifications = async (req: Request, res: Response) => {
 // Marquer une notification comme lue
 export const markNotificationRead = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params
+        const id = req.params.id as string
         await prisma.notification.update({
             where: { id },
             data: { isRead: true }
@@ -177,7 +179,7 @@ export const getAllTickets = async (req: Request, res: Response) => {
 // Mettre à jour le statut d'un ticket
 export const updateTicketStatus = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params
+        const id = req.params.id as string
         const { status } = req.body
 
         const ticket = await prisma.supportTicket.update({

@@ -694,7 +694,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                         </div>
                     )}
 
-                    {activeSection === "inscriptions" && <InscriptionsManager />}
+                    {activeSection === "inscriptions" && <InscriptionsManager onUpdate={fetchDashboardData} />}
 
                     {activeSection === "charge" && <StaffAssignmentManager />}
 
