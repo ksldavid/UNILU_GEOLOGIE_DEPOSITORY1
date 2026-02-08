@@ -228,48 +228,48 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col min-w-0">
                 {/* Premium Header */}
-                <header className="h-24 bg-[#0B0F19]/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 md:px-10 z-10">
-                    <div className="flex items-center gap-4 md:gap-8 flex-1 max-w-2xl">
+                <header className="h-20 md:h-24 bg-[#0B0F19]/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 md:px-10 z-10">
+                    <div className="flex items-center gap-3 md:gap-8 flex-1 max-w-2xl">
                         {/* Mobile Trigger */}
                         <button
                             onClick={() => setIsMobileMenuOpen(true)}
                             className="md:hidden p-2 bg-white/5 text-white rounded-xl"
                         >
-                            <Menu className="w-6 h-6" />
+                            <Menu className="w-5 h-5" />
                         </button>
                         <div className="relative flex-1">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600" />
                             <input
                                 type="text"
-                                placeholder="Search logs or commands.."
-                                className="w-full bg-[#111827] border border-white/5 rounded-2xl pl-12 pr-6 py-3 text-xs text-slate-300 outline-none focus:border-blue-500/30 transition-all font-medium"
+                                placeholder="Search.."
+                                className="w-full bg-[#111827] border border-white/5 rounded-xl md:rounded-2xl pl-10 md:pl-12 pr-4 md:pr-6 py-2 md:py-3 text-[10px] md:text-xs text-slate-300 outline-none focus:border-blue-500/30 transition-all font-medium"
                             />
                         </div>
-                        <div className="flex items-center gap-2 text-slate-700 font-mono text-[10px] uppercase font-bold tracking-tighter">
+                        <div className="hidden lg:flex items-center gap-2 text-slate-700 font-mono text-[10px] uppercase font-bold tracking-tighter">
                             <Globe className="w-3 h-3" /> EU-WEST-3
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-3 pr-6 border-r border-white/5">
-                            <button className="p-3 bg-white/5 text-slate-400 hover:text-white rounded-xl transition-all relative">
-                                <Bell className="w-5 h-5" />
-                                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-900" />
+                    <div className="flex items-center gap-3 md:gap-6 ml-2">
+                        <div className="hidden sm:flex items-center gap-2 md:gap-3 pr-4 md:pr-6 border-r border-white/5">
+                            <button className="p-2 md:p-3 bg-white/5 text-slate-400 hover:text-white rounded-xl transition-all relative">
+                                <Bell className="w-4 h-4 md:w-5 md:h-5" />
+                                <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full border-2 border-slate-900" />
                             </button>
-                            <button className="p-3 bg-white/5 text-slate-400 hover:text-white rounded-xl transition-all">
-                                <Clock className="w-5 h-5" />
+                            <button className="p-2 md:p-3 bg-white/5 text-slate-400 hover:text-white rounded-xl transition-all">
+                                <Clock className="w-4 h-4 md:w-5 md:h-5" />
                             </button>
                         </div>
 
-                        <div className="flex items-center gap-4 group cursor-pointer">
-                            <div className="text-right">
-                                <p className="text-xs font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-widest">SysAdmin</p>
-                                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.1em]">Super-user</p>
+                        <div className="flex items-center gap-2 md:gap-4 group cursor-pointer">
+                            <div className="text-right hidden xs:block">
+                                <p className="text-[10px] md:text-xs font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-widest">SysAdmin</p>
+                                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.1em]">Super-user</p>
                             </div>
-                            <div className="w-11 h-11 rounded-[14px] bg-gradient-to-br from-blue-600 to-indigo-600 p-[1px]">
-                                <div className="w-full h-full rounded-[13px] bg-slate-900 p-1 flex items-center justify-center overflow-hidden">
-                                    <div className="w-full h-full rounded-[10px] bg-blue-500/20 flex items-center justify-center">
-                                        <Cpu className="w-6 h-6 text-blue-400" />
+                            <div className="w-9 h-9 md:w-11 md:h-11 rounded-[10px] md:rounded-[14px] bg-gradient-to-br from-blue-600 to-indigo-600 p-[1px]">
+                                <div className="w-full h-full rounded-[9px] md:rounded-[13px] bg-slate-900 p-1 flex items-center justify-center overflow-hidden">
+                                    <div className="w-full h-full rounded-[7px] md:rounded-[10px] bg-blue-500/20 flex items-center justify-center">
+                                        <Cpu className="w-4 h-4 md:w-6 md:h-6 text-blue-400" />
                                     </div>
                                 </div>
                             </div>
@@ -278,7 +278,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                 </header>
 
                 {/* Dashboard Scrollable Area */}
-                <div className="flex-1 overflow-y-auto p-10 custom-scrollbar relative">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 custom-scrollbar relative">
                     {/* Background Subtle Gradient */}
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/5 blur-[150px] -z-10 rounded-full" />
                     <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-indigo-600/5 blur-[100px] -z-10 rounded-full" />
@@ -286,10 +286,10 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                     {/* Page Title Section */}
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h1 className="text-3xl font-black text-white tracking-tighter uppercase">
-                                Dashboard Technique <span className="text-blue-600">v2.4.0</span>
+                            <h1 className="text-xl md:text-3xl font-black text-white tracking-tighter uppercase">
+                                Dashboard <span className="hidden sm:inline">Technique</span> <span className="text-blue-600">v2.4.0</span>
                             </h1>
-                            <p className="text-slate-500 text-sm font-medium mt-1 font-mono tracking-tighter">root@university-portal:~/dashboard</p>
+                            <p className="text-slate-500 text-[10px] md:text-sm font-medium mt-1 font-mono tracking-tighter">root@university-portal:~/dashboard</p>
                         </div>
                     </div>
 

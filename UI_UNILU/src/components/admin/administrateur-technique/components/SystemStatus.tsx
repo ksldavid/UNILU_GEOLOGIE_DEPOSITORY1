@@ -145,16 +145,16 @@ export function SystemStatus() {
             )}
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-4 gap-4">
                 <div className="flex items-center gap-3">
                     <div className={`w-1 h-6 ${isOffline ? 'bg-red-600' : 'bg-blue-600'} rounded-full transition-colors`} />
                     <div>
-                        <h1 className="text-xl font-black text-white tracking-tight uppercase leading-none">Ops Center Dashboard</h1>
-                        <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-1">Status: {isOffline ? 'CRITICAL' : 'STABLE'}</p>
+                        <h1 className="text-lg md:text-xl font-black text-white tracking-tight uppercase leading-none">Ops Center Dashboard</h1>
+                        <p className="text-[7px] md:text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-1">Status: {isOffline ? 'CRITICAL' : 'STABLE'}</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <ServerBadge status={isOffline ? 'offline' : 'online'} label="Database Cluster" detail={stats?.database?.serverName || "RECONNECTING..."} />
+                    <ServerBadge status={isOffline ? 'offline' : 'online'} label="Database" detail={stats?.database?.serverName || "RECONNECTING..."} />
                     <ServerBadge status={isOffline ? 'offline' : 'online'} label="API Hub" detail={stats?.system?.serverName || "RECONNECTING..."} />
                 </div>
             </div>
@@ -213,14 +213,14 @@ export function SystemStatus() {
 
             {/* Traffic Insights Chart */}
             <div className={`bg-[#111827] border border-white/5 rounded-2xl overflow-hidden shadow-2xl transition-opacity ${isOffline ? 'opacity-30' : 'opacity-100'}`}>
-                <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
+                <div className="px-4 md:px-6 py-3 md:py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <TrendingUp className="w-4 h-4 text-orange-500" />
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Analyse des Piques de Trafic (24h)</span>
+                        <TrendingUp className="w-3.5 h-3.5 md:w-4 md:h-4 text-orange-500" />
+                        <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Trafic (24h)</span>
                     </div>
-                    <div className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Live Data Stream</div>
+                    <div className="text-[7px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Live Data</div>
                 </div>
-                <div className="h-[250px] w-full p-6">
+                <div className="h-[200px] md:h-[250px] w-full p-2 md:p-6">
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={trafficData?.trafficHistory || []}>
                             <defs>
@@ -265,12 +265,12 @@ export function SystemStatus() {
             </div>
 
             {/* Spec Row */}
-            <div className={`grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-2xl transition-opacity ${isOffline ? 'opacity-30' : 'opacity-100'}`}>
-                <SpecItem label="Architecture" value={stats?.system?.arch} icon={<Monitor className="w-3.5 h-3.5" />} />
-                <SpecItem label="Processeur" value={stats?.system?.cpuCores ? `${stats.system.cpuCores} Cores` : '--'} icon={<Cpu className="w-3.5 h-3.5" />} />
-                <SpecItem label="Enregistrements" value="Postgres SQL" icon={<Database className="w-3.5 h-3.5" />} />
-                <SpecItem label="Cloud Média" value={stats?.cloudinary?.plan ? `Plan ${stats.cloudinary.plan}` : 'Image Cloud'} icon={<Cloud className="w-3.5 h-3.5" />} />
-                <SpecItem label="Sécurité" value="SSL/JWT Cloud" icon={<ShieldAlert className="w-3.5 h-3.5" />} />
+            <div className={`grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-2xl transition-opacity ${isOffline ? 'opacity-30' : 'opacity-100'}`}>
+                <SpecItem label="Architecture" value={stats?.system?.arch} icon={<Monitor className="w-3 md:w-3.5 h-3 md:h-3.5" />} />
+                <SpecItem label="Processeur" value={stats?.system?.cpuCores ? `${stats.system.cpuCores} Cores` : '--'} icon={<Cpu className="w-3 md:w-3.5 h-3 md:h-3.5" />} />
+                <SpecItem label="Data" value="Postgres" icon={<Database className="w-3 md:w-3.5 h-3 md:h-3.5" />} />
+                <SpecItem label="Cloud" value={stats?.cloudinary?.plan ? `Plan ${stats.cloudinary.plan}` : 'Image Cloud'} icon={<Cloud className="w-3 md:w-3.5 h-3 md:h-3.5" />} />
+                <SpecItem label="Sécurité" value="SSL/JWT" icon={<ShieldAlert className="w-3 md:w-3.5 h-3 md:h-3.5" />} />
             </div>
 
             {/* Metrics Section */}
@@ -285,31 +285,31 @@ export function SystemStatus() {
 
                 {/* Terminal */}
                 <div className="bg-[#0B0F19] border border-white/5 rounded-2xl overflow-hidden flex flex-col shadow-2xl h-[300px]">
-                    <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
+                    <div className="px-4 md:px-6 py-3 md:py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <Terminal className="w-4 h-4 text-blue-500" />
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Flux d'Exécution Fluxo-Logistics</span>
+                            <Terminal className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-500" />
+                            <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Logs Fluxo-Logistics</span>
                         </div>
                         <div className="flex gap-4 items-center">
                             <div className="flex items-center gap-2">
                                 <div className={`w-1.5 h-1.5 rounded-full ${isOffline ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
-                                <span className="text-[8px] font-black text-white/50 uppercase">{isOffline ? 'LISTEN_FAIL' : 'LISTENING_PORT_3001'}</span>
+                                <span className="text-[7px] md:text-[8px] font-black text-white/50 uppercase">{isOffline ? 'FAIL' : 'PORT_3001'}</span>
                             </div>
                         </div>
                     </div>
-                    <div className="p-6 overflow-y-auto custom-scrollbar font-mono text-[10px] space-y-2 bg-black/20 flex-1">
+                    <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar font-mono text-[9px] md:text-[10px] space-y-2 bg-black/20 flex-1">
                         {isRestarting ? (
                             <div className="h-full flex flex-col items-center justify-center gap-4 text-blue-400">
                                 <RefreshCcw className="w-8 h-8 animate-spin" />
                                 <p className="text-[9px] font-black uppercase tracking-[0.6em] animate-pulse">SYSTÈME EN COURS DE REDÉMARRAGE...</p>
                             </div>
                         ) : apiLogs.length > 0 ? apiLogs.map((log, idx) => (
-                            <div key={log.id || idx} className="flex gap-4 p-2 rounded-lg hover:bg-white/5 transition-all group">
-                                <span className="text-slate-700 shrink-0">[{new Date(log.time).toLocaleTimeString()}]</span>
-                                <span className={`shrink-0 font-black w-8 ${log.method === 'POST' ? 'text-orange-400' : log.method === 'SYSTEM' ? 'text-emerald-400' : 'text-blue-400'}`}>{log.method}</span>
+                            <div key={log.id || idx} className="flex gap-2 md:gap-4 p-1.5 md:p-2 rounded-lg hover:bg-white/5 transition-all group">
+                                <span className="text-slate-700 shrink-0 hidden sm:block">[{new Date(log.time).toLocaleTimeString()}]</span>
+                                <span className={`shrink-0 font-black w-6 sm:w-8 ${log.method === 'POST' ? 'text-orange-400' : log.method === 'SYSTEM' ? 'text-emerald-400' : 'text-blue-400'}`}>{log.method}</span>
                                 <span className="text-slate-400 flex-1 truncate">{log.path}</span>
-                                <span className={`shrink-0 font-bold ${log.status >= 400 ? 'text-red-400' : 'text-emerald-400'}`}>HTTP {log.status}</span>
-                                <span className="text-slate-700 shrink-0 w-16 text-right">{log.duration}ms</span>
+                                <span className={`shrink-0 font-bold ${log.status >= 400 ? 'text-red-400' : 'text-emerald-400'}`}>{log.status}</span>
+                                <span className="text-slate-700 shrink-0 w-12 sm:w-16 text-right hidden xs:block">{log.duration}ms</span>
                             </div>
                         )) : (
                             <div className="h-full flex flex-col items-center justify-center opacity-30 gap-3">
@@ -322,29 +322,29 @@ export function SystemStatus() {
             </div>
 
             {/* Control Panel */}
-            <div className="bg-[#111827] border border-white/5 p-4 rounded-2xl flex items-center justify-between">
+            <div className="bg-[#111827] border border-white/5 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <div className="p-2 bg-blue-600/10 rounded-lg">
-                        <Zap className="w-4 h-4 text-blue-500" />
+                        <Zap className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-500" />
                     </div>
-                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Noyau d'Administration Nucleus</p>
+                    <p className="text-[9px] md:text-[10px] font-black text-white/40 uppercase tracking-widest">Noyau d'Administration Nucleus</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 w-full sm:w-auto">
                     <button
                         onClick={handleRestart}
                         disabled={isRestarting}
-                        className={`px-8 py-3 rounded-xl transition-all font-black uppercase text-[9px] tracking-widest flex items-center gap-2 shadow-xl shadow-blue-600/10
+                        className={`flex-1 sm:flex-none px-4 md:px-8 py-2.5 md:py-3 rounded-xl transition-all font-black uppercase text-[8px] md:text-[9px] tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-blue-600/10
                             ${isRestarting ? 'bg-blue-900 text-white/50 opacity-100' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
                     >
-                        <RefreshCcw className={`w-3.5 h-3.5 ${isRestarting ? 'animate-spin' : ''}`} />
-                        {isRestarting ? 'Redémarrage...' : 'Redémarrer le Noyau'}
+                        <RefreshCcw className={`w-3 h-3 md:w-3.5 md:h-3.5 ${isRestarting ? 'animate-spin' : ''}`} />
+                        {isRestarting ? '...' : 'Redémarrer'}
                     </button>
                     <button
                         onClick={handleClearCache}
                         disabled={isClearingCache || isOffline}
-                        className="bg-white/5 border border-white/10 text-white/50 px-8 py-3 rounded-xl transition-all font-black uppercase text-[9px] tracking-widest hover:text-white disabled:opacity-30"
+                        className="flex-1 sm:flex-none bg-white/5 border border-white/10 text-white/50 px-4 md:px-8 py-2.5 md:py-3 rounded-xl transition-all font-black uppercase text-[8px] md:text-[9px] tracking-widest hover:text-white disabled:opacity-30"
                     >
-                        Purger le Cache
+                        Purger Cache
                     </button>
                 </div>
             </div>
@@ -361,21 +361,21 @@ function StatCardSmall({ label, value, subLabel, unit, color, icon, progress }: 
     };
 
     return (
-        <div className="bg-[#111827] border border-white/5 p-5 rounded-2xl shadow-lg flex flex-col justify-between h-[130px] group hover:border-white/10 transition-all">
+        <div className="bg-[#111827] border border-white/5 p-4 md:p-5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[110px] md:h-[130px] group hover:border-white/10 transition-all">
             <div className="flex justify-between items-start">
-                <div className={`p-3 rounded-xl ${colors[color]}`}>
+                <div className={`p-2.5 md:p-3 rounded-xl ${colors[color]}`}>
                     {icon}
                 </div>
                 <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{label}</p>
-                    <p className="text-[8px] font-bold text-slate-700 uppercase">{subLabel}</p>
+                    <p className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{label}</p>
+                    <p className="text-[7px] md:text-[8px] font-bold text-slate-700 uppercase">{subLabel}</p>
                 </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5 md:gap-2 mt-2 md:mt-0">
                 <div className="flex items-baseline gap-1.5">
-                    <span className="text-2xl font-black text-white tracking-tighter leading-none">{value}</span>
-                    {unit && <span className="text-[10px] font-bold text-slate-600 uppercase">{unit}</span>}
+                    <span className="text-xl md:text-2xl font-black text-white tracking-tighter leading-none">{value}</span>
+                    {unit && <span className="text-[8px] md:text-[10px] font-bold text-slate-600 uppercase">{unit}</span>}
                 </div>
                 {progress !== undefined && (
                     <div className="h-1 bg-white/5 rounded-full overflow-hidden">
@@ -407,14 +407,15 @@ function MetricBadge({ label, value, icon, color }: any) {
         orange: "text-orange-400 border-orange-500/10"
     };
     return (
-        <div className={`bg-white/[0.02] border p-4 rounded-xl flex items-center justify-between group hover:bg-white/[0.04] transition-all min-w-0 ${colors[color]}`}>
-            <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform flex-shrink-0">
-                    {icon}
+        <div className={`bg-white/[0.02] border p-3 md:p-4 rounded-xl flex items-center justify-between group hover:bg-white/[0.04] transition-all min-w-0 ${colors[color]}`}>
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                <div className="p-1.5 md:p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform flex-shrink-0">
+                    {/* On réduit la taille de l'icône sur mobile */}
+                    {icon && <div className="scale-75 md:scale-100">{icon}</div>}
                 </div>
-                <span className="text-[9px] font-black uppercase tracking-tighter opacity-50 truncate">{label}</span>
+                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter opacity-50 truncate">{label}</span>
             </div>
-            <p className="text-lg font-black text-white tracking-tighter ml-2 flex-shrink-0">{value || "0"}</p>
+            <p className="text-sm md:text-lg font-black text-white tracking-tighter ml-1.5 md:ml-2 flex-shrink-0">{value || "0"}</p>
         </div>
     );
 }
@@ -422,11 +423,11 @@ function MetricBadge({ label, value, icon, color }: any) {
 function ServerBadge({ status, label, detail }: any) {
     const isOnline = status === 'online';
     return (
-        <div className={`flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border transition-colors ${isOnline ? 'border-white/5' : 'border-red-500/20 bg-red-500/5'}`}>
-            <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} />
+        <div className={`flex items-center gap-2 md:gap-3 bg-white/5 px-2.5 md:px-4 py-1.5 md:py-2 rounded-xl border transition-colors ${isOnline ? 'border-white/5' : 'border-red-500/20 bg-red-500/5'}`}>
+            <div className={`w-1 md:w-1.5 h-1 md:h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} />
             <div className="flex flex-col leading-none">
-                <span className="text-[9px] font-black text-white/60 uppercase tracking-tighter">{label}</span>
-                <span className={`text-[7px] font-bold uppercase tracking-widest truncate max-w-[80px] ${isOnline ? 'text-white/20' : 'text-red-500/50'}`}>
+                <span className="text-[8px] md:text-[9px] font-black text-white/60 uppercase tracking-tighter">{label}</span>
+                <span className={`text-[6px] md:text-[7px] font-bold uppercase tracking-widest truncate max-w-[50px] md:max-w-[80px] ${isOnline ? 'text-white/20' : 'text-red-500/50'}`}>
                     {detail}
                 </span>
             </div>

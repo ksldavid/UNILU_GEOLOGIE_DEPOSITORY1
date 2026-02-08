@@ -168,14 +168,14 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
             <div className={`flex-1 split-form flex flex-col items-center px-8 bg-white relative transition-all duration-500 ${showContactModal ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                 <div className="w-full max-w-sm flex flex-col min-h-full -mt-2 pb-12 justify-center">
                     {/* Welcome Text at Top */}
-                    <div className="text-center mb-4">
-                        <h2 className="text-6xl font-bold mb-4 text-slate-900 tracking-tight" style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>
+                    <div className="text-center mb-4 md:mb-6 px-2">
+                        <h2 className="text-4xl md:text-6xl font-bold mb-3 md:mb-4 text-slate-900 tracking-tight" style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.03em' }}>
                             Bienvenue
                         </h2>
-                        <h3 className="text-xl font-bold text-teal-600 mb-2 tracking-wide uppercase" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                        <h3 className="text-base md:text-xl font-bold text-teal-600 mb-2 tracking-wide uppercase" style={{ fontFamily: "'Outfit', sans-serif" }}>
                             UNIVERSITE DE LUBUMBASHI
                         </h3>
-                        <p className="text-gray-500 text-sm font-medium">Portail de la Faculté de Science et Technologie : Département de Géologie</p>
+                        <p className="text-gray-500 text-[11px] md:text-sm font-medium leading-relaxed">Portail de la Faculté de Science et Technologie : Département de Géologie</p>
                     </div>
 
                     <div className="flex-1 flex flex-col pt-4">
@@ -185,14 +185,14 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                         </div>
 
                         {/* Pill-style Role Tabs */}
-                        <div className="flex p-1.5 bg-gray-50 rounded-2xl mb-6 border border-gray-100">
+                        <div className="flex p-1 bg-gray-50 rounded-2xl mb-6 border border-gray-100">
                             <button
                                 onClick={() => {
                                     setActiveTab('student');
                                     setError(false);
                                     setRoleMismatch(false);
                                 }}
-                                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'student'
+                                className={`flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl text-[11px] md:text-sm font-bold transition-all ${activeTab === 'student'
                                     ? 'bg-white text-teal-600 shadow-sm border border-gray-100'
                                     : 'text-gray-400 hover:text-gray-600'
                                     }`}
@@ -205,12 +205,12 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                     setError(false);
                                     setRoleMismatch(false);
                                 }}
-                                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'academic'
+                                className={`flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl text-[11px] md:text-sm font-bold transition-all ${activeTab === 'academic'
                                     ? 'bg-white text-teal-600 shadow-sm border border-gray-100'
                                     : 'text-gray-400 hover:text-gray-600'
                                     }`}
                             >
-                                Corps académique et scientifique
+                                Corps académique
                             </button>
                         </div>
 
@@ -226,7 +226,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                     {activeTab === 'student' ? 'Numéro Étudiant' : 'Identifiant Professionnel'}
                                 </label>
                                 <div className="relative">
-                                    <User className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${error ? 'text-red-400' : 'text-gray-400'}`} />
+                                    <User className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 transition-colors ${error ? 'text-red-400' : 'text-gray-400'}`} />
                                     <input
                                         type="text"
                                         placeholder={activeTab === 'student' ? 'Ex: 202300123' : 'Matricule'}
@@ -235,7 +235,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                             setStudentId(e.target.value);
                                             if (error) setError(false);
                                         }}
-                                        className={`w-full pl-12 pr-4 py-4 bg-gray-50/50 border rounded-2xl text-slate-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${error
+                                        className={`w-full pl-11 md:pl-12 pr-4 py-3.5 md:py-4 bg-gray-50/50 border rounded-2xl text-[13px] md:text-base text-slate-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${error
                                             ? 'border-red-300 focus:ring-red-500/20 focus:border-red-500'
                                             : 'border-gray-200 focus:ring-teal-500/20 focus:border-teal-500/50'
                                             }`}
@@ -249,7 +249,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                     Mot de passe
                                 </label>
                                 <div className="relative">
-                                    <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${error ? 'text-red-400' : 'text-gray-400'}`} />
+                                    <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 transition-colors ${error ? 'text-red-400' : 'text-gray-400'}`} />
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         placeholder="••••••••"
@@ -263,7 +263,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                                 handleLogin();
                                             }
                                         }}
-                                        className={`w-full pl-12 pr-12 py-4 bg-gray-50/50 border rounded-2xl text-slate-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${error
+                                        className={`w-full pl-11 md:pl-12 pr-11 md:pr-12 py-3.5 md:py-4 bg-gray-50/50 border rounded-2xl text-[13px] md:text-base text-slate-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${error
                                             ? 'border-red-300 focus:ring-red-500/20 focus:border-red-500'
                                             : 'border-gray-200 focus:ring-teal-500/20 focus:border-teal-500/50'
                                             }`}
@@ -273,7 +273,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                         onClick={() => setShowPassword(!showPassword)}
                                         className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10"
                                     >
-                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                        {showPassword ? <EyeOff className="w-4 h-4 md:w-5 md:h-5" /> : <Eye className="w-4 h-4 md:w-5 md:h-5" />}
                                     </button>
                                 </div>
                                 <AnimatePresence>

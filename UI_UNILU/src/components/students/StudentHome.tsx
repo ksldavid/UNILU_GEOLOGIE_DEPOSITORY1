@@ -218,129 +218,131 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
       variants={container}
       initial="hidden"
       animate="show"
-      className="p-8 space-y-8 max-w-[1600px] mx-auto"
+      className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-[1600px] mx-auto"
     >
       {/* Welcome Banner */}
       <motion.div
         variants={item}
-        className="relative h-64 rounded-[40px] overflow-hidden shadow-2xl group"
+        className="relative h-48 md:h-64 rounded-3xl md:rounded-[40px] overflow-hidden shadow-2xl group"
       >
         <div
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
           style={{ backgroundImage: `url(${welcomeImage})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-900/80 via-gray-900/40 to-transparent flex flex-col justify-center p-12">
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/40 to-transparent flex flex-col justify-center p-6 md:p-12">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <h1 className="text-white text-5xl font-black mb-4 tracking-tight">
+            <h1 className="text-white text-2xl md:text-5xl font-black mb-2 md:mb-4 tracking-tight">
               Bonjour, <span className="text-blue-400">{JSON.parse(sessionStorage.getItem('user') || '{}').name?.split(' ')[0] || 'Étudiant'}</span> 👋
             </h1>
-            <div className="h-20">
+            <div className="h-16 md:h-20">
               <motion.p
                 key={messageIndex}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="text-gray-200 text-xl font-medium max-w-2xl leading-relaxed"
+                className="text-gray-200 text-xs md:text-xl font-medium max-w-2xl leading-relaxed line-clamp-2 md:line-clamp-none"
               >
                 {geologyMessages[messageIndex]}
               </motion.p>
             </div>
           </motion.div>
         </div>
-        <div className="absolute bottom-10 right-10 flex gap-4">
+        <div className="absolute bottom-4 right-4 md:bottom-10 md:right-10 flex gap-4">
           <button
             onClick={() => onNavigate('grades')}
-            className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-3 shadow-xl shadow-blue-600/30"
+            className="px-4 py-2 md:px-8 md:py-4 bg-blue-600 text-white rounded-xl md:rounded-2xl font-black text-[10px] md:text-sm uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 md:gap-3 shadow-xl shadow-blue-600/30"
           >
-            Voir mes résultats <ChevronRight className="w-5 h-5" />
+            <span className="hidden xs:inline">Voir mes résultats</span>
+            <span className="xs:hidden">Résultats</span>
+            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
           </button>
         </div>
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {stats.map((stat, i) => (
           <motion.div
             key={i}
             variants={item}
-            className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl transition-all group"
+            className="bg-white p-4 md:p-6 rounded-2xl md:rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl transition-all group"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-14 h-14 rounded-2xl ${stat.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <stat.icon className={`w-7 h-7 ${stat.color}`} />
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <div className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl ${stat.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                <stat.icon className={`w-5 h-5 md:w-7 md:h-7 ${stat.color}`} />
               </div>
-              <div className="w-2 h-2 rounded-full bg-gray-100" />
+              <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-gray-100" />
             </div>
             <div>
-              <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] mb-1">{stat.label}</p>
+              <p className="text-gray-400 font-black text-[8px] md:text-[10px] uppercase tracking-[0.2em] mb-0.5 md:mb-1">{stat.label}</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-gray-900">{stat.value}</span>
-                <span className="text-sm font-bold text-gray-400">{stat.sub}</span>
+                <span className="text-xl md:text-3xl font-black text-gray-900">{stat.value}</span>
+                <span className="text-xs font-bold text-gray-400">{stat.sub}</span>
               </div>
             </div>
           </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
         {/* Today's Timeline */}
         <motion.div
           variants={item}
-          className="xl:col-span-2 bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm"
+          className="xl:col-span-2 bg-white rounded-3xl md:rounded-[40px] p-5 md:p-8 border border-gray-100 shadow-sm"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
             <div>
-              <h3 className="text-2xl font-black text-gray-900 tracking-tight">Planning du jour</h3>
-              <p className="text-gray-400 text-sm font-bold">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">Planning du jour</h3>
+              <p className="text-gray-400 text-xs md:text-sm font-bold">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
             <button
               onClick={() => onNavigate('planning')}
-              className="flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-widest hover:bg-blue-50 px-5 py-3 rounded-2xl transition-all"
+              className="flex items-center gap-2 text-blue-600 font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-blue-50 px-4 md:px-5 py-2.5 md:py-3 rounded-xl md:rounded-2xl transition-all border border-blue-100 md:border-transparent w-fit"
             >
-              Voir le planning complet <ChevronRight className="w-4 h-4" />
+              Planning complet <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="space-y-6 relative before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-0.5 before:bg-gray-50">
+          <div className="space-y-4 md:space-y-6 relative before:absolute before:left-[15px] md:before:left-[19px] before:top-4 before:bottom-4 before:w-0.5 before:bg-gray-50">
             {upcomingCourses.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6">
-                  <Calendar className="w-10 h-10 text-gray-300" />
+              <div className="flex flex-col items-center justify-center py-10 md:py-16 text-center">
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gray-50 flex items-center justify-center mb-4 md:mb-6">
+                  <Calendar className="w-8 h-8 md:w-10 md:h-10 text-gray-300" />
                 </div>
-                <p className="text-xl font-bold text-gray-400 italic">Aucun cours aujourd'hui</p>
-                <p className="text-sm text-gray-400 mt-2">Profitez de cette journée pour réviser vos cours</p>
+                <p className="text-lg md:text-xl font-bold text-gray-400 italic">Aucun cours aujourd'hui</p>
+                <p className="text-[10px] md:text-sm text-gray-400 mt-1 md:mt-2 uppercase tracking-widest">Temps libre pour vos révisions</p>
               </div>
             ) : upcomingCourses.map((course: any, idx: number) => (
-              <div key={idx} className="relative pl-12 group">
-                <div className="absolute left-0 top-1.5 w-10 h-10 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center z-10 group-hover:border-blue-500 transition-colors">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: course.colorHex }} />
+              <div key={idx} className="relative pl-10 md:pl-12 group">
+                <div className="absolute left-0 top-1 w-8 h-8 md:w-10 md:h-10 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center z-10 group-hover:border-blue-500 transition-colors">
+                  <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full" style={{ backgroundColor: course.colorHex }} />
                 </div>
                 <div
                   onClick={() => setSelectedCourseDetail(course)}
-                  className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-gray-50/50 rounded-3xl border border-transparent hover:border-gray-100 hover:bg-white transition-all cursor-pointer group/card"
+                  className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 bg-gray-50/50 rounded-2xl md:rounded-3xl border border-transparent hover:border-gray-100 hover:bg-white transition-all cursor-pointer group/card"
                 >
-                  <div className="mb-4 md:mb-0 flex-1 min-w-0 pr-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-xs font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg uppercase tracking-wider shrink-0">{course.type}</span>
-                      <span className="text-sm font-bold text-gray-400 flex items-center gap-1.5 text-end italic shrink-0">
-                        <Clock className="w-3.5 h-3.5" /> {course.time}
+                  <div className="mb-4 md:mb-0 flex-1 min-w-0 pr-0 md:pr-4">
+                    <div className="flex items-center gap-2 md:gap-3 mb-2">
+                      <span className="text-[9px] md:text-xs font-black text-blue-600 bg-blue-50 px-2 md:px-3 py-0.5 md:py-1 rounded-lg uppercase tracking-wider shrink-0">{course.type}</span>
+                      <span className="text-[10px] md:text-sm font-bold text-gray-400 flex items-center gap-1.5 italic shrink-0">
+                        <Clock className="w-3 md:w-3.5 h-3 md:h-3.5" /> {course.time}
                       </span>
                     </div>
-                    <h4 className={`font-black text-gray-900 mb-1 group-hover/card:text-blue-600 transition-colors uppercase tracking-tight truncate ${course.title.length > 40 ? 'text-base' :
-                      course.title.length > 25 ? 'text-lg' : 'text-xl'
+                    <h4 className={`font-black text-gray-900 mb-1 group-hover/card:text-blue-600 transition-colors uppercase tracking-tight truncate ${course.title.length > 40 ? 'text-sm md:text-base' :
+                      course.title.length > 25 ? 'text-base md:text-lg' : 'text-lg md:text-xl'
                       }`}>{course.title}</h4>
-                    <div className="flex items-center gap-4 text-[11px] text-gray-500 font-bold uppercase tracking-widest overflow-hidden">
-                      <span className="flex items-center gap-1.5 shrink-0"><MapPin className="w-4 h-4 text-gray-300" /> {course.room}</span>
-                      <span className="flex items-center gap-1.5 truncate"><UserIcon className="w-4 h-4 text-gray-300" /> {course.professor}</span>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[9px] md:text-[11px] text-gray-500 font-bold uppercase tracking-widest">
+                      <span className="flex items-center gap-1 md:gap-1.5 shrink-0"><MapPin className="w-3.5 h-3.5 text-gray-300" /> {course.room}</span>
+                      <span className="flex items-center gap-1 md:gap-1.5 truncate"><UserIcon className="w-3.5 h-3.5 text-gray-300" /> {course.professor}</span>
                     </div>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); setSelectedCourseDetail(course); }}
-                    className="px-6 py-3 bg-white border border-gray-200 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all active:scale-95 shadow-sm"
+                    className="px-4 py-2 md:px-6 md:py-3 bg-white border border-gray-200 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all active:scale-95 shadow-sm w-fit"
                   >
                     Détails
                   </button>
@@ -351,47 +353,47 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
         </motion.div>
 
         {/* Right Column: Active Assignments & Announcements */}
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           {/* Active Assignments Block */}
           {data?.pendingAssignments?.length > 0 && (
             <motion.div
               variants={item}
-              className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm relative overflow-hidden group"
+              className="bg-white rounded-3xl md:rounded-[40px] p-5 md:p-8 border border-gray-100 shadow-sm relative overflow-hidden group"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-orange-100/50 transition-colors"></div>
+              <div className="absolute top-0 right-0 w-24 md:w-32 h-24 md:h-32 bg-orange-50 rounded-bl-full -mr-12 md:-mr-16 -mt-12 md:-mt-16 group-hover:bg-orange-100/50 transition-colors"></div>
 
               <div className="relative">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
-                    <Send className="w-6 h-6 text-orange-600" />
+                <div className="flex items-center justify-between mb-6 md:mb-8">
+                  <h3 className="text-lg md:text-xl font-black text-gray-900 flex items-center gap-2 md:gap-3">
+                    <Send className="w-5 h-5 md:w-6 md:h-6 text-orange-600" />
                     Devoirs en cours
                   </h3>
                   <button
                     onClick={() => onNavigate('courses')}
                     className="p-2 hover:bg-gray-50 rounded-xl transition-colors"
                   >
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   {data.pendingAssignments.map((assignment: any) => (
                     <div
                       key={assignment.id}
                       onClick={() => onNavigate('courses')}
-                      className="p-5 rounded-[28px] bg-gray-50 border border-transparent hover:border-orange-200 hover:bg-white transition-all cursor-pointer group/card"
+                      className="p-4 md:p-5 rounded-2xl md:rounded-[28px] bg-gray-50 border border-transparent hover:border-orange-200 hover:bg-white transition-all cursor-pointer group/card"
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-lg uppercase tracking-wider">{assignment.type}</span>
-                        <div className="flex items-center gap-2 text-rose-500 animate-pulse">
-                          <Clock className="w-3 h-3" />
-                          <span className="text-[10px] font-black uppercase tracking-widest">
+                        <span className="text-[8px] md:text-[10px] font-black text-orange-600 bg-orange-50 px-2 md:px-3 py-0.5 md:py-1 rounded-lg uppercase tracking-wider">{assignment.type}</span>
+                        <div className="flex items-center gap-1.5 md:gap-2 text-rose-500">
+                          <Clock className="w-2.5 md:w-3 h-2.5 md:h-3" />
+                          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">
                             {getTimeRemaining(assignment.dueDate)}
                           </span>
                         </div>
                       </div>
-                      <h4 className="text-sm font-bold text-gray-900 mb-1 group-hover/card:text-orange-600 transition-colors line-clamp-1 capitalize">{assignment.title}</h4>
-                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{assignment.courseName}</p>
+                      <h4 className="text-xs md:text-sm font-bold text-gray-900 mb-1 group-hover/card:text-orange-600 transition-colors line-clamp-1 capitalize">{assignment.title}</h4>
+                      <p className="text-[9px] md:text-[10px] text-gray-400 font-black uppercase tracking-widest">{assignment.courseName}</p>
                     </div>
                   ))}
                 </div>
@@ -401,37 +403,37 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
 
           <motion.div
             variants={item}
-            className="bg-gray-900 rounded-[40px] p-8 text-white shadow-2xl"
+            className="bg-gray-900 rounded-3xl md:rounded-[40px] p-5 md:p-8 text-white shadow-2xl"
           >
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-black flex items-center gap-3">
-                <Megaphone className="w-6 h-6 text-teal-400" />
-                Dernières Annonces
+            <div className="flex items-center justify-between mb-6 md:mb-8">
+              <h3 className="text-lg md:text-xl font-black flex items-center gap-2 md:gap-3">
+                <Megaphone className="w-5 h-5 md:w-6 md:h-6 text-teal-400" />
+                Annonces
               </h3>
               <button
                 onClick={() => onNavigate('announcements')}
                 className="p-2 hover:bg-white/10 rounded-xl transition-colors"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              {announcements.length === 0 ? <p className="text-gray-400 text-sm">Aucune annonce récente</p> : announcements.slice(0, 3).map((ann: any, i: number) => (
+            <div className="space-y-3 md:space-y-4">
+              {announcements.length === 0 ? <p className="text-gray-400 text-xs md:text-sm">Aucune annonce récente</p> : announcements.slice(0, 3).map((ann: any, i: number) => (
                 <div
                   key={i}
                   onClick={() => { markAnnouncementAsRead(ann.id); onNavigate('announcements'); }}
-                  className={`p-5 rounded-3xl border transition-colors cursor-pointer group ${readAnnouncements.has(ann.id) ? 'bg-white/5 border-white/10' : 'bg-white/10 border-teal-500/30 shadow-lg shadow-teal-500/10'}`}
+                  className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border transition-colors cursor-pointer group ${readAnnouncements.has(ann.id) ? 'bg-white/5 border-white/10' : 'bg-white/10 border-teal-500/30 shadow-lg shadow-teal-500/10'}`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full bg-gradient-to-r ${ann.color} text-white`}>
+                  <div className="flex items-center justify-between mb-2 md:mb-3">
+                    <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] px-2 md:px-3 py-0.5 md:py-1 rounded-full bg-gradient-to-r ${ann.color} text-white`}>
                       {ann.type}
                     </span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{new Date(ann.date).toLocaleDateString()}</span>
+                    <span className="text-[8px] md:text-[10px] text-gray-400 font-bold uppercase tracking-widest">{new Date(ann.date).toLocaleDateString()}</span>
                   </div>
-                  <h4 className="text-sm font-bold mb-1 group-hover:text-blue-400 transition-colors">{ann.title}</h4>
-                  <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.1em] mb-2">Par {ann.author}</p>
-                  <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{ann.content}</p>
+                  <h4 className="text-xs md:text-sm font-bold mb-1 group-hover:text-blue-400 transition-colors uppercase truncate">{ann.title}</h4>
+                  <p className="text-[8px] md:text-[10px] text-gray-500 font-black uppercase tracking-[0.1em] mb-2 truncate">Par {ann.author}</p>
+                  <p className="text-[10px] md:text-xs text-gray-400 leading-relaxed line-clamp-2 md:line-clamp-3">{ann.content}</p>
                 </div>
               ))}
             </div>
@@ -439,7 +441,7 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
 
           <motion.div
             variants={item}
-            className="grid grid-cols-2 gap-4"
+            className="grid grid-cols-2 gap-3 md:gap-4"
           >
             {[
               { label: 'Ressources', icon: BookOpen, color: 'bg-blue-50 text-blue-600', page: 'courses' },
@@ -448,12 +450,12 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
               <button
                 key={i}
                 onClick={() => onNavigate(action.page as StudentPage)}
-                className="p-6 bg-white border border-gray-100 rounded-[32px] hover:shadow-xl transition-all group text-left"
+                className="p-4 md:p-6 bg-white border border-gray-100 rounded-2xl md:rounded-[32px] hover:shadow-xl transition-all group text-left"
               >
-                <div className={`w-12 h-12 rounded-2xl ${action.color} flex items-center justify-center mb-4 transition-transform group-hover:scale-110 group-hover:rotate-3`}>
-                  <action.icon className="w-6 h-6" />
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl ${action.color} flex items-center justify-center mb-3 md:mb-4 transition-transform group-hover:scale-110 group-hover:rotate-3`}>
+                  <action.icon className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
-                <span className="text-xs font-black uppercase tracking-widest text-gray-900">{action.label}</span>
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-gray-900">{action.label}</span>
               </button>
             ))}
           </motion.div>
@@ -462,27 +464,27 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
           {data?.recentAttendance?.length > 0 && (
             <motion.div
               variants={item}
-              className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm"
+              className="bg-white rounded-3xl md:rounded-[40px] p-5 md:p-8 border border-gray-100 shadow-sm"
             >
-              <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
-                <CheckCircle className="w-6 h-6 text-blue-600" />
-                Dernières Présences
+              <h3 className="text-lg md:text-xl font-black text-gray-900 mb-5 md:mb-6 flex items-center gap-2 md:gap-3">
+                <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                Présences
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {data.recentAttendance.slice(0, 3).map((record: any) => (
                   <div
                     key={record.id}
                     onMouseEnter={() => markAttendanceAsRead(record.id)}
-                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${readAttendance.has(record.id) ? 'bg-gray-50 border-transparent' : 'bg-blue-50 border-blue-200 shadow-sm'}`}
+                    className={`flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all ${readAttendance.has(record.id) ? 'bg-gray-50 border-transparent' : 'bg-blue-50 border-blue-200 shadow-sm'}`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full ${record.status === 'PRESENT' ? 'bg-green-500' : 'bg-orange-500'}`} />
-                      <div>
-                        <p className="text-xs font-black text-gray-900 uppercase truncate max-w-[150px]">{record.courseName}</p>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{record.date ? new Date(record.date).toLocaleDateString() : 'Aujourd\'hui'}</p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 ${record.status === 'PRESENT' ? 'bg-green-500' : 'bg-orange-500'}`} />
+                      <div className="min-w-0">
+                        <p className="text-[10px] md:text-xs font-black text-gray-900 uppercase truncate pr-2">{record.courseName}</p>
+                        <p className="text-[8px] md:text-[10px] text-gray-400 font-bold uppercase tracking-widest">{record.date ? new Date(record.date).toLocaleDateString() : 'Aujourd\'hui'}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-black text-gray-400 bg-white px-3 py-1 rounded-lg border border-gray-100 italic">
+                    <span className="text-[8px] md:text-[10px] font-black text-gray-400 bg-white px-2 md:px-3 py-0.5 md:py-1 rounded-lg border border-gray-100 italic shrink-0">
                       {record.status === 'LATE' ? 'En retard' : 'Présent'}
                     </span>
                   </div>
@@ -499,23 +501,23 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden relative"
+            className="bg-white rounded-3xl md:rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden relative"
           >
-            <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-teal-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20">
-                  <QrCode className="w-6 h-6" />
+            <div className="p-5 md:p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-teal-500 text-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+                  <QrCode className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-gray-900">Scanner de Présence</h3>
+                  <h3 className="text-lg md:text-xl font-black text-gray-900 uppercase tracking-tight">Scanner</h3>
                   <div className="flex items-center gap-2">
                     {isOffline ? (
-                      <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
-                        <SignalLow className="w-3 h-3" /> Hors-ligne
+                      <span className="flex items-center gap-1 text-[8px] md:text-[10px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
+                        <SignalLow className="w-2.5 md:w-3 h-2.5 md:h-3" /> Hors-ligne
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">
-                        <SignalHigh className="w-3 h-3" /> Connecté
+                      <span className="flex items-center gap-1 text-[8px] md:text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        <SignalHigh className="w-2.5 md:w-3 h-2.5 md:h-3" /> Connecté
                       </span>
                     )}
                   </div>
@@ -523,37 +525,37 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
               </div>
               <button
                 onClick={() => setShowScanner(false)}
-                className="p-3 bg-gray-200 hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all active:scale-90"
+                className="p-2 md:p-3 bg-gray-200 hover:bg-red-50 hover:text-red-500 rounded-xl md:rounded-2xl transition-all active:scale-90"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 md:w-6 md:h-6" />
               </button>
             </div>
 
-            <div className="p-8">
-              <div id="reader" className="overflow-hidden rounded-3xl border-4 border-gray-100 bg-black aspect-square"></div>
+            <div className="p-6 md:p-8">
+              <div id="reader" className="overflow-hidden rounded-2xl md:rounded-3xl border-4 border-gray-100 bg-black aspect-square"></div>
 
-              <div className="mt-8 space-y-4">
-                <div className="p-6 bg-teal-50 border border-teal-100 rounded-[32px] flex items-center gap-4">
-                  <div className="w-10 h-10 bg-teal-500/10 text-teal-600 rounded-xl flex items-center justify-center shrink-0">
-                    <MapPin className="w-5 h-5" />
+              <div className="mt-6 md:mt-8 space-y-3 md:space-y-4">
+                <div className="p-4 md:p-6 bg-teal-50 border border-teal-100 rounded-2xl md:rounded-[32px] flex items-center gap-3 md:gap-4">
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-teal-500/10 text-teal-600 rounded-lg md:rounded-xl flex items-center justify-center shrink-0">
+                    <MapPin className="w-4 h-4 md:w-5 md:h-5" />
                   </div>
-                  <p className="text-xs text-teal-800 font-bold leading-relaxed">
+                  <p className="text-[10px] md:text-xs text-teal-800 font-bold leading-relaxed">
                     Votre position sera vérifiée par rapport à celle du professeur (Limite : 200m).
                   </p>
                 </div>
 
                 {scanning && (
-                  <div className="flex items-center justify-center gap-3 py-4 text-teal-600 font-bold animate-pulse">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Validation de la présence en cours...
+                  <div className="flex items-center justify-center gap-2 md:gap-3 py-3 md:py-4 text-teal-600 font-bold animate-pulse text-xs md:text-sm">
+                    <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                    Validation en cours...
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="p-8 bg-gray-50 flex flex-col gap-3">
-              <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest font-black">
-                Pointez votre caméra vers le QR Code affiché par le professeur
+            <div className="p-5 md:p-8 bg-gray-50">
+              <p className="text-[9px] md:text-[10px] text-gray-400 text-center uppercase tracking-widest font-black">
+                Pointez vers le QR Code du professeur
               </p>
             </div>
           </motion.div>
@@ -566,62 +568,62 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl border border-gray-100 overflow-hidden relative"
+            className="bg-white rounded-3xl md:rounded-[40px] w-full max-w-lg shadow-2xl border border-gray-100 overflow-hidden relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header with Dynamic Color */}
-            <div className="h-32 relative flex items-end p-8" style={{ background: selectedCourseDetail.colorHex || '#3b82f6' }}>
+            <div className="h-24 md:h-32 relative flex items-end p-5 md:p-8" style={{ background: selectedCourseDetail.colorHex || '#3b82f6' }}>
               <div
                 className="absolute inset-0 opacity-40"
                 style={{ background: `linear-gradient(to bottom right, rgba(0,0,0,0.1), rgba(0,0,0,0.3))` }}
               />
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 -mr-16 -mt-16 rounded-full blur-2xl" />
-              <div className="relative z-10 w-full">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Détails de la séance</span>
-                <h3 className="text-2xl font-black uppercase tracking-tight text-white line-clamp-1">{selectedCourseDetail.title}</h3>
+              <div className="absolute top-0 right-0 w-24 md:w-32 h-24 md:h-32 bg-white/20 -mr-12 md:-mr-16 -mt-12 md:-mt-16 rounded-full blur-2xl" />
+              <div className="relative z-10 w-full pr-10">
+                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/80 shrink-0">Détails de la séance</span>
+                <h3 className="text-lg md:text-2xl font-black uppercase tracking-tight text-white truncate shrink-0">{selectedCourseDetail.title}</h3>
               </div>
               <button
                 onClick={() => setSelectedCourseDetail(null)}
-                className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white"
+                className="absolute top-4 md:top-6 right-4 md:right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-6 bg-gray-50 rounded-[32px] border border-gray-100">
-                  <div className="flex items-center gap-3 text-blue-600 mb-2">
-                    <Clock className="w-5 h-5" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Horaire</span>
+            <div className="p-6 md:p-8 space-y-4 md:space-y-6">
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                <div className="p-4 md:p-6 bg-gray-50 rounded-2xl md:rounded-[32px] border border-gray-100">
+                  <div className="flex items-center gap-2 md:gap-3 text-blue-600 mb-1.5 md:mb-2 text-[10px] md:text-xs">
+                    <Clock className="w-4 h-4 md:w-5 md:h-5" />
+                    <span className="font-black uppercase tracking-widest">Horaire</span>
                   </div>
-                  <div className="text-lg font-black text-gray-900">{selectedCourseDetail.time}</div>
+                  <div className="text-sm md:text-lg font-black text-gray-900">{selectedCourseDetail.time}</div>
                 </div>
 
-                <div className="p-6 bg-gray-50 rounded-[32px] border border-gray-100">
-                  <div className="flex items-center gap-3 text-purple-600 mb-2">
-                    <MapPin className="w-5 h-5" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Salle / Local</span>
+                <div className="p-4 md:p-6 bg-gray-50 rounded-2xl md:rounded-[32px] border border-gray-100">
+                  <div className="flex items-center gap-2 md:gap-3 text-purple-600 mb-1.5 md:mb-2 text-[10px] md:text-xs">
+                    <MapPin className="w-4 h-4 md:w-5 md:h-5" />
+                    <span className="font-black uppercase tracking-widest">Local</span>
                   </div>
-                  <div className="text-lg font-black text-gray-900">{selectedCourseDetail.room}</div>
+                  <div className="text-sm md:text-lg font-black text-gray-900 truncate">{selectedCourseDetail.room}</div>
                 </div>
               </div>
 
-              <div className="p-6 bg-gray-50 rounded-[32px] border border-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-4 w-full">
-                  <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center shrink-0">
-                    <UserIcon className="w-6 h-6 text-blue-600" />
+              <div className="p-4 md:p-6 bg-gray-50 rounded-2xl md:rounded-[32px] border border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-3 md:gap-4 w-full">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-xl md:rounded-2xl shadow-sm flex items-center justify-center shrink-0">
+                    <UserIcon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Professeur Responsable</div>
-                    <div className="text-gray-900 font-black truncate">{selectedCourseDetail.professor}</div>
+                    <div className="text-[8px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Professeur</div>
+                    <div className="text-xs md:text-base text-gray-900 font-black truncate">{selectedCourseDetail.professor}</div>
                   </div>
                 </div>
               </div>
 
               <button
                 onClick={() => setSelectedCourseDetail(null)}
-                className="w-full py-4 bg-gray-900 text-white font-black rounded-[24px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="w-full py-3.5 md:py-4 bg-gray-900 text-white font-black rounded-xl md:rounded-[24px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all text-xs md:text-base uppercase tracking-widest"
               >
                 Fermer
               </button>

@@ -564,46 +564,46 @@ export function StudentCourses() {
 
 
   return (
-    <div className="p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
-      <div className="mb-10">
-        <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Mes Cours</h1>
-        <p className="text-gray-500 font-medium tracking-tight">Gérez et accédez à vos supports de {academicLevel}</p>
+    <div className="p-4 md:p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
+      <div className="mb-6 md:mb-10">
+        <h1 className="text-2xl md:text-4xl font-black text-gray-900 mb-1 md:mb-2 tracking-tight">Mes Cours</h1>
+        <p className="text-gray-500 text-xs md:text-base font-medium tracking-tight">Gérez et accédez à vos supports de {academicLevel}</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
         {courses.map((course) => (
           <motion.div
             key={course.id}
             whileHover={{ y: -8 }}
             onClick={() => handleCourseClick(course)}
-            className={`group relative bg-white rounded-[40px] p-10 shadow-sm border border-slate-100 hover:shadow-[0_48px_80px_-20px_rgba(15,23,42,0.1)] transition-all duration-500 cursor-pointer overflow-hidden ${course.status === 'FINISHED' ? 'bg-slate-50/50 grayscale-[0.4]' : ''}`}
+            className={`group relative bg-white rounded-3xl md:rounded-[40px] p-6 md:p-10 shadow-sm border border-slate-100 hover:shadow-[0_48px_80px_-20px_rgba(15,23,42,0.1)] transition-all duration-500 cursor-pointer overflow-hidden ${course.status === 'FINISHED' ? 'bg-slate-50/50 grayscale-[0.4]' : ''}`}
           >
             <div
-              className="absolute top-0 right-0 w-48 h-48 opacity-[0.03] rounded-bl-[100px] transition-all duration-700 group-hover:scale-125"
+              className="absolute top-0 right-0 w-32 md:w-48 h-32 md:h-48 opacity-[0.03] rounded-bl-[100px] transition-all duration-700 group-hover:scale-125"
               style={{ background: `linear-gradient(to bottom right, ${course.colorFrom}, ${course.colorTo})` }}
             />
 
             {/* Header with better visual weight */}
-            <div className="flex items-start justify-between mb-10 relative z-10">
-              <div className="flex items-center gap-6">
+            <div className="flex items-start justify-between mb-6 md:mb-10 relative z-10">
+              <div className="flex items-center gap-4 md:gap-6">
                 <div
-                  className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl transition-transform group-hover:rotate-6 group-hover:scale-110 duration-500"
+                  className="w-14 h-14 md:w-20 md:h-20 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-2xl transition-transform group-hover:rotate-6 group-hover:scale-110 duration-500"
                   style={{
                     background: `linear-gradient(to bottom right, ${course.colorFrom}, ${course.colorTo})`
                   }}
                 >
-                  <BookOpen className="w-10 h-10 text-white" />
+                  <BookOpen className="w-7 h-7 md:w-10 md:h-10 text-white" />
                 </div>
                 <div className="space-y-1">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{course.code}</span>
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{course.code}</span>
                     {course.status === 'FINISHED' && (
-                      <span className="bg-slate-800 text-white text-[8px] font-black uppercase tracking-[0.3em] px-2 py-1 rounded-md">Terminé</span>
+                      <span className="bg-slate-800 text-white text-[7px] md:text-[8px] font-black uppercase tracking-[0.3em] px-2 py-0.5 md:py-1 rounded-md">Terminé</span>
                     )}
                   </div>
-                  <h3 className={`font-black text-slate-900 tracking-tight leading-[1.2] uppercase group-hover:text-teal-700 transition-colors ${course.name.length > 50 ? 'text-base' :
-                      course.name.length > 35 ? 'text-lg' :
-                        course.name.length > 25 ? 'text-xl' : 'text-2xl'
+                  <h3 className={`font-black text-slate-900 tracking-tight leading-[1.2] uppercase group-hover:text-teal-700 transition-colors ${course.name.length > 50 ? 'text-sm md:text-base' :
+                    course.name.length > 35 ? 'text-base md:text-lg' :
+                      course.name.length > 25 ? 'text-lg md:text-xl' : 'text-xl md:text-2xl'
                     }`}>
                     {course.name}
                   </h3>
@@ -612,50 +612,50 @@ export function StudentCourses() {
             </div>
 
             {/* Info Grid - Modernized */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-10 mb-10 relative z-10">
-              <div className="flex items-center gap-4 group/item">
-                <div className="p-2.5 bg-slate-50 rounded-xl group-hover/item:bg-teal-50 group-hover/item:text-teal-600 transition-all">
-                  <User className="w-4 h-4 text-slate-400" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 md:gap-y-5 gap-x-6 md:gap-x-10 mb-6 md:mb-10 relative z-10">
+              <div className="flex items-center gap-3 md:gap-4 group/item">
+                <div className="p-2 md:p-2.5 bg-slate-50 rounded-lg md:rounded-xl group-hover/item:bg-teal-50 group-hover/item:text-teal-600 transition-all">
+                  <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Responsable</span>
-                  <span className="text-xs font-bold text-slate-600 uppercase truncate max-w-[140px]">{course.professor}</span>
+                  <span className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Responsable</span>
+                  <span className="text-[11px] md:text-xs font-bold text-slate-600 uppercase truncate max-w-[140px]">{course.professor}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-4 group/item">
-                <div className="p-2.5 bg-slate-50 rounded-xl group-hover/item:bg-teal-50 group-hover/item:text-teal-600 transition-all">
-                  <MapPin className="w-4 h-4 text-slate-400" />
+              <div className="flex items-center gap-3 md:gap-4 group/item">
+                <div className="p-2 md:p-2.5 bg-slate-50 rounded-lg md:rounded-xl group-hover/item:bg-teal-50 group-hover/item:text-teal-600 transition-all">
+                  <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Localisation</span>
-                  <span className="text-xs font-bold text-slate-600 uppercase truncate max-w-[140px]">{course.room}</span>
+                  <span className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Localisation</span>
+                  <span className="text-[11px] md:text-xs font-bold text-slate-600 uppercase truncate max-w-[140px]">{course.room}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-4 group/item sm:col-span-2">
-                <div className="p-2.5 bg-slate-50 rounded-xl group-hover/item:bg-teal-50 group-hover/item:text-teal-600 transition-all">
-                  <Clock className="w-4 h-4 text-slate-400" />
+              <div className="flex items-center gap-3 md:gap-4 group/item sm:col-span-2">
+                <div className="p-2 md:p-2.5 bg-slate-50 rounded-lg md:rounded-xl group-hover/item:bg-teal-50 group-hover/item:text-teal-600 transition-all">
+                  <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Programmation</span>
-                  <span className="text-xs font-bold text-slate-600 uppercase">{course.schedule}</span>
+                  <span className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Programmation</span>
+                  <span className="text-[11px] md:text-xs font-bold text-slate-600 uppercase">{course.schedule}</span>
                 </div>
               </div>
             </div>
 
             {/* Footer Metrics */}
-            <div className="flex items-center justify-between pt-8 border-t border-slate-50 relative z-10 group-hover:border-teal-100 transition-colors">
-              <div className="flex items-center gap-8">
-                <div className="flex items-center gap-2.5 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
-                  <FileText className="w-4 h-4 opacity-50" />
-                  <span>{course.materials} Documents</span>
+            <div className="flex items-center justify-between pt-6 md:pt-8 border-t border-slate-50 relative z-10 group-hover:border-teal-100 transition-colors">
+              <div className="flex flex-wrap items-center gap-4 md:gap-8">
+                <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                  <FileText className="w-3.5 h-3.5 md:w-4 md:h-4 opacity-50" />
+                  <span>{course.materials} Docs</span>
                 </div>
-                <div className="flex items-center gap-2.5 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
-                  <Send className="w-4 h-4 opacity-50" />
-                  <span>{course.assignments} Devoirs</span>
+                <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                  <Send className="w-3.5 h-3.5 md:w-4 md:h-4 opacity-50" />
+                  <span>{course.assignments} TPs</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-teal-600 font-black tracking-[0.2em] text-[10px] uppercase italic transition-all group-hover:translate-x-2">
-                Consulter <ArrowRight className="w-4 h-4" />
+              <div className="flex items-center gap-1 md:gap-2 text-teal-600 font-black tracking-[0.2em] text-[8px] md:text-[10px] uppercase italic transition-all group-hover:translate-x-2 shrink-0">
+                Ouvrir <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
               </div>
             </div>
           </motion.div>
