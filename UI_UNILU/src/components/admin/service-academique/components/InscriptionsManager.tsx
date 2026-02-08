@@ -280,10 +280,38 @@ export function InscriptionsManager() {
     setIsAddModalOpen(false);
   };
 
-  const handleSubmit = () => {
-    // Simulation d'envoi au service technique
-    alert("Les informations ont été envoyées au service technique avec succès !");
-    resetForm();
+  const handleSubmit = async () => {
+    try {
+      const studentDetails = `
+DEMANDE DE NOUVELLE INSCRIPTION
+-------------------------------
+Type: ${newUserType === 'student' ? 'ÉTUDIANT' : 'CORPS ACADÉMIQUE'}
+Nom complet: ${formData.nom} ${formData.postNom} ${formData.prenom}
+Genre: ${formData.sex}
+Date de naissance: ${formData.birthday}
+Nationalité: ${formData.nationality}
+WhatsApp: ${formData.whatsapp}
+Email: ${formData.email}
+${newUserType === 'student' ? `Classe: ${formData.classe}` : `Titre: ${formData.titre}`}
+
+IDENTIFIANTS SUGGÉRÉS:
+ID (Matricule): ${formData.idNumber}
+Mot de passe: ${formData.password}
+      `;
+
+      await supportService.createTicket({
+        subject: `[Nouvelle Inscription] ${formData.nom} ${formData.prenom}`,
+        category: 'Inscription',
+        priority: 'MEDIUM',
+        message: studentDetails
+      });
+
+      alert("Les informations ont été envoyées au service technique avec succès via le système de support !");
+      resetForm();
+    } catch (error) {
+      console.error("Erreur d'envoi de l'inscription:", error);
+      alert("Une erreur est survenue lors de l'envoi au service technique.");
+    }
   };
 
   // Assign Course State & Handlers
