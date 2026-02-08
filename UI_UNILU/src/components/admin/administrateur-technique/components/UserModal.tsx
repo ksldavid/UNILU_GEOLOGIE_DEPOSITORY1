@@ -38,6 +38,12 @@ export function UserModal({ isOpen, onClose, onSuccess, initialData }: { isOpen:
     const [enrollmentYear, setEnrollmentYear] = useState(new Date().getFullYear());
     const [isCreated, setIsCreated] = useState(false);
 
+    // Additional bio details
+    const [whatsapp, setWhatsapp] = useState('');
+    const [email, setEmail] = useState('');
+    const [birthday, setBirthday] = useState('');
+    const [nationality, setNationality] = useState('Congolaise');
+
     // Initialisation depuis initialData (demande d'inscription)
     useEffect(() => {
         if (isOpen && initialData && initialData.data) {
@@ -63,6 +69,12 @@ export function UserModal({ isOpen, onClose, onSuccess, initialData }: { isOpen:
 
             setUserId(data.idNumber || '');
             setPassword(data.password || '');
+
+            // New fields from registration form
+            setWhatsapp(data.whatsapp || '');
+            setEmail(data.email || '');
+            setBirthday(data.birthday || '');
+            setNationality(data.nationality || 'Congolaise');
         }
     }, [isOpen, initialData]);
 
@@ -330,11 +342,15 @@ export function UserModal({ isOpen, onClose, onSuccess, initialData }: { isOpen:
                 body: JSON.stringify({
                     id: userId,
                     name: fullName,
-                    email: `${userId.toLowerCase()}@unilu.ac.cd`, // On pourrait aussi prendre l'input si besoin
+                    email: email || `${userId.toLowerCase()}@unilu.ac.cd`,
                     password: password,
                     role: role,
                     studentClass: role === 'student' ? studentClass : undefined,
-                    academicYear: role === 'student' ? `${enrollmentYear}-${enrollmentYear + 1}` : undefined
+                    academicYear: role === 'student' ? `${enrollmentYear}-${enrollmentYear + 1}` : undefined,
+                    whatsapp,
+                    sex: gender,
+                    birthday,
+                    nationality
                 })
             });
 
@@ -361,6 +377,10 @@ export function UserModal({ isOpen, onClose, onSuccess, initialData }: { isOpen:
         setUserId('');
         setIdSuggestions([]);
         setRole('student');
+        setWhatsapp('');
+        setEmail('');
+        setBirthday('');
+        setNationality('Congolaise');
         onClose();
     };
 
@@ -430,17 +450,62 @@ export function UserModal({ isOpen, onClose, onSuccess, initialData }: { isOpen:
                                         />
                                     </div>
 
+                                    {/* Additional Bio Info Row 1 */}
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-bold uppercase text-slate-600 ml-1">Email</label>
+                                        <input
+                                            type="email"
+                                            placeholder="etudiant@unilu.ac.cd"
+                                            className="w-full bg-[#0B0F19] border border-slate-800 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-blue-500/50 transition-all font-bold"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-bold uppercase text-slate-600 ml-1">WhatsApp</label>
+                                        <input
+                                            type="text"
+                                            placeholder="+243..."
+                                            className="w-full bg-[#0B0F19] border border-slate-800 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-blue-500/50 transition-all font-bold"
+                                            value={whatsapp}
+                                            onChange={(e) => setWhatsapp(e.target.value)}
+                                        />
+                                    </div>
+
+                                    {/* Additional Bio Info Row 2 */}
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-bold uppercase text-slate-600 ml-1">Date de Naissance</label>
+                                        <input
+                                            type="date"
+                                            className="w-full bg-[#0B0F19] border border-slate-800 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-blue-500/50 transition-all font-bold"
+                                            value={birthday}
+                                            onChange={(e) => setBirthday(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-bold uppercase text-slate-600 ml-1">Nationalité</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Congolaise"
+                                            className="w-full bg-[#0B0F19] border border-slate-800 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-blue-500/50 transition-all font-bold"
+                                            value={nationality}
+                                            onChange={(e) => setNationality(e.target.value)}
+                                        />
+                                    </div>
+
                                     {/* Gender Field */}
                                     <div className="space-y-2">
                                         <label className="text-[9px] font-bold uppercase text-slate-600 ml-1">Sexe</label>
                                         <div className="flex p-1 bg-[#0B0F19] border border-slate-800 rounded-xl h-[46px]">
                                             <button
+                                                type="button"
                                                 onClick={() => setGender('M')}
                                                 className={`flex-1 flex items-center justify-center gap-2 rounded-lg text-[10px] font-black transition-all ${gender === 'M' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}
                                             >
                                                 MASCULIN
                                             </button>
                                             <button
+                                                type="button"
                                                 onClick={() => setGender('F')}
                                                 className={`flex-1 flex items-center justify-center gap-2 rounded-lg text-[10px] font-black transition-all ${gender === 'F' ? 'bg-pink-600 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}
                                             >

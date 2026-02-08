@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, ChevronRight, UserPlus, BookOpen, FileText, CheckCircle, X, Ban, MessageCircle, AlertTriangle, School, Trash2, GraduationCap, Users, Copy, Eye, EyeOff, Lock, Hash, Key } from 'lucide-react';
 import { userService } from '../../../../services/user';
+import { supportService } from '../../../../services/support';
 import { API_URL } from '../../../../services/config';
 
 // Types definitons

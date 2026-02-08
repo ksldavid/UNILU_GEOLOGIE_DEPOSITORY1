@@ -6,7 +6,7 @@ import {
     ChevronRight, RefreshCw, ShieldCheck, User as UserIcon,
     GraduationCap, School, Settings, Eye, Ban,
     UserCircle, Mail, Globe,
-    Activity, X, Lock, Copy, CheckCircle, Terminal, HelpCircle
+    Activity, X, Lock, Copy, CheckCircle, Terminal, HelpCircle, Clock
 } from 'lucide-react';
 
 export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void }) {
@@ -575,6 +575,26 @@ function UserInspectionModal({ user, onClose, onAction, onModifyPassword }: { us
                     <div className="grid grid-cols-2 gap-4">
                         <InfoItem icon={<Mail className="w-4 h-4" />} label="Email Académique" value={user.email} />
                         <InfoItem icon={<Globe className="w-4 h-4" />} label="Promotion / Service" value={user.class} />
+                        <InfoItem
+                            icon={<Activity className="w-4 h-4" />}
+                            label="WhatsApp"
+                            value={user.whatsapp || 'Non spécifié'}
+                        />
+                        <InfoItem
+                            icon={<Terminal className="w-4 h-4" />}
+                            label="Nationalité"
+                            value={user.nationality || 'Congolaise'}
+                        />
+                        <InfoItem
+                            icon={<Clock className="w-4 h-4" />}
+                            label="Date de Naissance"
+                            value={user.birthday ? new Date(user.birthday).toLocaleDateString('fr-FR') : 'Non spécifiée'}
+                        />
+                        <InfoItem
+                            icon={<UserCircle className="w-4 h-4" />}
+                            label="Genre"
+                            value={user.sex === 'M' ? 'Masculin' : user.sex === 'F' ? 'Féminin' : 'Non spécifié'}
+                        />
                     </div>
 
                     <div className="bg-slate-900/40 p-6 rounded-[24px] border border-white/5 space-y-4">

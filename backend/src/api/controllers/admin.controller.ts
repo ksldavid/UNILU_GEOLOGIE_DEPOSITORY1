@@ -64,6 +64,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
                 id: true,
                 name: true,
                 email: true,
+                whatsapp: true,
+                birthday: true,
+                nationality: true,
+                sex: true,
                 systemRole: true,
                 isBlocked: true,
                 createdAt: true,
@@ -110,6 +114,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
                 id: u.id,
                 name: u.name,
                 email: u.email,
+                whatsapp: u.whatsapp,
+                birthday: u.birthday,
+                nationality: u.nationality,
+                sex: u.sex,
                 role: userRole,
                 status: u.isBlocked ? 'Inactif' : 'Actif',
                 color: userColor,
@@ -167,9 +175,10 @@ export const suggestNextUserCredentials = async (req: Request, res: Response) =>
 // Créer un utilisateur (Admin seulement)
 export const createAdminUser = async (req: Request, res: Response) => {
     try {
-        let { id, name, email, password, role, studentClass, academicYear } = req.body
+        let { id, name, email, password, role, studentClass, academicYear, whatsapp, sex, birthday, nationality } = req.body
 
         // Attribution automatique si manquant
+        // ... (existing code for id/password generation)
         if (!id) {
             if (role === 'student') id = await generateUniqueStudentId()
             else if (role === 'prof') id = await generateUniqueProfessorId()
@@ -182,7 +191,6 @@ export const createAdminUser = async (req: Request, res: Response) => {
 
         const existingUser = await prisma.user.findUnique({ where: { id } })
         if (existingUser) {
-            // Si l'ID généré existe déjà (cas rare avec la boucle sequence), on peut retenter ou erreur
             return res.status(400).json({ error: 'Cet identifiant existe déjà.' })
         }
 
@@ -203,6 +211,10 @@ export const createAdminUser = async (req: Request, res: Response) => {
                 password: hashedPassword,
                 systemRole: roleMap[role] || 'STUDENT',
                 isBlocked: false,
+                whatsapp: whatsapp || null,
+                sex: sex || null,
+                birthday: birthday ? new Date(birthday) : null,
+                nationality: nationality || null,
                 // Si c'est un prof, on crée son profil
                 professorProfile: role === 'prof' ? {
                     create: {
