@@ -213,19 +213,37 @@ export const createAdminUser = async (req: Request, res: Response) => {
             }
         })
 
-        // Si c'est un étudiant, on l'inscrit à son niveau
+        // Si c'est un étudiant, on l'inscrit à son niveau et à tous ses cours
         if (role === 'student' && studentClass) {
             const level = await prisma.academicLevel.findFirst({
-                where: { name: studentClass }
+                where: { name: studentClass },
+                include: { courses: { select: { code: true } } }
             })
+
             if (level) {
+                const year = academicYear || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
+
+                // 1. Inscription au niveau académique
                 await prisma.studentEnrollment.create({
                     data: {
                         userId: newUser.id,
                         academicLevelId: level.id,
-                        academicYear: academicYear || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
+                        academicYear: year
                     }
                 })
+
+                // 2. Inscription automatique à tous les cours rattachés à ce niveau
+                if (level.courses.length > 0) {
+                    await prisma.studentCourseEnrollment.createMany({
+                        data: level.courses.map(course => ({
+                            userId: newUser.id,
+                            courseCode: course.code,
+                            academicYear: year,
+                            isActive: true
+                        })),
+                        skipDuplicates: true
+                    })
+                }
             }
         }
 
@@ -272,19 +290,43 @@ export const resetUserPassword = async (req: Request, res: Response) => {
     }
 }
 
-// Supprimer un utilisateur
+// Supprimer un utilisateur (Nettoyage complet des relations)
 export const deleteUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.params as { id: string }
 
-        // On vérifie qu'on ne se supprime pas soi-même
         if (id === (req as any).user.id) {
             return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte.' })
         }
 
-        await prisma.user.delete({ where: { id } })
-        res.json({ message: 'Utilisateur supprimé avec succès' })
+        // Utilisation d'une transaction pour supprimer toutes les dépendances
+        await prisma.$transaction([
+            // Relations Étudiant
+            prisma.studentEnrollment.deleteMany({ where: { userId: id } }),
+            prisma.studentCourseEnrollment.deleteMany({ where: { userId: id } }),
+            prisma.courseRetake.deleteMany({ where: { userId: id } }),
+            prisma.attendanceRecord.deleteMany({ where: { studentId: id } }),
+            prisma.grade.deleteMany({ where: { studentId: id } }),
+            prisma.submission.deleteMany({ where: { studentId: id } }),
+
+            // Relations Communication / Système
+            prisma.announcementRead.deleteMany({ where: { userId: id } }),
+            prisma.notification.deleteMany({ where: { userId: id } }),
+            prisma.supportMessage.deleteMany({ where: { senderId: id } }),
+            prisma.supportTicket.deleteMany({ where: { userId: id } }),
+
+            // Profils spécifiques (Gérés par Cascade dans le schéma, mais sécurité supplémentaire)
+            prisma.professorProfile.deleteMany({ where: { userId: id } }),
+            prisma.academicProfile.deleteMany({ where: { userId: id } }),
+            prisma.adminProfile.deleteMany({ where: { userId: id } }),
+
+            // L'utilisateur lui-même
+            prisma.user.delete({ where: { id } })
+        ])
+
+        res.json({ message: 'Utilisateur et toutes ses données supprimés avec succès' })
     } catch (error) {
-        res.status(500).json({ error: 'Failed to delete user' })
+        console.error('Erreur lors de la suppression de l\'utilisateur:', error)
+        res.status(500).json({ error: 'Erreur lors de la suppression : l\'utilisateur possède probablement trop de dépendances actives.' })
     }
 }
