@@ -1,9 +1,9 @@
 import { API_URL } from '../../../../services/config';
 import { useState, useEffect } from 'react';
-import { MessageSquare, Clock, User, ChevronRight, Send } from 'lucide-react';
+import { MessageSquare, Clock, User, ChevronRight, Send, UserPlus } from 'lucide-react';
 import { supportService } from '../../../../services/support';
 
-export function SupportTicketsAdmin() {
+export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) => void }) {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -179,6 +179,15 @@ export function SupportTicketsAdmin() {
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
+                                        {selectedTicket.category === 'Inscription' && selectedTicket.metadata && (
+                                            <button
+                                                onClick={() => onRegister?.(selectedTicket.metadata)}
+                                                className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black rounded-xl px-4 py-2 uppercase outline-none transition-all flex items-center gap-2 shadow-lg shadow-emerald-600/20"
+                                            >
+                                                <UserPlus className="w-3.5 h-3.5" />
+                                                Inscrire l'étudiant
+                                            </button>
+                                        )}
                                         <select
                                             value={selectedTicket.status}
                                             onChange={(e) => handleUpdateStatus(e.target.value)}

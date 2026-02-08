@@ -165,6 +165,8 @@ model SupportTicket {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  metadata Json? // To store structured data like registration info
+
   @@index([userId])
   @@index([status])
 }

@@ -5,7 +5,7 @@ import prisma from '../../lib/prisma'
 export const createTicket = async (req: Request, res: Response) => {
     try {
         const { id: userId } = (req as any).user
-        const { subject, category, priority, message } = req.body
+        const { subject, category, priority, message, metadata } = req.body
 
         const ticket = await prisma.supportTicket.create({
             data: {
@@ -13,6 +13,7 @@ export const createTicket = async (req: Request, res: Response) => {
                 category,
                 priority: priority || 'MEDIUM',
                 userId,
+                metadata: metadata || null,
                 messages: {
                     create: {
                         senderId: userId,

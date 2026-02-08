@@ -23,7 +23,7 @@ const STUDENT_CLASSES = [
     "Master 2 (Hydro)"
 ];
 
-export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess?: () => void }) {
+export function UserModal({ isOpen, onClose, onSuccess, initialData }: { isOpen: boolean, onClose: () => void, onSuccess?: () => void, initialData?: any }) {
     const [role, setRole] = useState('student');
     const [password, setPassword] = useState('');
     const [userId, setUserId] = useState('');
@@ -37,6 +37,34 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
     const [studentClass, setStudentClass] = useState('Prescience');
     const [enrollmentYear, setEnrollmentYear] = useState(new Date().getFullYear());
     const [isCreated, setIsCreated] = useState(false);
+
+    // Initialisation depuis initialData (demande d'inscription)
+    useEffect(() => {
+        if (isOpen && initialData && initialData.data) {
+            const data = initialData.data;
+            setRole(initialData.type === 'student' ? 'student' : 'prof');
+            setLastName(data.nom || '');
+            setMiddleName(data.postNom || '');
+            setFirstName(data.prenom || '');
+            setGender(data.sex === 'F' ? 'F' : 'M');
+
+            // Map class names if necessary
+            if (data.classe) {
+                const classMap: any = {
+                    'prescience': 'Prescience',
+                    'bac1': 'Licence 1 (B1)',
+                    'bac2': 'Licence 2 (B2)',
+                    'bac3': 'Licence 3 (B3)',
+                    'master1': 'Master 1 (Exploration)', // Default to one Master 1
+                    'master2': 'Master 2 (Exploration)'
+                };
+                setStudentClass(classMap[data.classe] || 'Prescience');
+            }
+
+            setUserId(data.idNumber || '');
+            setPassword(data.password || '');
+        }
+    }, [isOpen, initialData]);
 
     const fetchSuggestions = useCallback(async () => {
         if (!lastName && !firstName) return;

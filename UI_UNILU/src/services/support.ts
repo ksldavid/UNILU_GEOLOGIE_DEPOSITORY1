@@ -1,7 +1,7 @@
 import { API_URL } from './config';
 
 export const supportService = {
-    async createTicket(ticketData: { subject: string, category: string, priority: string, message: string }) {
+    async createTicket(ticketData: { subject: string, category: string, priority: string, message: string, metadata?: any }) {
         const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/support/tickets`, {
             method: 'POST',

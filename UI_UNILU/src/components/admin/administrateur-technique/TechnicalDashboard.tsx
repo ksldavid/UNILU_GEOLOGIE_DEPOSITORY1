@@ -19,6 +19,7 @@ import { API_URL } from '../../../services/config';
 export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
     const [activeTab, setActiveTab] = useState('System');
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+    const [initialModalData, setInitialModalData] = useState<any>(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [userRefreshKey, setUserRefreshKey] = useState(0);
     const [systemData, setSystemData] = useState<{
@@ -91,7 +92,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
             case 'Communication':
                 return <CommunicationManager />;
             case 'Support':
-                return <SupportTicketsAdmin />;
+                return <SupportTicketsAdmin onRegister={(data) => { setInitialModalData(data); setIsUserModalOpen(true); }} />;
             case 'Ads':
                 return <AdsManager />;
             case 'Config':
@@ -319,8 +320,12 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
             {/* Modal */}
             <UserModal
                 isOpen={isUserModalOpen}
-                onClose={() => setIsUserModalOpen(false)}
-                onSuccess={() => setUserRefreshKey(prev => prev + 1)}
+                initialData={initialModalData}
+                onClose={() => { setIsUserModalOpen(false); setInitialModalData(null); }}
+                onSuccess={() => {
+                    setUserRefreshKey(prev => prev + 1);
+                    setInitialModalData(null);
+                }}
             />
         </div>
     );

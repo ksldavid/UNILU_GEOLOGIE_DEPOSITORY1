@@ -303,7 +303,11 @@ Mot de passe: ${formData.password}
         subject: `[Nouvelle Inscription] ${formData.nom} ${formData.prenom}`,
         category: 'Inscription',
         priority: 'MEDIUM',
-        message: studentDetails
+        message: studentDetails,
+        metadata: {
+          type: newUserType,
+          data: formData
+        }
       });
 
       alert("Les informations ont été envoyées au service technique avec succès via le système de support !");
