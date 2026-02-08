@@ -27,6 +27,7 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
     const [role, setRole] = useState('student');
     const [password, setPassword] = useState('');
     const [userId, setUserId] = useState('');
+    const [idSuggestions, setIdSuggestions] = useState<string[]>([]);
 
     // Detailed name states
     const [lastName, setLastName] = useState('');
@@ -34,6 +35,7 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
     const [firstName, setFirstName] = useState('');
     const [gender, setGender] = useState<'M' | 'F'>('M');
     const [studentClass, setStudentClass] = useState('Prescience');
+    const [enrollmentYear, setEnrollmentYear] = useState(new Date().getFullYear());
     const [isCreated, setIsCreated] = useState(false);
 
     const fetchSuggestions = useCallback(async () => {
@@ -41,18 +43,20 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
         try {
             const token = sessionStorage.getItem('token');
             const fullNameForPass = `${lastName} ${firstName}`;
-            const res = await fetch(`${API_URL}/admin/credentials/suggest?role=${role}&name=${encodeURIComponent(fullNameForPass)}`, {
+            const yearParam = role === 'student' ? `&year=${enrollmentYear}` : '';
+            const res = await fetch(`${API_URL}/admin/credentials/suggest?role=${role}&name=${encodeURIComponent(fullNameForPass)}${yearParam}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
                 const data = await res.json();
                 setUserId(data.id);
+                setIdSuggestions(data.suggestions || []);
                 setPassword(data.password);
             }
         } catch (error) {
             console.error("Erreur suggestions:", error);
         }
-    }, [role, lastName, firstName]);
+    }, [role, lastName, firstName, enrollmentYear]);
 
     // Régénérer uniquement quand le rôle change ou qu'on clique manuellement
     useEffect(() => {
@@ -301,7 +305,8 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
                     email: `${userId.toLowerCase()}@unilu.ac.cd`, // On pourrait aussi prendre l'input si besoin
                     password: password,
                     role: role,
-                    studentClass: role === 'student' ? studentClass : undefined
+                    studentClass: role === 'student' ? studentClass : undefined,
+                    academicYear: role === 'student' ? `${enrollmentYear}-${enrollmentYear + 1}` : undefined
                 })
             });
 
@@ -326,6 +331,7 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
         setGender('M');
         setStudentClass('Prescience');
         setUserId('');
+        setIdSuggestions([]);
         setRole('student');
         onClose();
     };
@@ -435,6 +441,26 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
                                         </div>
                                     )}
 
+                                    {/* Year Selection for ID Prefix */}
+                                    {role === 'student' && (
+                                        <div className="space-y-2 md:col-span-1">
+                                            <label className="text-[9px] font-bold uppercase text-slate-600 ml-1">Année d'Admission</label>
+                                            <div className="relative group">
+                                                <Settings className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500/50" />
+                                                <select
+                                                    value={enrollmentYear}
+                                                    onChange={(e) => setEnrollmentYear(parseInt(e.target.value))}
+                                                    className="w-full bg-[#0B0F19] border border-slate-800 rounded-xl pl-12 pr-10 py-3.5 text-sm text-slate-300 outline-none appearance-none cursor-pointer focus:border-blue-500/50 font-bold"
+                                                >
+                                                    <option value={2024}>Session 2024</option>
+                                                    <option value={2025}>Session 2025</option>
+                                                    <option value={2026}>Session 2026</option>
+                                                </select>
+                                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 pointer-events-none group-hover:text-white transition-colors" />
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* ID Generator Field */}
                                     <div className="space-y-2 md:col-span-2">
                                         <label className="text-[9px] font-bold uppercase text-slate-600 ml-1 flex justify-between items-center">
@@ -466,6 +492,26 @@ export function UserModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
                                                 <Sparkles className="w-5 h-5 group-hover:animate-pulse" />
                                             </button>
                                         </div>
+
+                                        {idSuggestions.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-3 p-3 bg-blue-600/5 rounded-2xl border border-blue-500/10">
+                                                <div className="w-full text-[8px] font-black uppercase text-blue-500/50 mb-1 ml-1 flex items-center gap-2">
+                                                    <Sparkles className="w-2 h-2" /> Numéros Proposés
+                                                </div>
+                                                {idSuggestions.map((suggestion) => (
+                                                    <button
+                                                        key={suggestion}
+                                                        onClick={() => setUserId(suggestion)}
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all border ${userId === suggestion
+                                                            ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
+                                                            : 'bg-[#0B0F19] border-slate-800 text-slate-500 hover:border-blue-500/50 hover:text-blue-400'
+                                                            }`}
+                                                    >
+                                                        {suggestion}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

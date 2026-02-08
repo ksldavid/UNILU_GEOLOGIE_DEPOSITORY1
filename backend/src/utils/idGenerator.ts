@@ -18,23 +18,18 @@ export function generatePassword(name: string): string {
 }
 
 /**
- * Génère un ID étudiant unique au format 012501XXXX
+ * Génère une liste d'IDs étudiants suggérés (format 012501XXXX)
  */
-export async function generateUniqueStudentId(): Promise<string> {
-    const base = "012501";
-    let isUnique = false;
-    let newId = "";
+export async function generateStudentIdSuggestions(limit: number = 5, year?: number): Promise<string[]> {
+    const targetYear = year || new Date().getFullYear();
+    const yearPart = targetYear.toString().slice(-2);
+    const base = `01${yearPart}01`;
+    const suggestions: string[] = [];
 
-    // On récupère le dernier ID de ce type pour essayer d'incrémenter intelligemment
+    // On récupère le dernier ID de ce type
     const lastUser = await prisma.user.findFirst({
-        where: {
-            id: {
-                startsWith: base
-            }
-        },
-        orderBy: {
-            id: 'desc'
-        }
+        where: { id: { startsWith: base } },
+        orderBy: { id: 'desc' }
     });
 
     let currentSeq = 1;
@@ -45,36 +40,39 @@ export async function generateUniqueStudentId(): Promise<string> {
         }
     }
 
-    while (!isUnique) {
-        newId = `${base}${currentSeq.toString().padStart(4, '0')}`;
-        const existing = await prisma.user.findUnique({ where: { id: newId } });
+    while (suggestions.length < limit) {
+        const potentialId = `${base}${currentSeq.toString().padStart(4, '0')}`;
+        const existing = await prisma.user.findUnique({ where: { id: potentialId } });
         if (!existing) {
-            isUnique = true;
-        } else {
-            currentSeq++;
+            suggestions.push(potentialId);
         }
+        currentSeq++;
+
+        // Sécurité pour éviter une boucle infinie si trop de recherches
+        if (currentSeq > 20000) break;
     }
 
-    return newId;
+    return suggestions;
 }
 
 /**
- * Génère un ID professeur unique au format UNIXXXX
+ * Génère un ID étudiant unique au format 012501XXXX
  */
-export async function generateUniqueProfessorId(): Promise<string> {
+export async function generateUniqueStudentId(): Promise<string> {
+    const suggestions = await generateStudentIdSuggestions(1);
+    return suggestions[0] || "0125019999";
+}
+
+/**
+ * Génère une liste d'IDs professeurs suggérés (format UNIXXXX)
+ */
+export async function generateProfessorIdSuggestions(limit: number = 5): Promise<string[]> {
     const base = "UNI";
-    let isUnique = false;
-    let newId = "";
+    const suggestions: string[] = [];
 
     const lastUser = await prisma.user.findFirst({
-        where: {
-            id: {
-                startsWith: base
-            }
-        },
-        orderBy: {
-            id: 'desc'
-        }
+        where: { id: { startsWith: base } },
+        orderBy: { id: 'desc' }
     });
 
     let currentSeq = 1;
@@ -85,15 +83,23 @@ export async function generateUniqueProfessorId(): Promise<string> {
         }
     }
 
-    while (!isUnique) {
-        newId = `${base}${currentSeq.toString().padStart(4, '0')}`;
-        const existing = await prisma.user.findUnique({ where: { id: newId } });
+    while (suggestions.length < limit) {
+        const potentialId = `${base}${currentSeq.toString().padStart(4, '0')}`;
+        const existing = await prisma.user.findUnique({ where: { id: potentialId } });
         if (!existing) {
-            isUnique = true;
-        } else {
-            currentSeq++;
+            suggestions.push(potentialId);
         }
+        currentSeq++;
+        if (currentSeq > 20000) break;
     }
 
-    return newId;
+    return suggestions;
+}
+
+/**
+ * Génère un ID professeur unique au format UNIXXXX
+ */
+export async function generateUniqueProfessorId(): Promise<string> {
+    const suggestions = await generateProfessorIdSuggestions(1);
+    return suggestions[0] || "UNI9999";
 }

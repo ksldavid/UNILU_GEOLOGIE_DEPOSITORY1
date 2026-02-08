@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import prisma from '../../lib/prisma'
 import bcrypt from 'bcrypt'
-import { generateUniqueStudentId, generateUniqueProfessorId, generatePassword } from '../../utils/idGenerator'
+import { generateStudentIdSuggestions, generateProfessorIdSuggestions, generateUniqueStudentId, generateUniqueProfessorId, generatePassword } from '../../utils/idGenerator'
 
 // Récupérer tous les utilisateurs avec filtres et pagination (Admin seulement)
 export const getAllUsers = async (req: Request, res: Response) => {
@@ -134,23 +134,30 @@ export const getAllUsers = async (req: Request, res: Response) => {
     }
 }
 
+
+
 // Suggérer le prochain ID et mot de passe (Admin seulement)
 export const suggestNextUserCredentials = async (req: Request, res: Response) => {
     try {
-        const { role, name } = req.query as { role: string, name?: string }
+        const { role, name, year } = req.query as { role: string, name?: string, year?: string }
 
-        let id = ""
+        let suggestions: string[] = []
         if (role === 'student') {
-            id = await generateUniqueStudentId()
+            const targetYear = year ? parseInt(year) : undefined;
+            suggestions = await generateStudentIdSuggestions(5, targetYear)
         } else if (role === 'prof') {
-            id = await generateUniqueProfessorId()
+            suggestions = await generateProfessorIdSuggestions(5)
         } else {
             return res.status(400).json({ error: 'Rôle non supporté pour la génération automatique.' })
         }
 
         const password = name ? generatePassword(name) : ""
 
-        res.json({ id, password })
+        res.json({
+            id: suggestions[0],
+            suggestions,
+            password
+        })
     } catch (error) {
         console.error('Error suggesting credentials:', error)
         res.status(500).json({ error: 'Failed to suggest credentials' })
@@ -160,7 +167,7 @@ export const suggestNextUserCredentials = async (req: Request, res: Response) =>
 // Créer un utilisateur (Admin seulement)
 export const createAdminUser = async (req: Request, res: Response) => {
     try {
-        let { id, name, email, password, role, studentClass } = req.body
+        let { id, name, email, password, role, studentClass, academicYear } = req.body
 
         // Attribution automatique si manquant
         if (!id) {
@@ -216,7 +223,7 @@ export const createAdminUser = async (req: Request, res: Response) => {
                     data: {
                         userId: newUser.id,
                         academicLevelId: level.id,
-                        academicYear: '2025-2026'
+                        academicYear: academicYear || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
                     }
                 })
             }
@@ -232,7 +239,7 @@ export const createAdminUser = async (req: Request, res: Response) => {
 // Mettre à jour le statut (Bloquer/Débloquer)
 export const updateUserStatus = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params
+        const { id } = req.params as { id: string }
         const { status } = req.body // 'Actif' or 'Inactif'
 
         await prisma.user.update({
@@ -249,7 +256,7 @@ export const updateUserStatus = async (req: Request, res: Response) => {
 // Réinitialiser le mot de passe
 export const resetUserPassword = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params
+        const { id } = req.params as { id: string }
         const { password } = req.body
 
         const hashedPassword = await bcrypt.hash(password, 10)
@@ -268,7 +275,7 @@ export const resetUserPassword = async (req: Request, res: Response) => {
 // Supprimer un utilisateur
 export const deleteUser = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params
+        const { id } = req.params as { id: string }
 
         // On vérifie qu'on ne se supprime pas soi-même
         if (id === (req as any).user.id) {
