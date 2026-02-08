@@ -71,6 +71,7 @@ export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) =
 
     const filteredTickets = tickets.filter(t => {
         if (filter === 'ALL') return true;
+        if (filter === 'Inscription') return t.category === 'Inscription';
         return t.status === filter;
     });
 
@@ -96,6 +97,12 @@ export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) =
                         className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === 'ALL' ? 'bg-blue-600 text-white' : 'bg-slate-800/50 text-slate-500 hover:text-white'}`}
                     >
                         Tous
+                    </button>
+                    <button
+                        onClick={() => setFilter('Inscription')}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === 'Inscription' ? 'bg-emerald-600 text-white' : 'bg-slate-800/50 text-slate-500 hover:text-white'}`}
+                    >
+                        Inscriptions
                     </button>
                     <button
                         onClick={() => setFilter('PENDING')}
