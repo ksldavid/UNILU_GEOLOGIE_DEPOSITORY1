@@ -97,29 +97,40 @@ export function StudentPlanning() {
         </div>
       </div>
 
-      {/* Day Selector */}
-      <div className="bg-white p-2 rounded-2xl md:rounded-[32px] border border-gray-100 shadow-sm overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-1 min-w-max md:min-w-0 md:grid md:grid-cols-6">
-          {days.map((day) => (
-            <button
-              key={day.id}
-              onClick={() => setSelectedDay(day.id)}
-              className={`flex-1 py-3 md:py-5 px-6 md:px-2 rounded-xl md:rounded-2xl transition-all relative overflow-hidden group ${selectedDay === day.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:bg-gray-50'}`}
-            >
-              <span className="block md:hidden text-xs font-black uppercase relative z-10">{day.short}</span>
-              <span className="hidden md:block text-[10px] font-black uppercase tracking-widest mb-1 relative z-10">{day.label}</span>
-              {selectedDay === day.id && (
-                <motion.div layoutId="activeDay" className="absolute inset-0 bg-blue-600" />
-              )}
-              <div className="relative z-10">
-                <span className={`text-[10px] font-bold ${selectedDay === day.id ? 'text-white/60' : 'text-gray-300'}`}>
-                  {getCoursesForDay(day.id).length} cours
-                </span>
+      {/* Day Selector - Only visible in daily view */}
+      <AnimatePresence>
+        {viewMode === 'daily' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-white p-2 rounded-2xl md:rounded-[32px] border border-gray-100 shadow-sm overflow-x-auto no-scrollbar mb-6 md:mb-10">
+              <div className="flex items-center gap-1 min-w-max md:min-w-0 md:grid md:grid-cols-6">
+                {days.map((day) => (
+                  <button
+                    key={day.id}
+                    onClick={() => setSelectedDay(day.id)}
+                    className={`flex-1 py-3 md:py-5 px-6 md:px-2 rounded-xl md:rounded-2xl transition-all relative overflow-hidden group ${selectedDay === day.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:bg-gray-50'}`}
+                  >
+                    <span className="block md:hidden text-xs font-black uppercase relative z-10">{day.short}</span>
+                    <span className="hidden md:block text-[10px] font-black uppercase tracking-widest mb-1 relative z-10">{day.label}</span>
+                    {selectedDay === day.id && (
+                      <motion.div layoutId="activeDay" className="absolute inset-0 bg-blue-600" />
+                    )}
+                    <div className="relative z-10">
+                      <span className={`text-[10px] font-bold ${selectedDay === day.id ? 'text-white/60' : 'text-gray-300'}`}>
+                        {getCoursesForDay(day.id).length} cours
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
-            </button>
-          ))}
-        </div>
-      </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence mode="wait">
         <motion.div

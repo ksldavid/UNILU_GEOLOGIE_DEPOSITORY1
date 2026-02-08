@@ -390,7 +390,7 @@ export default function App() {
               hasUnreadAnnouncements={hasUnreadAnnouncements}
               onBellClick={() => handleStudentNavigate('announcements')}
             />
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto pb-24 md:pb-8">
               {studentCurrentPage === 'dashboard' && <StudentDashboard onNavigate={handleStudentNavigate} />}
               {studentCurrentPage === 'courses' && <StudentCourses />}
               {studentCurrentPage === 'planning' && <StudentPlanning />}
@@ -451,7 +451,7 @@ export default function App() {
                 }, 100);
               }}
             />
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto pb-24 md:pb-8">
               {currentPage === 'dashboard' && <Dashboard onNavigate={handleProfessorNavigate} />}
               {currentPage === 'courses' && <CourseList onCourseSelect={handleCourseSelect} />}
               {currentPage === 'course-detail' && selectedCourse && (
