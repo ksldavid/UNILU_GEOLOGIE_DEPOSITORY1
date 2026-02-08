@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import LoginPage from './components/LoginPage';
+import LoginPage, { LoginResult } from './components/LoginPage';
 import { AdminLoginPage } from './components/admin/AdminLoginPage';
 import { StudentDashboard } from './components/students/StudentHome';
 import { StudentCourses } from './components/students/StudentCourses';
@@ -205,7 +205,7 @@ export default function App() {
 
 
 
-  const handleLogin = async (id: string, password: string, role: UserRole): Promise<'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'> => {
+  const handleLogin = async (id: string, password: string, role: UserRole): Promise<{ status: LoginResult, message?: string }> => {
     if (id && password) {
       try {
         const response = await authService.login(id, password);
@@ -214,19 +214,19 @@ export default function App() {
 
         // VÉRIFICATION DE LA COHÉRENCE ENTRE L'ONGLET ET LE RÔLE RÉEL
         if (role === 'STUDENT' && actualRole !== 'STUDENT') {
-          return 'ROLE_MISMATCH';
+          return { status: 'ROLE_MISMATCH' };
         }
         if (role === 'USER' && actualRole !== 'USER') {
           // On autorise l'admin à accéder à l'interface prof pour gestion/test
           if (actualRole !== 'ADMIN' && actualRole !== 'ACADEMIC_OFFICE') {
-            return 'ROLE_MISMATCH';
+            return { status: 'ROLE_MISMATCH' };
           }
         }
         if (role === 'ADMIN' && actualRole !== 'ADMIN') {
-          return 'ROLE_MISMATCH';
+          return { status: 'ROLE_MISMATCH' };
         }
         if (role === 'ACADEMIC_OFFICE' && actualRole !== 'ACADEMIC_OFFICE') {
-          return 'ROLE_MISMATCH';
+          return { status: 'ROLE_MISMATCH' };
         }
 
         // Si tout est bon, on connecte
@@ -265,14 +265,17 @@ export default function App() {
           setCurrentPage('dashboard');
           window.history.replaceState({ page: 'dashboard' }, '', '/dashboard');
         }
-
-        return 'SUCCESS';
-      } catch (error) {
+        return { status: 'SUCCESS' };
+      } catch (error: any) {
         console.error("Erreur de connexion:", error);
-        return 'AUTH_FAILED'; // Mauvais mot de passe ou utilisateur inconnu
+        // On vérifie si c'est un compte bloqué (message long du backend)
+        if (error.message && (error.message.includes('Service Académique') || error.message.includes('restreint'))) {
+          return { status: 'BLOCKED', message: error.message };
+        }
+        return { status: 'AUTH_FAILED' };
       }
     }
-    return 'AUTH_FAILED';
+    return { status: 'AUTH_FAILED' };
   };
 
   const handleLogout = () => {

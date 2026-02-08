@@ -35,8 +35,10 @@ const slides = [
     }
 ];
 
+export type LoginResult = 'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH' | 'BLOCKED';
+
 interface LoginPageProps {
-    onLogin: (id: string, password: string, role: 'STUDENT' | 'USER') => Promise<'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'>;
+    onLogin: (id: string, password: string, role: 'STUDENT' | 'USER') => Promise<{ status: LoginResult, message?: string }>;
     onAdminAccess: () => void;
 }
 
@@ -50,6 +52,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
     const [roleMismatch, setRoleMismatch] = useState(false);
     const [isPlaying, setIsPlaying] = useState(true);
 
@@ -69,15 +72,20 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
 
             try {
                 const targetRole = activeTab === 'student' ? 'STUDENT' : 'USER';
-                const result = await onLogin(studentId.trim(), password.trim(), targetRole);
+                const { status, message } = await onLogin(studentId.trim(), password.trim(), targetRole);
 
-                if (result === 'ROLE_MISMATCH') {
+                if (status === 'ROLE_MISMATCH') {
                     setRoleMismatch(true);
-                } else if (result === 'AUTH_FAILED') {
+                } else if (status === 'AUTH_FAILED') {
                     setError(true);
+                    setErrorMessage('Identifiant ou mot de passe incorrect.');
+                } else if (status === 'BLOCKED') {
+                    setError(true);
+                    setErrorMessage(message || 'Votre compte est restreint.');
                 }
-            } catch (err) {
+            } catch (err: any) {
                 setError(true);
+                setErrorMessage(err.message || 'Erreur de connexion.');
             } finally {
                 setIsLoading(false);
             }
@@ -282,9 +290,9 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
                                             exit={{ opacity: 0, height: 0 }}
-                                            className="text-red-500 text-xs font-bold mt-2 ml-1"
+                                            className="text-red-500 text-xs font-bold mt-2 ml-1 leading-relaxed"
                                         >
-                                            Identifiant ou mot de passe incorrect.
+                                            {errorMessage}
                                         </motion.p>
                                     )}
                                     {roleMismatch && (

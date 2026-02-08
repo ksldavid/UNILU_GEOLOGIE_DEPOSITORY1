@@ -36,7 +36,7 @@ export const login = async (req: Request, res: Response) => {
         // 3. Vérifier si l'utilisateur est bloqué
         if (user.isBlocked) {
             return res.status(403).json({
-                message: 'Votre compte est bloqué',
+                message: `L'accès de l'étudiant(e) ${user.name} a été restreint par le Service Académique suite à des motifs d'ordre administratif, financier ou un contentieux universitaire. Si vous estimez qu'il s'agit d'une erreur, veuillez contacter immédiatement le Service Académique pour régulariser votre situation.`,
                 reason: user.blockReason
             })
         }

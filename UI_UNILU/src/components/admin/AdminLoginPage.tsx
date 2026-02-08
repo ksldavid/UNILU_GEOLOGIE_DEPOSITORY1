@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { LoginResult } from '../LoginPage';
 // import logoImage from '../../assets/unilu-official-logo.png';
 
 interface AdminLoginPageProps {
-  onLogin: (id: string, password: string, role: 'admin' | 'service-academique') => Promise<void | boolean | 'SUCCESS' | 'AUTH_FAILED' | 'ROLE_MISMATCH'>;
+  onLogin: (id: string, password: string, role: 'admin' | 'service-academique') => Promise<{ status: LoginResult, message?: string }>;
   onBack: () => void;
 }
 
@@ -23,14 +24,14 @@ export function AdminLoginPage({ onLogin, onBack }: AdminLoginPageProps) {
     if (userId.trim() && password.trim()) {
       setIsLoading(true);
       try {
-        const result = await onLogin(userId.trim(), password.trim(), activeRole);
+        const { status, message } = await onLogin(userId.trim(), password.trim(), activeRole);
 
-        if (result === 'ROLE_MISMATCH') {
+        if (status === 'ROLE_MISMATCH') {
           setError("Cet identifiant n'appartient pas à cet onglet (vérifiez si vous êtes au Service Technique ou Académique).");
-        } else if (result === 'AUTH_FAILED') {
+        } else if (status === 'AUTH_FAILED') {
           setError("L'identifiant ou le mot de passe est incorrect.");
-        } else if (result === false) {
-          setError("L'identifiant ou le mot de passe est incorrect.");
+        } else if (status === 'BLOCKED') {
+          setError(message || "Votre compte est restreint.");
         }
       } catch (error) {
         setError('Une erreur est survenue lors de la connexion.');
