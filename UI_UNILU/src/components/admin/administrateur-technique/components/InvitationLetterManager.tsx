@@ -17,128 +17,147 @@ export function InvitationLetterManager() {
     const generatePDF = () => {
         const doc = new jsPDF();
         const { name, gender, id, password } = formData;
+        const today = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
-        // Colors
-        const primaryColor = '#1e3a8a'; // UNILU Blue
-        const secondaryColor = '#64748b'; // Slate 500
+        // Colors & Config
+        const primaryColor = '#0f172a'; // Deep Navy for header
 
-        // PAGE 1
-        // Header
-        doc.setFillColor(primaryColor);
-        doc.rect(0, 0, 210, 40, 'F');
-        doc.setTextColor('#ffffff');
-        doc.setFontSize(24);
-        doc.setFont('helvetica', 'bold');
-        doc.text('UNIVERSITÉ DE LUBUMBASHI', 105, 20, { align: 'center' });
-        doc.setFontSize(14);
-        doc.text('PORTAIL NUMÉRIQUE UNILUHUB', 105, 30, { align: 'center' });
+        const drawOfficialHeader = () => {
+            // Dark Header Box
+            doc.setFillColor(primaryColor);
+            doc.rect(0, 0, 210, 50, 'F');
 
-        // Body Page 1
-        doc.setTextColor('#000000');
-        doc.setFontSize(12);
-        const title = gender === 'M' ? `Monsieur le Professeur ${name},` : `Madame la Professeure ${name},`;
-        doc.text(title, 20, 60);
+            // Logo placeholder
+            doc.setFillColor('#FFFFFF');
+            doc.rect(15, 8, 35, 35, 'F');
+            doc.setTextColor('#000000');
+            doc.setFontSize(8);
+            doc.text('LOGO', 32, 28, { align: 'center' });
 
-        doc.setFont('helvetica', 'bold');
-        doc.text('Objet : Déploiement du Portail Numérique UNILUHUB – Invitation et Accès Officiels', 20, 75);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(primaryColor);
-        doc.text('Importance du portail :', 20, 90);
-
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor('#000000');
-        const introTxt = "Dans le cadre de la modernisation des services académiques de l'Université de Lubumbashi, nous avons le plaisir de vous présenter UNILUHUB, votre nouveau portail numérique intégré. Cet outil a été conçu pour simplifier la gestion de vos enseignements et favoriser une interaction fluide avec l'administration et les étudiants. UNILUHUB n'est pas qu'un simple outil informatique ; c'est le fruit d'une volonté de moderniser nos processus académiques en plaçant l'excellence et l'innovation au cœur de notre institution.";
-        const splitIntro = doc.splitTextToSize(introTxt, 170);
-        doc.text(splitIntro, 20, 100);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(primaryColor);
-        doc.text('Normes de Sécurité et Confidentialité :', 20, 140);
-
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor('#000000');
-        const securityPoints = [
-            { t: 'La souveraineté des données :', d: 'Toutes les informations sont hébergées et sécurisées suivant des protocoles de chiffrement avancés.' },
-            { t: 'La protection de la vie privée :', d: 'Conformément aux exigences du Service académique, chaque utilisateur garde un contrôle total sur ses informations personnelles.' },
-            { t: 'La traçabilité intégrale :', d: 'Chaque action sur le portail est auditée pour prévenir toute tentative d\'usurpation.' }
-        ];
-
-        let currentY = 150;
-        securityPoints.forEach(point => {
+            // Text Header
+            doc.setTextColor('#FFFFFF');
             doc.setFont('helvetica', 'bold');
-            doc.text(`• ${point.t}`, 25, currentY);
-            currentY += 7;
+            doc.setFontSize(10);
+            doc.text('RÉPUBLIQUE DÉMOCRATIQUE DU CONGO', 125, 15, { align: 'center' });
+
+            doc.setFontSize(22);
+            doc.text('UNIVERSITÉ DE LUBUMBASHI', 125, 25, { align: 'center' });
+
+            doc.setFontSize(11);
             doc.setFont('helvetica', 'normal');
-            const splitD = doc.splitTextToSize(point.d, 160);
-            doc.text(splitD, 30, currentY);
-            currentY += (splitD.length * 7) + 2;
-        });
+            doc.text('CENTRE D\'EXCELLENCE - FACULTÉ DE GÉOLOGIE', 125, 35, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text('DIRECTION DE L\'INFORMATIQUE ET DES SYSTÈMES D\'INFORMATION', 125, 42, { align: 'center' });
 
-        // PAGE 2
-        doc.addPage();
+            // Separation Line
+            doc.setDrawColor('#FFFFFF');
+            doc.setLineWidth(0.5);
+            doc.line(75, 45, 175, 45);
+        };
 
-        // Header Page 2
-        doc.setFillColor(primaryColor);
-        doc.rect(0, 0, 210, 15, 'F');
+        // --- PAGE 1 ---
+        drawOfficialHeader();
 
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(primaryColor);
-        doc.setFontSize(16);
-        doc.text('VOS OUTILS ET VOS ACCÈS', 105, 30, { align: 'center' });
-
-        doc.setFontSize(12);
-        doc.text('Fonctionnalités à votre disposition :', 20, 45);
-
-        doc.setFont('helvetica', 'normal');
+        // Reference and Date
         doc.setTextColor('#000000');
-        const features = [
-            "Gestion de l'Assiduité par QR Code : Prise de présence instantanée en scannant les badges étudiants.",
-            "Statistiques et Analytiques : Visualisation dynamique des performances de vos promotions.",
-            "Emploi du Temps Connecté : Calendrier en temps réel avec notifications de changements.",
-            "Saisie de Notes Sécurisée : Calcul automatique des moyennes et transmission sécurisée.",
-            "Interaction Directe : Publication de supports de cours et d'annonces sur les mobiles étudiants."
-        ];
-
-        currentY = 55;
-        features.forEach(f => {
-            const splitF = doc.splitTextToSize(`- ${f}`, 170);
-            doc.text(splitF, 20, currentY);
-            currentY += (splitF.length * 7) + 3;
-        });
-
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(primaryColor);
-        doc.text('Votre Protocole de Sécurité Personnel :', 20, currentY + 10);
-
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor('#000000');
-        currentY += 20;
-        doc.text("• Identifiants strictement personnels.", 25, currentY);
-        doc.text("• Déconnexion obligatoire sur les terminaux partagés.", 25, currentY + 7);
-        doc.text("• Changement de mot de passe requis dès la première connexion.", 25, currentY + 14);
-
-        // Credentials Box
-        currentY += 35;
-        doc.setDrawColor(primaryColor);
-        doc.setLineWidth(1);
-        doc.rect(20, currentY, 170, 40);
-        doc.setFillColor('#f8fafc');
-        doc.rect(21, currentY + 1, 168, 38, 'F');
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(primaryColor);
-        doc.text('VOS IDENTIFIANTS D\'ACCÈS', 105, currentY + 10, { align: 'center' });
-
-        doc.setFontSize(14);
-        doc.setTextColor('#000000');
-        doc.text(`Identifiant (ID Prof) : ${id}`, 105, currentY + 22, { align: 'center' });
-        doc.text(`Mot de passe provisoire : ${password}`, 105, currentY + 32, { align: 'center' });
-
-        // Footer
         doc.setFontSize(10);
-        doc.setTextColor(secondaryColor);
-        doc.text('Ce document est confidentiel. Fait à Lubumbashi, le ' + new Date().toLocaleDateString(), 105, 280, { align: 'center' });
+        doc.text('Réf: UNILU/DSI/ACC/2026/EINOEO', 20, 65);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Lubumbashi, le ${today}`, 190, 65, { align: 'right' });
+
+        // Object
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text('Objet : Notification d\'activation de compte et paramètres d\'accès', 20, 85);
+
+        // Attention
+        const salutation = gender === 'M' ? 'M.' : 'Mme';
+        doc.text(`A l'attention de ${salutation} ${name.toUpperCase()}`, 20, 95);
+
+        // Body Text
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        const introTxt = "Nous avons le plaisir de vous confirmer votre enregistrement au sein du réseau académique de l'Université de Lubumbashi pour le compte de l'année académique courante.\n\nL'UNILU, fidèle à sa mission d'excellence, met à votre disposition des outils numériques de pointe pour faciliter votre parcours d'apprentissage. Sachez que le corps professoral et technique est mobilisé pour assurer votre encadrement jusqu'à l'obtention de votre titre académique. Ce parcours vise à faire de vous un cadre compétent, un « produit fini » apte à répondre avec rigueur aux exigences du monde professionnel.";
+        const splitIntro = doc.splitTextToSize(introTxt, 170);
+        doc.text(splitIntro, 20, 110);
+
+        doc.text("Nous vous recommandons une lecture attentive des consignes de sécurité jointes.", 20, 160);
+
+        // Signature Section DSI
+        doc.setFont('helvetica', 'bold');
+        doc.text('Le Directeur du Service Informatique', 190, 180, { align: 'right' });
+
+        // Stamp Box DSI
+        doc.setDrawColor('#0f172a');
+        doc.setLineWidth(0.8);
+        doc.rect(140, 185, 50, 35);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'italic');
+        doc.text('Cachet et Visa DSI', 165, 205, { align: 'center' });
+
+        // Ampliation
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text('Ampliation :', 20, 230);
+        doc.text('- Secrétariat Académique', 25, 237);
+        doc.text('- Intéressé(e)', 25, 244);
+        doc.text('- Archives Techniques', 25, 251);
+
+        // Footer Page 1
+        doc.setFontSize(8);
+        doc.setTextColor('#94a3b8');
+        doc.text('© UNILU Security Services - Document à usage unique et strictement personnel.', 105, 285, { align: 'center' });
+
+        // --- PAGE 2 ---
+        doc.addPage();
+        drawOfficialHeader();
+
+        doc.setTextColor('#000000');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.text('VOS OUTILS ET VOS ACCÈS', 105, 70, { align: 'center' });
+
+        // Features List
+        doc.setFontSize(11);
+        doc.text('Fonctionnalités à votre disposition :', 20, 85);
+        doc.setFont('helvetica', 'normal');
+        const features = [
+            "Gestion de l'Assiduité par QR Code : Prise de présence instantanée.",
+            "Statistiques et Analytiques : Suivi des performances en temps réel.",
+            "Emploi du Temps Connecté : Calendrier dynamique et notifications.",
+            "Saisie de Notes Sécurisée : Interface de notation protégée.",
+            "Interaction Directe : Publication de cours sur mobiles étudiants."
+        ];
+        let currentY = 95;
+        features.forEach(f => {
+            doc.text(`• ${f}`, 25, currentY);
+            currentY += 8;
+        });
+
+        // Credentials Section
+        currentY += 15;
+        doc.setDrawColor(primaryColor);
+        doc.setLineWidth(1.5);
+        doc.line(20, currentY, 190, currentY);
+
+        currentY += 15;
+        doc.setFont('helvetica', 'bold');
+        doc.text('IDENTIFIANTS PERSONNELS', 105, currentY, { align: 'center' });
+
+        currentY += 12;
+        doc.setFontSize(14);
+        doc.text(`ID : ${id}`, 105, currentY, { align: 'center' });
+        currentY += 10;
+        doc.text(`MOT DE PASSE : ${password}`, 105, currentY, { align: 'center' });
+
+        // Direction Académique Box
+        currentY += 30;
+        doc.setFontSize(12);
+        doc.text('DIRECTION ACADÉMIQUE', 105, currentY, { align: 'center' });
+        doc.setDrawColor('#cbd5e1'); // Light blue-grey for the academic box
+        doc.setLineWidth(2);
+        doc.rect(55, currentY + 5, 100, 45);
 
         doc.save(`Lettre_Invitation_${name.replace(/\s+/g, '_')}.pdf`);
     };
