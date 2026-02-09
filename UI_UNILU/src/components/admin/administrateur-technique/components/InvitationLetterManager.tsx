@@ -143,7 +143,7 @@ export function InvitationLetterManager() {
             "Prise de présence instantanée en générant le code QR scannable par les étudiants.",
             "Statistiques et Analytiques : Visualisation dynamique des performances de vos promotions.",
             "Emploi du Temps Connecté : Calendrier en temps réel avec notifications de changements.",
-            "Transmission de cotes résultats sécurisée.",
+            "Transmission des résultats sécurisée.",
             "Interaction Directe : Publication de supports de cours et d'annonces sur les mobiles étudiants."
         ];
         currentY = 95;
