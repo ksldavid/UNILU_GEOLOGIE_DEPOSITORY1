@@ -14,7 +14,9 @@ import { SupportTicketsAdmin } from './components/SupportTicketsAdmin';
 import { ConfigManager } from './components/ConfigManager';
 import { CommunicationManager } from './components/CommunicationManager';
 import { AdsManager } from './components/AdsManager';
+import { InvitationLetterManager } from './components/InvitationLetterManager';
 import { API_URL } from '../../../services/config';
+import { Mail } from 'lucide-react';
 
 export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
     const [activeTab, setActiveTab] = useState('System');
@@ -74,6 +76,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
         { id: 'Communication', icon: Megaphone, label: 'Communication' },
         { id: 'Support', icon: MessageSquare, label: 'Support' },
         { id: 'Ads', icon: Globe, label: 'Régie Pub' },
+        { id: 'Invitations', icon: Mail, label: 'Générer une lettre' },
         { id: 'Config', icon: Settings, label: 'Configuration' },
     ];
 
@@ -95,6 +98,8 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                 return <SupportTicketsAdmin onRegister={(data) => { setInitialModalData(data); setIsUserModalOpen(true); }} />;
             case 'Ads':
                 return <AdsManager />;
+            case 'Invitations':
+                return <InvitationLetterManager />;
             case 'Config':
                 return <ConfigManager />;
             default:
