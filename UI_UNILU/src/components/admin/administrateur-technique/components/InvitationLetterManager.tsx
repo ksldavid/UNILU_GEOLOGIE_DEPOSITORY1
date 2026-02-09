@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { User, Shield, Plus, FileText, Download, X, UserCheck, Users, Briefcase, Settings } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import logoUnilu from '../../../assets/unilu-official-logo.png';
+import logoUnilu from '../../../../assets/unilu-official-logo.png';
 
 type TargetType = 'Etudiant' | 'Corps Académique et Scientifique' | 'Service Académique' | 'Service Technique';
 
@@ -141,11 +141,10 @@ export function InvitationLetterManager() {
             currentY += 8;
         });
 
-        // Credentials Section (Cleaned up as per request)
+        // Credentials Section (More compact and thick bar)
         currentY += 15;
-        doc.setDrawColor(primaryColor);
-        doc.setLineWidth(2);
-        doc.line(20, currentY, 190, currentY); // Navy blue bold line
+        doc.setFillColor(primaryColor);
+        doc.rect(10, currentY, 190, 6, 'F'); // Thick bar (like in photo)
 
         currentY += 15;
         doc.setFont('helvetica', 'bold');
@@ -155,16 +154,16 @@ export function InvitationLetterManager() {
         currentY += 12;
         doc.setFontSize(15);
         doc.text(`ID : ${id}`, 105, currentY, { align: 'center' });
-        currentY += 10;
+        currentY += 8;
         doc.text(`MOT DE PASSE : ${password}`, 105, currentY, { align: 'center' });
 
-        // Direction Académique Box (Reduced size)
-        currentY += 30;
-        doc.setFontSize(11);
+        // Direction Académique Box (Even smaller and more discreet)
+        currentY += 25;
+        doc.setFontSize(10);
         doc.text('DIRECTION ACADÉMIQUE', 105, currentY, { align: 'center' });
         doc.setDrawColor('#cbd5e1');
-        doc.setLineWidth(1.5);
-        doc.rect(65, currentY + 5, 80, 35); // Smaller box
+        doc.setLineWidth(1);
+        doc.rect(75, currentY + 5, 60, 25); // Very small box
 
         doc.save(`Lettre_Invitation_${name.replace(/\s+/g, '_')}.pdf`);
     };
