@@ -118,17 +118,13 @@ export function InvitationLetterManager() {
             currentY += (splitD.length * 7) + 10;
         });
 
-        // Signature Section (Pushed further down)
-        doc.setFont('helvetica', 'bold');
-        doc.text('Le Directeur du Service Technique', 190, 250, { align: 'right' });
-
         // Stamp Box
         doc.setDrawColor('#0f172a');
         doc.setLineWidth(0.8);
-        doc.rect(140, 255, 45, 30);
+        doc.rect(140, 250, 45, 30);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.text('SERVICE TECHNIQUE', 162.5, 292, { align: 'center' });
+        doc.text('SERVICE TECHNIQUE', 162.5, 287, { align: 'center' });
 
         // --- PAGE 2 ---
         doc.addPage();
