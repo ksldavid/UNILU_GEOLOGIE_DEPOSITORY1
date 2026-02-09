@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { User, Shield, Plus, FileText, Download, X, UserCheck, Users, Briefcase, Settings } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import logoUnilu from '../../../assets/unilu-official-logo.png';
 
 type TargetType = 'Etudiant' | 'Corps Académique et Scientifique' | 'Service Académique' | 'Service Technique';
 
@@ -27,12 +28,17 @@ export function InvitationLetterManager() {
             doc.setFillColor(primaryColor);
             doc.rect(0, 0, 210, 50, 'F');
 
-            // Logo placeholder
-            doc.setFillColor('#FFFFFF');
-            doc.rect(15, 8, 35, 35, 'F');
-            doc.setTextColor('#000000');
-            doc.setFontSize(8);
-            doc.text('LOGO', 32, 28, { align: 'center' });
+            // Logo
+            try {
+                doc.addImage(logoUnilu, 'PNG', 15, 5, 40, 40);
+            } catch (e) {
+                // Fallback if image fails
+                doc.setFillColor('#FFFFFF');
+                doc.rect(15, 8, 35, 35, 'F');
+                doc.setTextColor('#000000');
+                doc.setFontSize(8);
+                doc.text('UNILU', 32, 28, { align: 'center' });
+            }
 
             // Text Header
             doc.setTextColor('#FFFFFF');
@@ -91,10 +97,10 @@ export function InvitationLetterManager() {
         // Stamp Box DSI
         doc.setDrawColor('#0f172a');
         doc.setLineWidth(0.8);
-        doc.rect(140, 185, 50, 35);
+        doc.rect(140, 185, 45, 30); // Slightly smaller
         doc.setFontSize(8);
         doc.setFont('helvetica', 'italic');
-        doc.text('Cachet et Visa DSI', 165, 205, { align: 'center' });
+        doc.text('Cachet et Visa DSI', 162.5, 202, { align: 'center' });
 
         // Ampliation
         doc.setFont('helvetica', 'normal');
@@ -135,29 +141,30 @@ export function InvitationLetterManager() {
             currentY += 8;
         });
 
-        // Credentials Section
+        // Credentials Section (Cleaned up as per request)
         currentY += 15;
         doc.setDrawColor(primaryColor);
-        doc.setLineWidth(1.5);
-        doc.line(20, currentY, 190, currentY);
+        doc.setLineWidth(2);
+        doc.line(20, currentY, 190, currentY); // Navy blue bold line
 
         currentY += 15;
         doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
         doc.text('IDENTIFIANTS PERSONNELS', 105, currentY, { align: 'center' });
 
         currentY += 12;
-        doc.setFontSize(14);
+        doc.setFontSize(15);
         doc.text(`ID : ${id}`, 105, currentY, { align: 'center' });
         currentY += 10;
         doc.text(`MOT DE PASSE : ${password}`, 105, currentY, { align: 'center' });
 
-        // Direction Académique Box
+        // Direction Académique Box (Reduced size)
         currentY += 30;
-        doc.setFontSize(12);
+        doc.setFontSize(11);
         doc.text('DIRECTION ACADÉMIQUE', 105, currentY, { align: 'center' });
-        doc.setDrawColor('#cbd5e1'); // Light blue-grey for the academic box
-        doc.setLineWidth(2);
-        doc.rect(55, currentY + 5, 100, 45);
+        doc.setDrawColor('#cbd5e1');
+        doc.setLineWidth(1.5);
+        doc.rect(65, currentY + 5, 80, 35); // Smaller box
 
         doc.save(`Lettre_Invitation_${name.replace(/\s+/g, '_')}.pdf`);
     };
