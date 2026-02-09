@@ -75,45 +75,67 @@ export function InvitationLetterManager() {
         // Object
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(13);
-        doc.text('Objet : Notification d\'activation de compte et paramètres d\'accès', 20, 85);
+        doc.text('Objet : Déploiement du Portail Numérique UNILUHUB – Invitation et Accès Officiels', 20, 85);
 
         // Attention
-        const salutation = gender === 'M' ? 'M.' : 'Mme';
-        doc.text(`A l'attention de ${salutation} ${name.toUpperCase()}`, 20, 95);
+        const titleSalutation = gender === 'M' ? 'Monsieur le Professeur' : 'Madame la Professeure';
+        doc.text(`${titleSalutation} ${name.toUpperCase()},`, 20, 95);
 
         // Body Text
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(11);
-        const introTxt = "Nous avons le plaisir de vous confirmer votre enregistrement au sein du réseau académique de l'Université de Lubumbashi pour le compte de l'année académique courante.\n\nL'UNILU, fidèle à sa mission d'excellence, met à votre disposition des outils numériques de pointe pour faciliter votre parcours d'apprentissage. Sachez que le corps professoral et technique est mobilisé pour assurer votre encadrement jusqu'à l'obtention de votre titre académique. Ce parcours vise à faire de vous un cadre compétent, un « produit fini » apte à répondre avec rigueur aux exigences du monde professionnel.";
-        const splitIntro = doc.splitTextToSize(introTxt, 170);
-        doc.text(splitIntro, 20, 110);
 
-        doc.text("Nous vous recommandons une lecture attentive des consignes de sécurité jointes.", 20, 160);
+        let currentY = 110;
+
+        // Importance du portail
+        doc.setFont('helvetica', 'bold');
+        doc.text('Importance du portail :', 20, currentY);
+        doc.setFont('helvetica', 'normal');
+        const introTxt = "Dans le cadre de la modernisation des services académiques de l'Université de Lubumbashi, nous avons le plaisir de vous présenter UNILUHUB, votre nouveau portail numérique intégré. Cet outil a été conçu pour simplifier la gestion de vos enseignements et favoriser une interaction fluide avec l'administration et les étudiants. UNILUHUB n'est pas qu'un simple outil informatique ; c'est le fruit d'une volonté de moderniser nos processus académiques en plaçant l'excellence et l'innovation au cœur de notre institution.";
+        const splitIntro = doc.splitTextToSize(introTxt, 170);
+        doc.text(splitIntro, 20, currentY + 7);
+        currentY += (splitIntro.length * 7) + 15;
+
+        // Normes de Sécurité
+        doc.setFont('helvetica', 'bold');
+        doc.text('Normes de Sécurité et Confidentialité :', 20, currentY);
+        doc.setFont('helvetica', 'normal');
+        const securityIntro = "Conscient de la sensibilité des données académiques, UNILUHUB a été bâti sur des standards de sécurité de niveau industriel. Le système garantit :";
+        const splitSecurityIntro = doc.splitTextToSize(securityIntro, 170);
+        doc.text(splitSecurityIntro, 20, currentY + 7);
+        currentY += (splitSecurityIntro.length * 7) + 12;
+
+        const securityPoints = [
+            { t: 'La souveraineté des données :', d: 'Toutes les informations sont hébergées et sécurisées suivant des protocoles de chiffrement avancés.' },
+            { t: 'La protection de la vie privée :', d: 'Conformément aux exigences du Service académique, chaque utilisateur garde un contrôle total sur ses informations personnelles.' },
+            { t: 'Traçabilité intégrale :', d: 'Chaque action sur le portail est auditée pour prévenir toute tentative d\'usurpation.' }
+        ];
+
+        securityPoints.forEach(point => {
+            doc.setFont('helvetica', 'bold');
+            doc.text(`• ${point.t}`, 25, currentY);
+            doc.setFont('helvetica', 'normal');
+            const splitD = doc.splitTextToSize(point.d, 160);
+            doc.text(splitD, 30, currentY + 7);
+            currentY += (splitD.length * 7) + 10;
+        });
 
         // Signature Section DSI
         doc.setFont('helvetica', 'bold');
-        doc.text('Le Directeur du Service Informatique', 190, 180, { align: 'right' });
+        doc.text('Le Directeur du Service Informatique', 190, 245, { align: 'right' });
 
         // Stamp Box DSI
         doc.setDrawColor('#0f172a');
         doc.setLineWidth(0.8);
-        doc.rect(140, 185, 45, 30); // Slightly smaller
+        doc.rect(140, 250, 45, 30);
         doc.setFontSize(8);
         doc.setFont('helvetica', 'italic');
-        doc.text('Cachet et Visa DSI', 162.5, 202, { align: 'center' });
-
-        // Ampliation
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.text('Ampliation :', 20, 230);
-        doc.text('- Secrétariat Académique', 25, 237);
-        doc.text('- Intéressé(e)', 25, 244);
-        doc.text('- Archives Techniques', 25, 251);
+        doc.text('Cachet et Visa DSI', 162.5, 267, { align: 'center' });
 
         // Footer Page 1
         doc.setFontSize(8);
         doc.setTextColor('#94a3b8');
-        doc.text('© UNILU Security Services - Document à usage unique et strictement personnel.', 105, 285, { align: 'center' });
+        doc.text('© UNILU Security Services - Document à usage unique et strictement personnel.', 105, 290, { align: 'center' });
 
         // --- PAGE 2 ---
         doc.addPage();
@@ -129,41 +151,51 @@ export function InvitationLetterManager() {
         doc.text('Fonctionnalités à votre disposition :', 20, 85);
         doc.setFont('helvetica', 'normal');
         const features = [
-            "Gestion de l'Assiduité par QR Code : Prise de présence instantanée.",
-            "Statistiques et Analytiques : Suivi des performances en temps réel.",
-            "Emploi du Temps Connecté : Calendrier dynamique et notifications.",
-            "Saisie de Notes Sécurisée : Interface de notation protégée.",
-            "Interaction Directe : Publication de cours sur mobiles étudiants."
+            "Gestion de l'Assiduité par QR Code : Prise de présence instantanée en scannant les badges étudiants.",
+            "Statistiques et Analytiques : Visualisation dynamique des performances de vos promotions.",
+            "Emploi du Temps Connecté : Calendrier en temps réel avec notifications de changements.",
+            "Saisie de Notes Sécurisée : Calcul automatique des moyennes et transmission sécurisée.",
+            "Interaction Directe : Publication de supports de cours et d'annonces sur les mobiles étudiants."
         ];
-        let currentY = 95;
+        currentY = 95;
         features.forEach(f => {
-            doc.text(`• ${f}`, 25, currentY);
-            currentY += 8;
+            const splitF = doc.splitTextToSize(`• ${f}`, 170);
+            doc.text(splitF, 25, currentY);
+            currentY += (splitF.length * 7);
         });
 
-        // Credentials Section (More compact and thick bar)
-        currentY += 15;
+        // Security Protocol
+        currentY += 10;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Votre Protocole de Sécurité Personnel :', 20, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text("• Identifiants strictement personnels.", 25, currentY + 8);
+        doc.text("• Déconnexion obligatoire sur les terminaux partagés.", 25, currentY + 15);
+        doc.text("• Changement de mot de passe requis dès la première connexion.", 25, currentY + 22);
+
+        // Credentials Section
+        currentY += 40;
         doc.setFillColor(primaryColor);
-        doc.rect(10, currentY, 190, 6, 'F'); // Thick bar (like in photo)
+        doc.rect(10, currentY, 190, 6, 'F');
 
         currentY += 15;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
-        doc.text('IDENTIFIANTS PERSONNELS', 105, currentY, { align: 'center' });
+        doc.text('VOS IDENTIFIANTS D\'ACCÈS', 105, currentY, { align: 'center' });
 
         currentY += 12;
         doc.setFontSize(15);
-        doc.text(`ID : ${id}`, 105, currentY, { align: 'center' });
-        currentY += 8;
-        doc.text(`MOT DE PASSE : ${password}`, 105, currentY, { align: 'center' });
+        doc.text(`Identifiant (ID Prof) : ${id}`, 105, currentY, { align: 'center' });
+        currentY += 10;
+        doc.text(`Mot de passe provisoire : ${password}`, 105, currentY, { align: 'center' });
 
-        // Direction Académique Box (Even smaller and more discreet)
+        // Direction Académique Box
         currentY += 25;
         doc.setFontSize(10);
         doc.text('DIRECTION ACADÉMIQUE', 105, currentY, { align: 'center' });
         doc.setDrawColor('#cbd5e1');
         doc.setLineWidth(1);
-        doc.rect(75, currentY + 5, 60, 25); // Very small box
+        doc.rect(75, currentY + 5, 60, 25);
 
         doc.save(`Lettre_Invitation_${name.replace(/\s+/g, '_')}.pdf`);
     };
