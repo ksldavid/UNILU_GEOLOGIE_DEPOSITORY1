@@ -73,10 +73,10 @@ export function InvitationLetterManager() {
         // Object
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(13);
-        doc.text('Objet : Déploiement du Portail Numérique UNILUHUB – Invitation et Accès Officiels', 20, 85);
+        doc.text('Objet : Déploiement du portail numérique UNILUHUB – invitation et accès officiels', 20, 85);
 
         // Attention
-        const titleSalutation = gender === 'M' ? 'Monsieur le Professeur' : 'Madame la Professeure';
+        const titleSalutation = gender === 'M' ? 'Monsieur le professeur' : 'Madame la professeure';
         doc.text(`${titleSalutation} ${name.toUpperCase()},`, 20, 95);
 
         // Body Text
@@ -96,7 +96,7 @@ export function InvitationLetterManager() {
 
         // Normes de Sécurité
         doc.setFont('helvetica', 'bold');
-        doc.text('Normes de Sécurité et Confidentialité :', 20, currentY);
+        doc.text('Normes de sécurité et confidentialité :', 20, currentY);
         doc.setFont('helvetica', 'normal');
         const securityIntro = "Conscient de la sensibilité des données académiques, UNILUHUB a été bâti sur des standards de sécurité de niveau industriel. Le système garantit :";
         const splitSecurityIntro = doc.splitTextToSize(securityIntro, 170);
@@ -141,10 +141,10 @@ export function InvitationLetterManager() {
         doc.setFont('helvetica', 'normal');
         const features = [
             "Prise de présence instantanée en générant le code QR scannable par les étudiants.",
-            "Statistiques et Analytiques : Visualisation dynamique des performances de vos promotions.",
-            "Emploi du Temps Connecté : Calendrier en temps réel avec notifications de changements.",
+            "Statistiques et analytiques : visualisation dynamique des performances de vos promotions.",
+            "Emploi du temps connecté : calendrier en temps réel avec notifications de changements.",
             "Transmission des résultats sécurisée.",
-            "Interaction Directe : Publication de supports de cours et d'annonces sur les mobiles étudiants."
+            "Interaction directe : publication de supports de cours et d'annonces sur les mobiles étudiants."
         ];
         currentY = 95;
         features.forEach(f => {
