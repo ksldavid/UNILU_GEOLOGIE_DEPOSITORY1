@@ -51,9 +51,9 @@ export function InvitationLetterManager() {
 
             doc.setFontSize(11);
             doc.setFont('helvetica', 'normal');
-            doc.text('CENTRE D\'EXCELLENCE - FACULTÉ DE GÉOLOGIE', 125, 35, { align: 'center' });
+            doc.text('CENTRE D\'EXCELLENCE - FACULTÉ DES SCIENCES ET TECHNOLOGIE', 125, 35, { align: 'center' });
             doc.setFontSize(10);
-            doc.text('DIRECTION DE L\'INFORMATIQUE ET DES SYSTÈMES D\'INFORMATION', 125, 42, { align: 'center' });
+            doc.text('DÉPARTEMENT DE GÉOLOGIE', 125, 42, { align: 'center' });
 
             // Separation Line
             doc.setDrawColor('#FFFFFF');
@@ -64,12 +64,10 @@ export function InvitationLetterManager() {
         // --- PAGE 1 ---
         drawOfficialHeader();
 
-        // Reference and Date
+        // Date (Reference removed)
         doc.setTextColor('#000000');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.text('Réf: UNILU/DSI/ACC/2026/EINOEO', 20, 65);
         doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
         doc.text(`Lubumbashi, le ${today}`, 190, 65, { align: 'right' });
 
         // Object
@@ -100,7 +98,7 @@ export function InvitationLetterManager() {
         doc.setFont('helvetica', 'bold');
         doc.text('Normes de Sécurité et Confidentialité :', 20, currentY);
         doc.setFont('helvetica', 'normal');
-        const securityIntro = "Conscient de la sensibilité des données académiques, UNILUHUB a été bâti sur des standards de sécurité de niveau industriel. Le système garantit :";
+        const securityIntro = "Conscient de la sensibilité des données académiques, UNILUHUB ha été bâti sur des standards de sécurité de niveau industriel. Le système garantit :";
         const splitSecurityIntro = doc.splitTextToSize(securityIntro, 170);
         doc.text(splitSecurityIntro, 20, currentY + 7);
         currentY += (splitSecurityIntro.length * 7) + 12;
@@ -120,22 +118,17 @@ export function InvitationLetterManager() {
             currentY += (splitD.length * 7) + 10;
         });
 
-        // Signature Section DSI
+        // Signature Section (Pushed further down)
         doc.setFont('helvetica', 'bold');
-        doc.text('Le Directeur du Service Informatique', 190, 245, { align: 'right' });
+        doc.text('Le Directeur du Service Technique', 190, 250, { align: 'right' });
 
-        // Stamp Box DSI
+        // Stamp Box
         doc.setDrawColor('#0f172a');
         doc.setLineWidth(0.8);
-        doc.rect(140, 250, 45, 30);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'italic');
-        doc.text('Cachet et Visa DSI', 162.5, 267, { align: 'center' });
-
-        // Footer Page 1
-        doc.setFontSize(8);
-        doc.setTextColor('#94a3b8');
-        doc.text('© UNILU Security Services - Document à usage unique et strictement personnel.', 105, 290, { align: 'center' });
+        doc.rect(140, 255, 45, 30);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('SERVICE TECHNIQUE', 162.5, 292, { align: 'center' });
 
         // --- PAGE 2 ---
         doc.addPage();
@@ -151,10 +144,10 @@ export function InvitationLetterManager() {
         doc.text('Fonctionnalités à votre disposition :', 20, 85);
         doc.setFont('helvetica', 'normal');
         const features = [
-            "Gestion de l'Assiduité par QR Code : Prise de présence instantanée en scannant les badges étudiants.",
+            "Prise de présence instantanée en générant le code QR scannable par les étudiants.",
             "Statistiques et Analytiques : Visualisation dynamique des performances de vos promotions.",
             "Emploi du Temps Connecté : Calendrier en temps réel avec notifications de changements.",
-            "Saisie de Notes Sécurisée : Calcul automatique des moyennes et transmission sécurisée.",
+            "Transmission de cotes résultats sécurisée.",
             "Interaction Directe : Publication de supports de cours et d'annonces sur les mobiles étudiants."
         ];
         currentY = 95;
@@ -171,16 +164,20 @@ export function InvitationLetterManager() {
         doc.setFont('helvetica', 'normal');
         doc.text("• Identifiants strictement personnels.", 25, currentY + 8);
         doc.text("• Déconnexion obligatoire sur les terminaux partagés.", 25, currentY + 15);
-        doc.text("• Changement de mot de passe requis dès la première connexion.", 25, currentY + 22);
 
-        // Credentials Section
+        // Site Link
         currentY += 40;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(primaryColor);
+        doc.text('Accès au portail : uniluhub.com', 105, currentY - 5, { align: 'center' });
+
+        // Credentials Section Bar
         doc.setFillColor(primaryColor);
         doc.rect(10, currentY, 190, 6, 'F');
 
         currentY += 15;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
+        doc.setTextColor('#000000');
         doc.text('VOS IDENTIFIANTS D\'ACCÈS', 105, currentY, { align: 'center' });
 
         currentY += 12;
@@ -192,6 +189,7 @@ export function InvitationLetterManager() {
         // Direction Académique Box
         currentY += 25;
         doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
         doc.text('DIRECTION ACADÉMIQUE', 105, currentY, { align: 'center' });
         doc.setDrawColor('#cbd5e1');
         doc.setLineWidth(1);
