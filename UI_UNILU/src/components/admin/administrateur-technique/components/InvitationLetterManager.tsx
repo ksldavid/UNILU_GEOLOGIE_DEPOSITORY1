@@ -98,7 +98,7 @@ export function InvitationLetterManager() {
         doc.setFont('helvetica', 'bold');
         doc.text('Normes de Sécurité et Confidentialité :', 20, currentY);
         doc.setFont('helvetica', 'normal');
-        const securityIntro = "Conscient de la sensibilité des données académiques, UNILUHUB ha été bâti sur des standards de sécurité de niveau industriel. Le système garantit :";
+        const securityIntro = "Conscient de la sensibilité des données académiques, UNILUHUB a été bâti sur des standards de sécurité de niveau industriel. Le système garantit :";
         const splitSecurityIntro = doc.splitTextToSize(securityIntro, 170);
         doc.text(splitSecurityIntro, 20, currentY + 7);
         currentY += (splitSecurityIntro.length * 7) + 12;
