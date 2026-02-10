@@ -18,6 +18,7 @@ const CLASS_FILES: Record<string, string> = {
     'm1_exploration': 'master_un_exploration_miniere.csv',
     // 'm1_hydro': '...', // Pas de fichier spécifique trouvé pour M1 Hydro dans students/
     'm2_geotechnique': 'master_deux_geothechnique.csv',
+    'm2_exploration': 'master_deux_exploration_miniere.csv',
 }
 
 interface StudentCSV {

@@ -11,13 +11,14 @@ export function InvitationLetterManager() {
     const [formData, setFormData] = useState({
         name: '',
         gender: 'M',
+        academicTitle: 'Professeur' as 'Professeur' | 'Chef de travaux' | 'Assistant' | 'Chargé des cours' | 'Aucun',
         id: '',
         password: ''
     });
 
     const generatePDF = () => {
         const doc = new jsPDF();
-        const { name, gender, id, password } = formData;
+        const { name, id, password } = formData;
         const today = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
         // Colors & Config
@@ -76,7 +77,28 @@ export function InvitationLetterManager() {
         doc.text('Objet : Déploiement du portail numérique UNILUHUB – invitation et accès officiels', 20, 85);
 
         // Attention
-        const titleSalutation = gender === 'M' ? 'Monsieur le professeur' : 'Madame la professeure';
+        const getSalutation = () => {
+            const { academicTitle, gender } = formData;
+            if (academicTitle === 'Aucun') {
+                return gender === 'M' ? 'Monsieur' : 'Madame';
+            }
+
+            if (academicTitle === 'Professeur') {
+                return gender === 'M' ? 'Monsieur le Professeur' : 'Madame la Professeure';
+            }
+            if (academicTitle === 'Chef de travaux') {
+                return gender === 'M' ? 'Monsieur le Chef de travaux' : 'Madame le Chef de travaux';
+            }
+            if (academicTitle === 'Assistant') {
+                return gender === 'M' ? "Monsieur l'Assistant" : "Madame l'Assistante";
+            }
+            if (academicTitle === 'Chargé des cours') {
+                return gender === 'M' ? 'Monsieur le Chargé des cours' : 'Madame la Chargée des cours';
+            }
+            return '';
+        };
+
+        const titleSalutation = getSalutation();
         doc.text(`${titleSalutation} ${name.toUpperCase()},`, 20, 95);
 
         // Body Text
@@ -283,9 +305,31 @@ export function InvitationLetterManager() {
                                                     type="text"
                                                     value={formData.name}
                                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                    placeholder="Ex: Prof. Kabange Jean"
+                                                    placeholder="Ex: Kabange Jean"
                                                     className="w-full bg-[#0B0F19] border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-sm text-white focus:border-blue-500/50 outline-none transition-all"
                                                 />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Titre Académique / Nomination</label>
+                                            <div className="relative">
+                                                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                                                <select
+                                                    value={formData.academicTitle}
+                                                    onChange={(e) => setFormData({ ...formData, academicTitle: e.target.value as any })}
+                                                    className="w-full bg-[#0B0F19] border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-sm text-white focus:border-blue-500/50 outline-none appearance-none cursor-pointer transition-all"
+                                                >
+                                                    <option value="Professeur">Professeur</option>
+                                                    <option value="Chef de travaux">Chef de travaux</option>
+                                                    <option value="Assistant">Assistant</option>
+                                                    <option value="Chargé des cours">Chargé des cours</option>
+                                                    <option value="Aucun">Aucun (Simple Monsieur/Madame)</option>
+                                                </select>
+                                                {/* Custom Arrow for select */}
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                    <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                </div>
                                             </div>
                                         </div>
 

@@ -12,11 +12,9 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
-        "declaration": true,
-        "declarationMap": true,
-        "sourceMap": true,
         "moduleResolution": "node",
         "allowSyntheticDefaultImports": true,
+        "baseUrl": ".",
         "types": [
             "node"
         ]
@@ -25,7 +23,13 @@
         "src/**/*",
         "prisma/**/*",
         "scripts/**/*",
-        "*.ts"
+        "check_announcements.ts",
+        "check_levels.ts",
+        "check_profs.ts",
+        "debug_db.ts",
+        "debug_student.ts",
+        "list_profs_backend.ts",
+        "test_cloudinary.ts"
     ],
     "exclude": [
         "node_modules",
