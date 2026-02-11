@@ -17,26 +17,9 @@ export function AttendanceScan() {
     const [loginPass, setLoginPass] = useState('');
     const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-    // 1. Check iOS on Mount
+    // 1. Initialisation on Mount
     useEffect(() => {
-        const checkDevice = () => {
-            // Simple verify for iOS (iPhone/iPad/iPod)
-            // Note: functionality requested "uniquement pour iphone"
-            const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-            const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
-
-            if (!isIOS) {
-                // Enforce strict iOS check? The user asked "je voudrai que cette fonctionnalite ne marche uniquement que pour iphone".
-                // Let's enforce it.
-                setStatus('error');
-                setErrorDetails('Cette fonctionnalité est exclusivement réservée aux utilisateurs iPhone (iOS).');
-                return;
-            }
-
-            setStatus('initializing');
-        };
-
-        checkDevice();
+        setStatus('initializing');
     }, []);
 
     // 2. Main Logic Execution
@@ -229,7 +212,7 @@ export function AttendanceScan() {
                         </div>
                         <h1 className="text-2xl font-bold text-gray-900">Identification</h1>
                         <p className="text-gray-500 text-sm mt-2">
-                            Connectez-vous une seule fois pour activer le scan rapide sur cet iPhone.
+                            Connectez-vous une seule fois pour activer le scan rapide sur cet appareil.
                         </p>
                     </div>
 
@@ -288,7 +271,6 @@ export function AttendanceScan() {
             </div>
 
             <h2 className="text-xl font-bold text-gray-900 mb-2">
-                {status === 'checking-ios' && "Vérification de l'appareil..."}
                 {status === 'initializing' && "Initialisation..."}
                 {status === 'getting-location' && "Localisation en cours..."}
                 {status === 'submitting' && "Validation de la présence..."}
