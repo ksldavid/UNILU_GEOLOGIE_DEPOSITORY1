@@ -1,5 +1,5 @@
 
-import { QrCode, Save, Search, ArrowLeft, X, MapPin, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, Download, AlertCircle } from "lucide-react";
+import { QrCode, Save, Search, ArrowLeft, X, MapPin, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
@@ -28,6 +28,21 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedHistorySession, setSelectedHistorySession] = useState<any | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  // Prevention de perte de données (Refresh/Fermeture onglet)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = ''; // Standard browser message
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -115,6 +130,7 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
 
   const handleStatusChange = (studentId: string, status: 'present' | 'absent' | 'late') => {
     setSelectedStatus(prev => ({ ...prev, [studentId]: status }));
+    setIsDirty(true);
   };
 
   const filteredStudents = students.filter(s => {
@@ -183,9 +199,9 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
     );
   };
 
-  const handleSave = async () => {
+  const handleSave = async (silent = false) => {
     try {
-      // Get the date from the input (simple way for now, or using state)
+      // Get the date from the input
       const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
       const date = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
 
@@ -195,8 +211,8 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
       }));
 
       if (records.length === 0) {
-        alert("Veuillez marquer la présence pour au moins un étudiant.");
-        return;
+        if (!silent) alert("Veuillez marquer la présence pour au moins un étudiant.");
+        return false;
       }
 
       await professorService.saveAttendance({
@@ -205,38 +221,40 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
         records: records
       });
 
-      alert("Présences enregistrées avec succès !");
+      setIsDirty(false);
+      if (!silent) alert("Présences enregistrées avec succès !");
+      return true;
     } catch (error) {
       console.error(error);
-      alert("Erreur lors de l'enregistrement.");
+      if (!silent) alert("Erreur lors de l'enregistrement.");
+      return false;
     }
   };
 
-  const handleDownloadCSV = () => {
-    if (students.length === 0) return;
-
-    const headers = ["Matricule", "Nom", "Promotion", "Statut"];
-    const rows = students.map(s => [
-      s.id,
-      s.name,
-      s.academicLevel || "-",
-      selectedStatus[s.id] || "Absent"
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(r => r.join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Presence_${course.code}_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleBackAttempt = () => {
+    if (isDirty) {
+      setPendingAction(() => onBack);
+      setShowExitConfirm(true);
+    } else {
+      onBack();
+    }
   };
+
+  const confirmExit = async (shouldSave: boolean) => {
+    if (shouldSave) {
+      const success = await handleSave(true);
+      if (success && pendingAction) {
+        pendingAction();
+      }
+    } else {
+      setShowExitConfirm(false);
+      if (pendingAction) {
+        pendingAction();
+      }
+    }
+  };
+
+
 
   if (loading) {
     return (
@@ -252,7 +270,7 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={onBack}
+          onClick={handleBackAttempt}
           className="flex items-center gap-2 text-teal-600 hover:text-teal-700 font-medium transition-colors mb-6"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -271,7 +289,14 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
         {/* Tab Switcher */}
         <div className="flex bg-gray-100 p-1.5 rounded-2xl w-fit mb-8 shadow-inner">
           <button
-            onClick={() => setActiveTab('current')}
+            onClick={() => {
+              if (isDirty) {
+                setPendingAction(() => () => setActiveTab('current'));
+                setShowExitConfirm(true);
+              } else {
+                setActiveTab('current');
+              }
+            }}
             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === 'current'
               ? 'bg-white text-teal-600 shadow-md transform scale-105'
               : 'text-gray-500 hover:text-gray-700'
@@ -281,7 +306,14 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
             Session en cours
           </button>
           <button
-            onClick={() => setActiveTab('history')}
+            onClick={() => {
+              if (isDirty) {
+                setPendingAction(() => () => setActiveTab('history'));
+                setShowExitConfirm(true);
+              } else {
+                setActiveTab('history');
+              }
+            }}
             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === 'history'
               ? 'bg-white text-teal-600 shadow-md transform scale-105'
               : 'text-gray-500 hover:text-gray-700'
@@ -481,7 +513,7 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
                   {isRefreshing ? 'Actualisation...' : 'Rafraîchir'}
                 </button>
                 <button
-                  onClick={handleSave}
+                  onClick={() => handleSave()}
                   disabled={course.status === 'FINISHED'}
                   className="flex items-center gap-2 px-6 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:text-slate-500 text-white rounded-lg transition-colors font-semibold shadow-md translate-y-0 active:translate-y-0.5"
                 >
@@ -633,6 +665,17 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
         </>
       ) : (
         <div className="space-y-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xl font-semibold text-gray-900 italic">Historique des Sessions</h3>
+            <button
+              onClick={handleSyncPastRecords}
+              disabled={isRefreshing || loadingHistory}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-teal-600 hover:text-teal-700 hover:bg-teal-50 border border-teal-200 rounded-lg font-medium transition-all shadow-sm disabled:opacity-50 active:scale-95"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Synchronisation...' : 'Synchroniser les absences'}
+            </button>
+          </div>
           {loadingHistory ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
               <Loader2 className="w-10 h-10 text-teal-600 animate-spin mb-4" />
@@ -783,6 +826,49 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
                 className="w-full py-4 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold text-lg transition-all shadow-xl active:scale-[0.98]"
               >
                 Fermer les détails
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ⚠️ Modal Confirmation de Sortie (Unsaved Changes) */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[40px] shadow-2xl max-w-md w-full overflow-hidden border border-gray-100 flex flex-col p-10 text-center animate-in zoom-in duration-300">
+            <div className="w-24 h-24 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-500 mb-8 mx-auto shadow-inner">
+              <AlertCircle className="w-12 h-12" />
+            </div>
+
+            <h2 className="text-3xl font-black text-gray-900 mb-4 leading-tight italic">
+              Attention !
+            </h2>
+            <p className="text-gray-500 font-bold mb-10 leading-relaxed italic">
+              Vous avez des modifications non enregistrées. <br />
+              Vos données seront perdues si vous quittez maintenant sans sauvegarder.
+            </p>
+
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={() => confirmExit(true)}
+                className="w-full py-5 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-black text-lg transition-all shadow-xl shadow-teal-600/20 active:scale-95 flex items-center justify-center gap-3 italic"
+              >
+                <Save className="w-6 h-6" />
+                SAUVEGARDER ET QUITTER
+              </button>
+
+              <button
+                onClick={() => confirmExit(false)}
+                className="w-full py-5 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-2xl font-black text-lg transition-all active:scale-95 italic"
+              >
+                QUITTER SANS SAUVEGARDER
+              </button>
+
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="w-full py-4 text-gray-400 font-bold text-sm uppercase tracking-widest hover:text-gray-600 transition-colors"
+              >
+                Annuler
               </button>
             </div>
           </div>
