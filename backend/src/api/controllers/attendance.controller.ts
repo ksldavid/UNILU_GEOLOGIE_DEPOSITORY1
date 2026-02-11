@@ -146,7 +146,22 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // 3. Vérifier la distance (si les positions sont disponibles)
+        // 3. Vérifier si l'étudiant est inscrit au cours (AVANT la distance)
+        const isEnrolled = await prisma.studentCourseEnrollment.findFirst({
+            where: {
+                userId,
+                courseCode: session.courseCode,
+                isActive: true
+            }
+        });
+
+        if (!isEnrolled) {
+            return res.status(403).json({
+                message: `Vous n'êtes pas inscrit au cours "${session.course?.name || session.courseCode}". Veuillez contacter le service technique si vous pensez qu'il s'agit d'une erreur.`
+            });
+        }
+
+        // 4. Vérifier la distance (si les positions sont disponibles)
         if (session.latitude && session.longitude && latitude && longitude) {
             const distance = calculateDistance(
                 session.latitude,
@@ -164,19 +179,6 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             }
         } else if (!latitude || !longitude) {
             return res.status(400).json({ message: "La géolocalisation est strictement requise pour valider la présence." });
-        }
-
-        // 4. Vérifier si l'étudiant est inscrit au cours
-        const isEnrolled = await prisma.studentCourseEnrollment.findFirst({
-            where: {
-                userId,
-                courseCode: session.courseCode,
-                isActive: true
-            }
-        });
-
-        if (!isEnrolled) {
-            return res.status(403).json({ message: "Vous n'êtes pas officiellement inscrit à ce cours." });
         }
 
         // 5. Vérifier si l'étudiant a déjà pris présence aujourd'hui

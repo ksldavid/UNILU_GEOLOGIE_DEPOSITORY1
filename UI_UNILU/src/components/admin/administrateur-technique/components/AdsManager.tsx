@@ -18,7 +18,8 @@ export function AdsManager() {
         description: '',
         durationDays: 7,
         targetPushCount: 0,
-        scheduledTimes: [] as string[]
+        scheduledTimes: [] as string[],
+        sendImmediately: false
     });
     const [timeInput, setTimeInput] = useState('');
 
@@ -89,6 +90,18 @@ export function AdsManager() {
             });
 
             if (res.ok) {
+                // Si l'utilisateur a coché "Envoyer immédiatement"
+                if (newAd.sendImmediately) {
+                    const ad = await res.json();
+                    // Petit délai pour assurer que la création est bien propagée
+                    setTimeout(async () => {
+                        await handleNotify(ad.id);
+                    }, 1000);
+                } else {
+                    alert("Campagne publicitaire publiée sur toutes les applications !");
+                }
+
+                // Reset form
                 setNewAd({
                     title: '',
                     linkUrl: '',
@@ -98,12 +111,13 @@ export function AdsManager() {
                     description: '',
                     durationDays: 7,
                     targetPushCount: 0,
-                    scheduledTimes: []
+                    scheduledTimes: [],
+                    sendImmediately: false
                 });
                 setSelectedFile(null);
                 setIsCreating(false);
                 fetchAds();
-                alert("Campagne publicitaire publiée sur toutes les applications !");
+
             } else {
                 const err = await res.json();
                 alert(err.message || "Erreur création");
