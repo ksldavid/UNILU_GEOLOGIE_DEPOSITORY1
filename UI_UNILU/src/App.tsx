@@ -21,6 +21,7 @@ import { MyAnnouncements } from "./components/corps academic/MyAnnouncements";
 import { TechnicalDashboard } from './components/admin/administrateur-technique/TechnicalDashboard';
 import { AcademicServiceDashboard } from './components/admin/service-academique/AcademicServiceDashboard';
 import { AutoLogout } from './components/common/AutoLogout';
+import { AttendanceScan } from './components/common/AttendanceScan';
 import { authService } from './services/auth';
 import { studentService } from './services/student';
 import { professorService } from './services/professor';
@@ -51,7 +52,7 @@ export interface UserData {
   title?: string;
 }
 
-type AppView = 'student-login' | 'admin-login' | 'logged-in';
+type AppView = 'student-login' | 'admin-login' | 'logged-in' | 'attendance-scan';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!sessionStorage.getItem('token'));
@@ -125,6 +126,13 @@ export default function App() {
   // ÉTAPE 1 : Initialiser la page depuis l'URL au chargement
   useEffect(() => {
     const path = window.location.pathname.slice(1) || 'dashboard';
+
+    // NOUVEAU: Check pour le scan rapide
+    if (path === 'scan') {
+      setCurrentView('attendance-scan');
+      return;
+    }
+
     const validProfPages: Page[] = ['dashboard', 'courses', 'planning', 'students', 'course-detail', 'attendance', 'announcements'];
     const validStudentPages: StudentPage[] = ['dashboard', 'courses', 'planning', 'grades', 'announcements', 'settings'];
 
@@ -134,11 +142,11 @@ export default function App() {
     } else if (userData?.role === 'STUDENT' && validStudentPages.includes(path as StudentPage)) {
       setStudentCurrentPage(path as StudentPage);
       window.history.replaceState({ page: path }, '', `/${path}`);
-    } else {
+    } else if (isLoggedIn) {
       // Si on est sur / ou une page inconnue, on force dashboard
       window.history.replaceState({ page: 'dashboard' }, '', '/dashboard');
     }
-  }, [userData?.role]); // S'assurer que ça se relance si le rôle change (connexion/déconnexion)
+  }, [userData?.role, isLoggedIn]); // S'assurer que ça se relance si le rôle change (connexion/déconnexion)
 
   // ÉTAPE 2 : Écouter les événements de navigation (swipe, bouton retour)
   useEffect(() => {
@@ -350,6 +358,11 @@ export default function App() {
     }
   }, [currentPage, selectedCourse, userData]);
 
+
+  // Scan View (No standard layout)
+  if (currentView === 'attendance-scan') {
+    return <AttendanceScan />;
+  }
 
   // Login Views
   if (currentView === 'student-login') {

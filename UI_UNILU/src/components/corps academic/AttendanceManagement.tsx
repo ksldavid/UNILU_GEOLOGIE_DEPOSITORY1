@@ -398,7 +398,7 @@ export function AttendanceManagement({ course, onBack }: AttendanceManagementPro
                     {qrToken ? (
                       <div className="animate-in fade-in zoom-in duration-500">
                         <QRCodeSVG
-                          value={qrToken}
+                          value={`${window.location.protocol}//${window.location.host}/scan?t=${qrToken}`}
                           size={200}
                           level="H"
                           includeMargin={true}
