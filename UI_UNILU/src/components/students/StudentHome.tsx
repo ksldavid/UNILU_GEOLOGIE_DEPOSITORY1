@@ -140,6 +140,21 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
 
   const onScanSuccess = async (decodedText: string) => {
     setScanning(true);
+
+    // Extract token from URL (same logic as mobile app)
+    let qrToken = decodedText;
+
+    if (decodedText.includes('t=')) {
+      qrToken = decodedText.split('t=')[1].split('&')[0];
+    } else if (decodedText.includes('token=')) {
+      qrToken = decodedText.split('token=')[1].split('&')[0];
+    } else if (decodedText.includes('/')) {
+      const parts = decodedText.split('/');
+      qrToken = parts[parts.length - 1];
+    }
+
+    console.log('🌐 [WEB QR SCAN] Raw data:', decodedText);
+    console.log('🌐 [WEB QR SCAN] Extracted token:', qrToken);
     // Demander la position immédiatement lors du scan réussi
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -149,12 +164,12 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
           if (isOffline) {
             // Sauvegarde locale pour synchronisation ultérieure (Simulation)
             const offlineScans = JSON.parse(localStorage.getItem('offline_attendance_scans') || '[]');
-            offlineScans.push({ token: decodedText, lat: latitude, lon: longitude, time: new Date() });
+            offlineScans.push({ token: qrToken, lat: latitude, lon: longitude, time: new Date() });
             sessionStorage.setItem('offline_attendance_scans', JSON.stringify(offlineScans));
             toast.warning("Mode Hors-Ligne : Présence sauvegardée localement. Elle sera transmise dès le retour de la connexion.");
             setShowScanner(false);
           } else {
-            const result = await attendanceService.scanQR(decodedText, latitude, longitude);
+            const result = await attendanceService.scanQR(qrToken, latitude, longitude);
             toast.success(result.message);
             setShowScanner(false);
           }
