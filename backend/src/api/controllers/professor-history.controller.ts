@@ -27,7 +27,14 @@ export const getProfessorAttendanceHistory = async (req: AuthRequest, res: Respo
                 course: {
                     select: {
                         name: true,
-                        code: true
+                        code: true,
+                        studentCourseEnrollments: {
+                            where: { isActive: true },
+                            select: {
+                                userId: true,
+                                user: { select: { name: true } }
+                            }
+                        }
                     }
                 },
                 records: {
@@ -48,22 +55,43 @@ export const getProfessorAttendanceHistory = async (req: AuthRequest, res: Respo
         });
 
         // Format the response
-        const history = sessions.map((session: any) => ({
-            id: session.id,
-            date: session.date,
-            courseCode: session.course.code,
-            courseName: session.course.name,
-            totalStudents: session.records.length,
-            present: session.records.filter((r: any) => r.status === 'PRESENT').length,
-            absent: session.records.filter((r: any) => r.status === 'ABSENT').length,
-            late: session.records.filter((r: any) => r.status === 'LATE').length,
-            records: session.records.map((record: any) => ({
-                studentId: record.student.id,
-                studentName: record.student.name,
-                status: record.status,
-                markedAt: record.createdAt
-            }))
-        }));
+        const history = sessions.map((session: any) => {
+            const enrolledStudents = session.course.studentCourseEnrollments;
+            const totalEnrolled = enrolledStudents.length;
+
+            // Créer une map des records existants
+            const recordsMap = new Map();
+            session.records.forEach((r: any) => {
+                recordsMap.set(r.studentId, r);
+            });
+
+            // Liste de tous les inscrits avec leur statut réel ou ABSENT par défaut
+            const allRecords = enrolledStudents.map((enrollment: any) => {
+                const record = recordsMap.get(enrollment.userId);
+                return {
+                    studentId: enrollment.userId,
+                    studentName: record ? record.student.name : (enrollment.user?.name || "Étudiant"),
+                    status: record ? record.status : 'ABSENT',
+                    markedAt: record ? record.createdAt : null
+                };
+            });
+
+            const present = allRecords.filter((r: any) => r.status === 'PRESENT').length;
+            const late = allRecords.filter((r: any) => r.status === 'LATE').length;
+            const absent = allRecords.filter((r: any) => r.status === 'ABSENT').length;
+
+            return {
+                id: session.id,
+                date: session.date,
+                courseCode: session.course.code,
+                courseName: session.course.name,
+                totalStudents: totalEnrolled,
+                present: present,
+                absent: absent,
+                late: late,
+                records: allRecords.sort((a, b) => a.studentName.localeCompare(b.studentName))
+            };
+        });
 
         res.json(history);
     } catch (error) {

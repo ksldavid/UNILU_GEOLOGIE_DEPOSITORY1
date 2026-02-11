@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AlertCircle, Save } from "lucide-react";
 import LoginPage, { LoginResult } from './components/LoginPage';
 import { AdminLoginPage } from './components/admin/AdminLoginPage';
 import { StudentDashboard } from './components/students/StudentHome';
@@ -72,6 +73,10 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hasUnreadAnnouncements, setHasUnreadAnnouncements] = useState(false);
   const [hasUnreadProfAnnouncements, setHasUnreadProfAnnouncements] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showNavigationConfirm, setShowNavigationConfirm] = useState(false);
+  const [pendingPage, setPendingPage] = useState<Page | null>(null);
+  const [saveTrigger, setSaveTrigger] = useState<number>(0);
 
   // Vérifier les nouvelles annonces pour le point rouge et la cloche (Étudiant)
   useEffect(() => {
@@ -311,8 +316,12 @@ export default function App() {
     setSelectedCourse(null);
   };
 
-  // ÉTAPE 3 : Fonction de navigation personnalisée pour Professeur
   const handleProfessorNavigate = (page: Page) => {
+    if (isDirty) {
+      setPendingPage(page);
+      setShowNavigationConfirm(true);
+      return;
+    }
     if (page !== currentPage) {
       setCurrentPage(page);
 
@@ -329,6 +338,7 @@ export default function App() {
         behavior: 'instant'
       });
     }
+    setIsDirty(false);
   };
 
   // ÉTAPE 4 : Fonction de navigation personnalisée pour Étudiant
@@ -350,6 +360,30 @@ export default function App() {
       });
     }
   };
+
+  const confirmNavigation = (shouldSave: boolean) => {
+    if (shouldSave) {
+      setSaveTrigger(Date.now());
+      setShowNavigationConfirm(false);
+    } else {
+      setIsDirty(false);
+      setShowNavigationConfirm(false);
+      if (pendingPage) {
+        const target = pendingPage;
+        setPendingPage(null);
+        handleProfessorNavigate(target);
+      }
+    }
+  };
+
+  // Trigger navigation automatically when save completes (isDirty goes from true to false)
+  useEffect(() => {
+    if (!isDirty && pendingPage && showNavigationConfirm === false) {
+      const target = pendingPage;
+      setPendingPage(null);
+      handleProfessorNavigate(target);
+    }
+  }, [isDirty, pendingPage, showNavigationConfirm]);
 
   // Protection: redirect to courses if on attendance page without selected course
   useEffect(() => {
@@ -481,6 +515,8 @@ export default function App() {
                 <AttendanceManagement
                   course={selectedCourse}
                   onBack={() => handleProfessorNavigate('course-detail')}
+                  onDirtyChange={setIsDirty}
+                  saveTrigger={saveTrigger}
                 />
               )}
               {currentPage === 'planning' && <Planning />}
@@ -489,6 +525,49 @@ export default function App() {
             </main>
           </div>
         </div>
+
+        {/* ⚠️ Modal Confirmation de Sortie (Unsaved Changes) - App Level */}
+        {showNavigationConfirm && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-[40px] shadow-2xl max-w-md w-full overflow-hidden border border-gray-100 flex flex-col p-10 text-center animate-in zoom-in duration-300">
+              <div className="w-24 h-24 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-500 mb-8 mx-auto shadow-inner">
+                <AlertCircle className="w-12 h-12" />
+              </div>
+
+              <h2 className="text-3xl font-black text-gray-900 mb-4 leading-tight italic">
+                Attention !
+              </h2>
+              <p className="text-gray-500 font-bold mb-10 leading-relaxed italic">
+                Vous avez des modifications non enregistrées. <br />
+                Vos données seront perdues si vous changez de page maintenant sans sauvegarder.
+              </p>
+
+              <div className="flex flex-col gap-4">
+                <button
+                  onClick={() => confirmNavigation(true)}
+                  className="w-full py-5 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-black text-lg transition-all shadow-xl shadow-teal-600/20 active:scale-95 flex items-center justify-center gap-3 italic"
+                >
+                  <Save className="w-6 h-6" />
+                  SAUVEGARDER ET QUITTER
+                </button>
+
+                <button
+                  onClick={() => confirmNavigation(false)}
+                  className="w-full py-5 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-2xl font-black text-lg transition-all active:scale-95 italic"
+                >
+                  QUITTER SANS SAUVEGARDER
+                </button>
+
+                <button
+                  onClick={() => setShowNavigationConfirm(false)}
+                  className="w-full py-4 text-gray-400 font-bold text-sm uppercase tracking-widest hover:text-gray-600 transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     );
   }
