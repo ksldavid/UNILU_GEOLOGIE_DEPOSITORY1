@@ -65,7 +65,17 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        if (existingSession && !existingSession.isLocked && existingSession.qrToken) {
+        // Si une session existe déjà avec un token, on le renvoie TOUJOURS
+        // même si la session était verrouillée par erreur, on la déverrouille pour le scan
+        if (existingSession && existingSession.qrToken) {
+            // Optionnel: On s'assure qu'elle est déverrouillée si le prof demande à nouveau le QR
+            if (existingSession.isLocked) {
+                await (prisma as any).attendanceSession.update({
+                    where: { id: existingSession.id },
+                    data: { isLocked: false }
+                });
+            }
+
             return res.json({
                 qrToken: existingSession.qrToken,
                 sessionId: existingSession.id,
@@ -73,7 +83,7 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // Sinon, on génère un nouveau token
+        // Sinon, on génère un nouveau token (première fois de la journée)
         const qrToken = crypto.randomBytes(32).toString('hex');
 
         const session = await (prisma as any).attendanceSession.upsert({
@@ -84,7 +94,8 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
                 }
             },
             update: {
-                qrToken,
+                // IMPORTANT: On ne change JAMAIS le qrToken si par miracle il est apparu entre temps
+                qrToken: existingSession?.qrToken || qrToken,
                 latitude,
                 longitude,
                 isLocked: false
