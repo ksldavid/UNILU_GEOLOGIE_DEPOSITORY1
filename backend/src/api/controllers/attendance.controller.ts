@@ -170,18 +170,25 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // 3. Vérifier si l'étudiant est inscrit au cours
-        const isEnrolled = await prisma.studentCourseEnrollment.findFirst({
+        // 3. Vérifier si l'étudiant est inscrit au cours (AVANT les autres vérifications)
+        const activeEnrollment = await prisma.studentCourseEnrollment.findFirst({
             where: {
                 userId,
                 courseCode: session.courseCode,
                 isActive: true
+            },
+            include: {
+                course: true
             }
         });
 
-        if (!isEnrolled) {
+        if (!activeEnrollment) {
+            console.error(`[SCAN DEBUG] Étudiant ${userId} non inscrit au cours ${session.courseCode}`);
             return res.status(403).json({
-                message: `Vous n'êtes pas inscrit au cours "${session.course?.name || session.courseCode}".`
+                message: `Accès refusé : Vous n'êtes pas enregistré dans la liste officielle du cours "${session.course?.name || session.courseCode}".`,
+                debugCode: "ERR_STUDENT_NOT_ENROLLED",
+                course: session.course?.name,
+                year: "2025-2026" // Ou la session.academicYear si disponible
             });
         }
 
