@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
     Activity, ShieldCheck, Database, Server,
     Terminal, Settings, LogOut, Bell, Search, Megaphone,
-    Clock, Cpu, Shield, LayoutDashboard, Globe, Menu, X, MessageSquare
+    Clock, Cpu, Shield, LayoutDashboard, Globe, Menu, X, MessageSquare, Smartphone
 } from 'lucide-react';
 import { SystemStatus } from './components/SystemStatus';
 import { AccessManagement } from './components/AccessManagement';
@@ -15,6 +15,7 @@ import { ConfigManager } from './components/ConfigManager';
 import { CommunicationManager } from './components/CommunicationManager';
 import { AdsManager } from './components/AdsManager';
 import { InvitationLetterManager } from './components/InvitationLetterManager';
+import { QRCodeCanvas } from 'qrcode.react';
 import { API_URL } from '../../../services/config';
 import { Mail } from 'lucide-react';
 
@@ -77,6 +78,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
         { id: 'Support', icon: MessageSquare, label: 'Support' },
         { id: 'Ads', icon: Globe, label: 'Régie Pub' },
         { id: 'Invitations', icon: Mail, label: 'Générer une lettre' },
+        { id: 'SupportQR', icon: Smartphone, label: 'QR Verification' },
         { id: 'Config', icon: Settings, label: 'Configuration' },
     ];
 
@@ -102,6 +104,25 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                 return <InvitationLetterManager />;
             case 'Config':
                 return <ConfigManager />;
+            case 'SupportQR':
+                return (
+                    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-in fade-in duration-500">
+                        <div className="bg-slate-900/50 border border-white/10 p-10 rounded-[40px] shadow-2xl backdrop-blur-xl">
+                            <div className="bg-white p-6 rounded-3xl mb-8 inline-block shadow-[0_0_50px_rgba(255,255,255,0.1)]">
+                                <QRCodeCanvas
+                                    value={`${window.location.protocol}//${window.location.host}/verify`}
+                                    size={256}
+                                    level="H"
+                                    includeMargin={true}
+                                />
+                            </div>
+                            <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-4">Verification Étudiant</h2>
+                            <p className="text-slate-400 font-bold max-w-sm mx-auto leading-relaxed italic">
+                                Scannez ce QR Code sur le téléphone de l'étudiant pour vérifier son identité locale et forcer sa déconnexion si nécessaire.
+                            </p>
+                        </div>
+                    </div>
+                );
             default:
                 return (
                     <div className="flex flex-col items-center justify-center h-[60vh] text-slate-500 space-y-4">

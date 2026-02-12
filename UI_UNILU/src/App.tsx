@@ -23,6 +23,7 @@ import { TechnicalDashboard } from './components/admin/administrateur-technique/
 import { AcademicServiceDashboard } from './components/admin/service-academique/AcademicServiceDashboard';
 import { AutoLogout } from './components/common/AutoLogout';
 import { AttendanceScan } from './components/common/AttendanceScan';
+import { TechnicalVerify } from './components/common/TechnicalVerify';
 import { authService } from './services/auth';
 import { studentService } from './services/student';
 import { professorService } from './services/professor';
@@ -135,6 +136,12 @@ export default function App() {
     // NOUVEAU: Check pour le scan rapide
     if (path === 'scan') {
       setCurrentView('attendance-scan');
+      return;
+    }
+
+    // NOUVEAU: Check pour le support technique
+    if (path === 'verify') {
+      setCurrentView('technical-verify' as any);
       return;
     }
 
@@ -392,6 +399,11 @@ export default function App() {
     }
   }, [currentPage, selectedCourse, userData]);
 
+
+  // Technical Verify View
+  if (currentView === 'technical-verify' as any) {
+    return <TechnicalVerify />;
+  }
 
   // Scan View (No standard layout)
   if (currentView === 'attendance-scan') {
