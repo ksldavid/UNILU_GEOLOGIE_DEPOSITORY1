@@ -112,7 +112,7 @@ export function AttendanceScan() {
                     setStatus('login-required');
                     return;
                 }
-                throw new Error(data.message || "Erreur lors de la validation.");
+                throw new Error(`${data.message || "Erreur lors de la validation."} (Code: ${response.status})`);
             }
 
             setSuccessData(data);
@@ -158,9 +158,13 @@ export function AttendanceScan() {
                     <XCircle className="w-10 h-10 text-red-500" />
                 </div>
                 <h1 className="text-2xl font-black text-gray-900 mb-2">Oups !</h1>
-                <p className="text-gray-500 font-medium mb-8 leading-relaxed">
+                <p className="text-gray-500 font-medium mb-4 leading-relaxed">
                     {errorDetails}
                 </p>
+                {/* Petit badge de debug pour comprendre l'erreur réelle */}
+                <div className="text-[10px] text-gray-300 font-mono mb-8 uppercase tracking-widest">
+                    ID: {sessionStorage.getItem('user') ? JSON.parse(sessionStorage.getItem('user')!).id : 'Non identifié'}
+                </div>
                 <button
                     onClick={() => window.location.reload()}
                     className="px-8 py-3 bg-gray-900 text-white rounded-xl font-bold active:scale-95 transition-transform"
