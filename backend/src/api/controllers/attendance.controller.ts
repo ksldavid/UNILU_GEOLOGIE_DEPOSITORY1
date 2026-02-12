@@ -130,28 +130,43 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
         if (!userId) return res.status(401).json({ message: 'Non authentifié' });
 
         // 1. Trouver la session par le token
+        console.log(`[SCAN DEBUG] Recherche session pour token: ${qrToken?.substring(0, 8)}...`);
         const session = await (prisma as any).attendanceSession.findUnique({
             where: { qrToken },
             include: { course: true }
         });
 
         if (!session) {
-            return res.status(404).json({ message: "QR Code invalide ou expiré." });
+            console.error(`[SCAN DEBUG] Token invalide ou inexistant: ${qrToken?.substring(0, 8)}...`);
+            return res.status(404).json({
+                message: "QR Code invalide ou expiré.",
+                debugCode: "ERR_TOKEN_NOT_FOUND"
+            });
         }
+
+        console.log(`[SCAN DEBUG] Session trouvée pour cours ${session.courseCode}. Date session: ${session.date}`);
 
         if (session.isLocked) {
             return res.status(403).json({ message: "La prise de présence pour cette session est verrouillée." });
         }
 
-        // 2. Vérifier la date
+        // 2. Vérifier la date (Mise à jour avec logs précis)
         const now = new Date();
+        // On force le fuseau de Lubumbashi (UTC+2)
         const lubumbashiTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
         const todayStr = lubumbashiTime.toISOString().split('T')[0];
-        const sessionDateStr = new Date(session.date).toISOString().split('T')[0];
+
+        // La date de la session peut être un objet Date, on la convertit en string YYYY-MM-DD
+        const sessionDateObj = new Date(session.date);
+        const sessionDateStr = sessionDateObj.toISOString().split('T')[0];
+
+        console.log(`[SCAN DEBUG] Comparaisons dates - Aujourd'hui (L'shi): ${todayStr}, Session: ${sessionDateStr}`);
 
         if (todayStr !== sessionDateStr) {
+            console.error(`[SCAN DEBUG] Échec date: ${todayStr} !== ${sessionDateStr}`);
             return res.status(403).json({
-                message: "Ce QR Code ne correspond pas à la date d'aujourd'hui."
+                message: "Ce QR Code ne correspond pas à la date d'aujourd'hui. Un nouveau code doit être généré.",
+                debugDate: { today: todayStr, session: sessionDateStr }
             });
         }
 
