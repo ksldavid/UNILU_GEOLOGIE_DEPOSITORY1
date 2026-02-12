@@ -4,6 +4,13 @@ import { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../../lib/prisma'
 import crypto from 'crypto'
 
+// Coordonnées autorisées de la Faculté (Bâtiment Géologie et environs)
+const FACULTY_LOCATIONS = [
+    { lat: -11.6306702, lng: 27.4848642 }, // Point principal (Géologie)
+    { lat: -11.630693, lng: 27.485245 },  // Extension Est
+    { lat: -11.630788, lng: 27.484503 }   // Extension Ouest
+];
+
 /**
  * Calcule la distance entre deux points en mètres (Formule de Haversine)
  */
@@ -24,7 +31,11 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export const generateQRToken = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode, latitude, longitude } = req.body;
+        const { courseCode } = req.body;
+        // On utilise maintenant une localisation par défaut
+        const latitude = FACULTY_LOCATIONS[0].lat;
+        const longitude = FACULTY_LOCATIONS[0].lng;
+
         const userId = req.user?.userId;
 
         if (!userId) return res.status(401).json({ message: 'Non authentifié' });
@@ -45,7 +56,6 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         const today = new Date(todayStr);
 
         // 3. Vérifier si une session existe déjà pour aujourd'hui
-        // Si elle existe, on réutilise le MÊME token pour permettre l'impression à l'avance
         const existingSession = await (prisma as any).attendanceSession.findUnique({
             where: {
                 courseCode_date: {
@@ -56,17 +66,6 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         });
 
         if (existingSession && !existingSession.isLocked && existingSession.qrToken) {
-            // Optionnel: Mettre à jour la localisation si le prof est plus précis maintenant
-            if (latitude && longitude) {
-                await (prisma as any).attendanceSession.update({
-                    where: { id: existingSession.id },
-                    data: {
-                        latitude: parseFloat(latitude),
-                        longitude: parseFloat(longitude)
-                    }
-                });
-            }
-
             return res.json({
                 qrToken: existingSession.qrToken,
                 sessionId: existingSession.id,
@@ -74,7 +73,7 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // Sinon, on génère un nouveau token (première fois de la journée)
+        // Sinon, on génère un nouveau token
         const qrToken = crypto.randomBytes(32).toString('hex');
 
         const session = await (prisma as any).attendanceSession.upsert({
@@ -86,16 +85,16 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             },
             update: {
                 qrToken,
-                latitude: latitude ? parseFloat(latitude) : null,
-                longitude: longitude ? parseFloat(longitude) : null,
+                latitude,
+                longitude,
                 isLocked: false
             },
             create: {
                 courseCode,
                 date: today,
                 qrToken,
-                latitude: latitude ? parseFloat(latitude) : null,
-                longitude: longitude ? parseFloat(longitude) : null,
+                latitude,
+                longitude,
                 isLocked: false
             }
         });
@@ -133,7 +132,7 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: "La prise de présence pour cette session est verrouillée." });
         }
 
-        // 2. Vérifier la date (doit correspondre à la date de génération)
+        // 2. Vérifier la date
         const now = new Date();
         const lubumbashiTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
         const todayStr = lubumbashiTime.toISOString().split('T')[0];
@@ -141,12 +140,11 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
 
         if (todayStr !== sessionDateStr) {
             return res.status(403).json({
-                message: "Ce QR Code ne correspond pas à la date d'aujourd'hui.",
-                debug: { now: todayStr, session: sessionDateStr }
+                message: "Ce QR Code ne correspond pas à la date d'aujourd'hui."
             });
         }
 
-        // 3. Vérifier si l'étudiant est inscrit au cours (AVANT la distance)
+        // 3. Vérifier si l'étudiant est inscrit au cours
         const isEnrolled = await prisma.studentCourseEnrollment.findFirst({
             where: {
                 userId,
@@ -157,27 +155,27 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
 
         if (!isEnrolled) {
             return res.status(403).json({
-                message: `Vous n'êtes pas inscrit au cours "${session.course?.name || session.courseCode}". Veuillez contacter le service technique si vous pensez qu'il s'agit d'une erreur.`
+                message: `Vous n'êtes pas inscrit au cours "${session.course?.name || session.courseCode}".`
             });
         }
 
-        // 4. Vérifier la distance (si les positions sont disponibles)
-        if (session.latitude && session.longitude && latitude && longitude) {
-            const distance = calculateDistance(
-                session.latitude,
-                session.longitude,
-                parseFloat(latitude),
-                parseFloat(longitude)
-            );
+        // 4. Vérifier la distance par rapport aux points autorisés
+        if (latitude && longitude) {
+            const studentLat = parseFloat(latitude);
+            const studentLng = parseFloat(longitude);
 
-            // Rayon augmenté à 400m pour tenir compte des campus et murs épais
-            if (distance > 400) {
+            // On vérifie si l'étudiant est proche d'AU MOINS UN des points de la faculté
+            const isNearAnyPoint = FACULTY_LOCATIONS.some(loc => {
+                const distance = calculateDistance(loc.lat, loc.lng, studentLat, studentLng);
+                return distance <= 400; // Rayon de 400m
+            });
+
+            if (!isNearAnyPoint) {
                 return res.status(403).json({
-                    message: `Vous êtes trop loin du lieu du cours pour valider votre présence (Distance: ${Math.round(distance)}m). Vous devez être à moins de 400m du professeur.`,
-                    distance: Math.round(distance)
+                    message: "Vous êtes trop loin de la Faculté pour valider votre présence. Assurez-vous d'être dans le bâtiment Géologie ou à proximité."
                 });
             }
-        } else if (!latitude || !longitude) {
+        } else {
             return res.status(400).json({ message: "La géolocalisation est strictement requise pour valider la présence." });
         }
 

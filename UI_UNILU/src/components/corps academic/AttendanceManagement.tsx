@@ -1,10 +1,10 @@
 
-import { QrCode, Save, Search, ArrowLeft, X, MapPin, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle } from "lucide-react";
+import { QrCode, Save, Search, ArrowLeft, X, MapPin, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
 import { attendanceService } from "../../services/attendance";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 
 interface AttendanceManagementProps {
   course: Course;
@@ -155,49 +155,26 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
     setQrToken(""); // Reset pour montrer l'état de chargement
     setShowQRModal(true);
 
-    const callApi = async (lat?: number, long?: number) => {
-      try {
-        const result = await attendanceService.generateQR(course.code, lat, long);
-        setQrToken(result.qrToken);
-        setGeneratingQR(false);
-      } catch (error: any) {
-        // En cas d'erreur API, on affiche l'erreur dans le modal au lieu d'une alerte bloquante
-        setLocationError(error.message || "Erreur de connexion au serveur.");
-        setGeneratingQR(false);
-      }
-    };
-
-    if (!navigator.geolocation) {
-      setLocationError("La géolocalisation n'est pas supportée par votre navigateur.");
+    try {
+      // On ne demande plus la localisation au prof, le serveur utilise les points fixes
+      const result = await attendanceService.generateQR(course.code);
+      setQrToken(result.qrToken);
       setGeneratingQR(false);
-      return;
+    } catch (error: any) {
+      setLocationError(error.message || "Erreur de connexion au serveur.");
+      setGeneratingQR(false);
     }
+  };
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        await callApi(latitude, longitude);
-      },
-      (error) => {
-        let msg = "Erreur de géolocalisation : ";
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            msg = "Accès refusé. Veuillez autoriser la localisation dans vos paramètres.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            msg = "Position indisponible. Vérifiez votre GPS.";
-            break;
-          case error.TIMEOUT:
-            msg = "Délai d'attente dépassé. Réessayez dans un endroit plus dégagé.";
-            break;
-          default:
-            msg = "Impossible de récupérer votre position.";
-        }
-        setLocationError(msg);
-        setGeneratingQR(false);
-      },
-      { enableHighAccuracy: true, timeout: 15000 }
-    );
+  const handleDownloadQR = () => {
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      const url = canvas.toDataURL("image/png");
+      const link = document.createElement('a');
+      link.download = `QR_Presence_${course.name}_${new Date().toLocaleDateString()}.png`;
+      link.href = url;
+      link.click();
+    }
   };
 
   const handleSave = async (silent = false) => {
@@ -404,7 +381,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                   <div className="bg-white p-4 border-2 border-dashed border-teal-200 rounded-2xl mb-4 shadow-sm inline-block min-w-[232px] min-h-[232px] flex items-center justify-center relative overflow-hidden">
                     {qrToken ? (
                       <div className="animate-in fade-in zoom-in duration-500">
-                        <QRCodeSVG
+                        <QRCodeCanvas
                           value={`${window.location.protocol}//${window.location.host}/scan?t=${qrToken}`}
                           size={200}
                           level="H"
@@ -460,10 +437,19 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                   </div>
                 </div>
 
-                <div className="bg-gray-50 p-4 border-t border-gray-100">
+                <div className="bg-gray-50 p-4 border-t border-gray-100 flex flex-col gap-3">
+                  {qrToken && (
+                    <button
+                      onClick={handleDownloadQR}
+                      className="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-teal-600/20 active:scale-95 flex items-center justify-center gap-3 italic"
+                    >
+                      <Download className="w-5 h-5" />
+                      TÉLÉCHARGER LE QR CODE
+                    </button>
+                  )}
                   <button
                     onClick={() => setShowQRModal(false)}
-                    className="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-xl font-bold text-base transition-all shadow-lg active:scale-95"
+                    className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-xl font-bold text-base transition-all active:scale-95"
                   >
                     Fermer l'affichage
                   </button>
