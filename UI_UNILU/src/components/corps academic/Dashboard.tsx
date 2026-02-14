@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2, MapPin, GraduationCap, ChevronDown } from "lucide-react";
+import { BookOpen, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2, MapPin, GraduationCap, ChevronDown, ChevronUp } from "lucide-react";
 import type { Page } from "../../App";
 import { professorService } from "../../services/professor";
 import "../../utils/auth-debug"; // Active les outils de débogage d'authentification
@@ -7,6 +7,46 @@ import "../../utils/auth-debug"; // Active les outils de débogage d'authentific
 interface DashboardProps {
   onNavigate: (page: Page) => void;
 }
+
+const ExpandableText = ({ content, isRead }: { content: string, isRead: boolean }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const limit = 300; // Limite de caractères avant troncature
+
+  if (!content) return null;
+
+  if (content.length <= limit) {
+    return (
+      <p className={`leading-relaxed text-sm ${isRead ? 'text-gray-500' : 'text-gray-600'}`}>
+        {content}
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <p className={`leading-relaxed text-sm ${isRead ? 'text-gray-500' : 'text-gray-600'}`}>
+        {isExpanded ? content : `${content.substring(0, limit)}...`}
+      </p>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsExpanded(!isExpanded);
+        }}
+        className="flex items-center gap-1 text-teal-600 hover:text-teal-700 text-xs font-bold mt-2 uppercase tracking-wide transition-colors"
+      >
+        {isExpanded ? (
+          <>
+            Voir moins <ChevronUp className="w-3 h-3" />
+          </>
+        ) : (
+          <>
+            Lire la suite <ChevronDown className="w-3 h-3" />
+          </>
+        )}
+      </button>
+    </div>
+  );
+};
 
 export function Dashboard({ onNavigate }: DashboardProps) {
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
@@ -377,9 +417,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         <h4 className={`font-bold text-lg mb-2 group-hover:text-teal-700 transition-colors ${isRead ? 'text-gray-700' : 'text-gray-900 underline decoration-teal-500/30 underline-offset-4'}`}>
                           {ann.title}
                         </h4>
-                        <p className={`leading-relaxed text-sm ${isRead ? 'text-gray-500' : 'text-gray-600'}`}>
-                          {ann.content}
-                        </p>
+                        <ExpandableText content={ann.content} isRead={isRead} />
 
                         {!isRead && (
                           <div className="mt-4 pt-4 border-t border-teal-50 flex items-center justify-end">
