@@ -1,6 +1,6 @@
 import { API_URL } from '../../../../services/config';
 import { useState, useEffect } from 'react';
-import { MessageSquare, Clock, User, ChevronRight, Send, UserPlus } from 'lucide-react';
+import { MessageSquare, Clock, User, ChevronRight, Send, UserPlus, Maximize2, Minimize2, X } from 'lucide-react';
 import { supportService } from '../../../../services/support';
 
 export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) => void }) {
@@ -9,6 +9,15 @@ export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) =
     const [selectedTicket, setSelectedTicket] = useState<any>(null);
     const [reply, setReply] = useState('');
     const [filter, setFilter] = useState('ALL'); // ALL, OPEN, RESOLVED
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsFullscreen(false);
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, []);
 
     useEffect(() => {
         fetchTickets();
@@ -158,11 +167,11 @@ export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) =
                 </div>
 
                 {/* Ticket Details & Chat */}
-                <div className="flex-1 bg-slate-900/50 rounded-[32px] border border-white/5 flex flex-col overflow-hidden relative">
+                <div className={`flex-1 bg-slate-900/50 rounded-[32px] border border-white/5 flex flex-col overflow-hidden relative transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] m-0 rounded-none bg-slate-950' : ''}`}>
                     {selectedTicket ? (
                         <>
                             {/* Detail Header */}
-                            <div className="p-8 border-b border-white/5 bg-slate-800/20">
+                            <div className={`p-8 border-b border-white/5 bg-slate-800/20 ${isFullscreen ? 'bg-slate-900/80 -backdrop-blur-xl' : ''}`}>
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <div className="flex items-center gap-3 mb-2">
@@ -205,6 +214,21 @@ export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) =
                                             <option value="RESOLVED">Résolu</option>
                                             <option value="CLOSED">Fermé</option>
                                         </select>
+
+                                        <button
+                                            onClick={() => setIsFullscreen(!isFullscreen)}
+                                            className="bg-slate-800/80 hover:bg-slate-700 text-white/70 hover:text-white p-2.5 rounded-xl border border-white/10 transition-all group flex items-center gap-2"
+                                            title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+                                        >
+                                            {isFullscreen ? (
+                                                <>
+                                                    <Minimize2 className="w-4 h-4" />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Quitter</span>
+                                                </>
+                                            ) : (
+                                                <Maximize2 className="w-4 h-4" />
+                                            )}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
