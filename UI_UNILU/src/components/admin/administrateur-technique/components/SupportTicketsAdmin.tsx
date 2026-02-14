@@ -1,6 +1,6 @@
 import { API_URL } from '../../../../services/config';
 import { useState, useEffect } from 'react';
-import { MessageSquare, Clock, User, ChevronRight, Send, UserPlus, Maximize2, Minimize2, X } from 'lucide-react';
+import { MessageSquare, Clock, User, ChevronRight, Send, UserPlus, Maximize2, Minimize2 } from 'lucide-react';
 import { supportService } from '../../../../services/support';
 
 export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) => void }) {

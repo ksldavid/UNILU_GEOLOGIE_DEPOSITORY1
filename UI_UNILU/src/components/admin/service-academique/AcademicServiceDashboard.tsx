@@ -775,9 +775,9 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
 
                 {/* Technical Support Modal */}
                 {showTechnicalSupport && (
-                    <div className="fixed inset-0 z-50 bg-white">
-                        <div className="h-full flex flex-col">
-                            <div className="bg-[#1B4332] p-6 flex justify-between items-center">
+                    <div className="fixed inset-0 z-50 bg-[#F1F8F4] flex flex-col">
+                        {!document.querySelector('.fixed.inset-0.z-\\[100\\]') && (
+                            <div className="bg-[#1B4332] p-6 flex justify-between items-center shadow-md">
                                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                                     <Wrench className="w-6 h-6" />
                                     Support Technique
@@ -789,9 +789,9 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                     <X className="w-6 h-6 text-white" />
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-6 bg-[#F1F8F4]">
-                                <TechnicalSupport />
-                            </div>
+                        )}
+                        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+                            <TechnicalSupport />
                         </div>
                     </div>
                 )}
