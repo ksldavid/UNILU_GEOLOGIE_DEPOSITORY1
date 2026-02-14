@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { Send, MessageSquare, AlertCircle, Clock, Wrench, ChevronLeft, Maximize2, Minimize2 } from 'lucide-react';
 import { supportService } from '../../../../services/support';
 
-export function TechnicalSupport() {
+interface TechnicalSupportProps {
+    initialTicketId?: string | null;
+}
+
+export function TechnicalSupport({ initialTicketId }: TechnicalSupportProps) {
     const [messages, setMessages] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isNewMessageModalOpen, setIsNewMessageModalOpen] = useState(false);
@@ -23,6 +27,14 @@ export function TechnicalSupport() {
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
     }, []);
+
+    useEffect(() => {
+        if (initialTicketId) {
+            supportService.getTicketDetails(initialTicketId)
+                .then(details => setSelectedTicket(details))
+                .catch(console.error);
+        }
+    }, [initialTicketId]);
 
     useEffect(() => {
         fetchTickets();

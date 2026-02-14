@@ -58,6 +58,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
     const [notifications, setNotifications] = useState<any[]>([]);
     const [supportTickets, setSupportTickets] = useState<any[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
     const [announcementMessage, setAnnouncementMessage] = useState("");
     const [isPublishing, setIsPublishing] = useState(false);
 
@@ -213,6 +214,28 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
         }
     };
 
+    const handleNotificationClick = async (notif: any) => {
+        try {
+            if (!notif.isRead) {
+                await supportService.markNotificationRead(notif.id);
+                setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+            }
+
+            if (notif.type === 'SUPPORT' || notif.title.includes('Support')) {
+                // If it's a support ticket update, open the modal
+                // Assuming data contains ticketId or we extract it from context
+                const ticketId = notif.data?.ticketId || notif.metadata?.ticketId;
+                if (ticketId) {
+                    setSelectedTicketId(ticketId);
+                }
+                setShowTechnicalSupport(true);
+                setShowNotifications(false);
+            }
+        } catch (error) {
+            console.error("Erreur click notif:", error);
+        }
+    };
+
     const toggleFullYear = () => {
         const newShowFullYear = !showFullYear;
         setShowFullYear(newShowFullYear);
@@ -325,6 +348,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                             ) : notifications.map(notif => (
                                                 <div
                                                     key={notif.id}
+                                                    onClick={() => handleNotificationClick(notif)}
                                                     className={`p-4 border-b border-[#1B4332]/5 hover:bg-[#F1F8F4] transition-colors cursor-pointer ${!notif.isRead ? 'bg-blue-50/30' : ''}`}
                                                 >
                                                     <div className="flex gap-3">
@@ -439,7 +463,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                             Aucune demande au service technique pour le moment.
                                         </div>
                                     ) : supportTickets.slice(0, 3).map(ticket => (
-                                        <div key={ticket.id} className="bg-white p-4 rounded-[20px] border border-[#1B4332]/10 hover:shadow-md transition-all group">
+                                        <div key={ticket.id} onClick={() => { setSelectedTicketId(ticket.id); setShowTechnicalSupport(true); }} className="bg-white p-4 rounded-[20px] border border-[#1B4332]/10 hover:shadow-md transition-all group cursor-pointer">
                                             <div className="flex justify-between items-start mb-2">
                                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ticket.status === 'RESOLVED' ? 'bg-green-100 text-green-700' :
                                                     ticket.status === 'IN_PROGRESS' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
@@ -783,7 +807,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                     Support Technique
                                 </h2>
                                 <button
-                                    onClick={() => setShowTechnicalSupport(false)}
+                                    onClick={() => { setShowTechnicalSupport(false); setSelectedTicketId(null); }}
                                     className="p-2 hover:bg-white/10 rounded-full transition-colors"
                                 >
                                     <X className="w-6 h-6 text-white" />
@@ -791,7 +815,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                             </div>
                         )}
                         <div className="flex-1 overflow-y-auto p-4 md:p-8">
-                            <TechnicalSupport />
+                            <TechnicalSupport initialTicketId={selectedTicketId} />
                         </div>
                     </div>
                 )}
