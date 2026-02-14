@@ -114,8 +114,11 @@ export function CommunicationManager() {
                                 onChange={(e) => setNewAnnouncement({ ...newAnnouncement, target: e.target.value, targetUserId: undefined })}
                                 className="w-full px-6 py-4 bg-[#0B0F19] border border-white/5 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-white text-sm appearance-none"
                             >
-                                <option value="GLOBAL">TOUT LE SYSTÈME (Professeurs & Étudiants)</option>
+                                <option value="GLOBAL">TOUT LE SYSTÈME (Professeurs, Étudiants, Service Académique)</option>
                                 <option value="ALL_STUDENTS">TOUS LES ÉTUDIANTS UNIQUEMENT</option>
+                                <option value="ALL_PROFESSORS">TOUS LES PROFESSEURS UNIQUEMENT</option>
+                                <option value="ACADEMIC_SERVICE">SERVICE ACADÉMIQUE UNIQUEMENT</option>
+                                <option value="PROFESSORS_AND_ACADEMIC">PROFESSEURS ET SERVICE ACADÉMIQUE</option>
                                 <option value="SPECIFIC_USER">UN ÉTUDIANT SPÉCIFIQUE (Recherche cible)</option>
                             </select>
                         </div>

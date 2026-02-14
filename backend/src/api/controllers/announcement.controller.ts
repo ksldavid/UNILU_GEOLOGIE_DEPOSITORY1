@@ -71,6 +71,40 @@ export const createAnnouncement = async (req: AuthRequest, res: Response) => {
                     select: { pushToken: true }
                 });
                 targetTokens = users.map(u => u.pushToken as string);
+            } else if (target === 'ALL_PROFESSORS') {
+                const users = await prisma.user.findMany({
+                    where: {
+                        professorProfile: { isNot: null },
+                        pushToken: { not: null }
+                    },
+                    select: { pushToken: true }
+                });
+                targetTokens = users.map(u => u.pushToken as string);
+            } else if (target === 'ACADEMIC_SERVICE') {
+                const users = await prisma.user.findMany({
+                    where: {
+                        OR: [
+                            { systemRole: 'ACADEMIC_OFFICE' },
+                            { academicProfile: { isNot: null } }
+                        ],
+                        pushToken: { not: null }
+                    },
+                    select: { pushToken: true }
+                });
+                targetTokens = users.map(u => u.pushToken as string);
+            } else if (target === 'PROFESSORS_AND_ACADEMIC') {
+                const users = await prisma.user.findMany({
+                    where: {
+                        OR: [
+                            { professorProfile: { isNot: null } },
+                            { systemRole: 'ACADEMIC_OFFICE' },
+                            { academicProfile: { isNot: null } }
+                        ],
+                        pushToken: { not: null }
+                    },
+                    select: { pushToken: true }
+                });
+                targetTokens = users.map(u => u.pushToken as string);
             } else if (target === 'ACADEMIC_LEVEL' && cleanedAcademicLevelId !== null) {
                 const users = await prisma.user.findMany({
                     where: {

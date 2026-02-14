@@ -61,6 +61,8 @@ enum AnnouncementTarget {
   ACADEMIC_LEVEL // Étudiants d'un niveau spécifique
   COURSE_STUDENTS // Étudiants d'un cours spécifique
   ALL_PROFESSORS // Tous les professeurs
+  ACADEMIC_SERVICE // Service Académique
+  PROFESSORS_AND_ACADEMIC // Professeurs et Service Académique
   SPECIFIC_USER // Utilisateur spécifique
 }
 
