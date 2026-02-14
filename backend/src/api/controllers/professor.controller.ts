@@ -333,6 +333,7 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                 OR: [
                     { target: 'GLOBAL' },
                     { target: 'ALL_PROFESSORS' },
+                    { target: 'PROFESSORS_AND_ACADEMIC' },
                     { target: 'SPECIFIC_USER', targetUserId: userId }
                 ],
                 isActive: true
