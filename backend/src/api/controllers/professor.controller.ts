@@ -12,13 +12,17 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
         const userRole = req.user?.role;
         const { courseCode } = req.query;
 
+        if (!userId) {
+            return res.status(401).json({ message: 'Non autorisé' });
+        }
+
         // 0. Récupérer les infos de l'utilisateur
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: { name: true }
         });
 
-        const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+        const isSuperUser = userRole === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
 
         let filterCourseCodes: string[] = [];
         let courseMap = new Map<string, string>();
@@ -190,13 +194,17 @@ export const getProfessorSchedule = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
         const userRole = req.user?.role;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Non autorisé' });
+        }
         // Fetch user context for SuperUser check
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: { name: true }
         });
 
-        const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+        const isSuperUser = userRole === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
 
         const taughtCourses = await prisma.courseEnrollment.findMany({
             where: isSuperUser ? {} : { userId },
@@ -235,6 +243,10 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
     try {
         const userId = req.user?.userId
         const userRole = req.user?.role
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Non autorisé' });
+        }
 
         // 0. Récupérer les infos du professeur
         const professor = await prisma.user.findUnique({
@@ -434,8 +446,13 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
         const userRole = req.user?.role;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Non autorisé' });
+        }
+
         const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
-        const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+        const isSuperUser = userRole === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
 
         const enrollments = await prisma.courseEnrollment.findMany({
             where: isSuperUser ? {} : { userId },
@@ -484,7 +501,7 @@ export const updateCourseStatus = async (req: AuthRequest, res: Response) => {
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
         const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
-        const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+        const isSuperUser = userRole === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
 
         if (enrollmentId) {
             await prisma.courseEnrollment.update({
@@ -550,7 +567,7 @@ export const saveAttendance = async (req: AuthRequest, res: Response) => {
             where: { userId, courseCode }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
 
         if (!enrollment && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
@@ -654,11 +671,25 @@ export const saveAttendance = async (req: AuthRequest, res: Response) => {
 
 export const getStudentPerformance = async (req: AuthRequest, res: Response) => {
     try {
-        const { studentId } = req.params;
+        const studentId = String(req.params.studentId);
         const { courseCode } = req.query;
+        const userId = req.user?.userId;
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
         if (!courseCode) {
             return res.status(400).json({ message: "Code de cours requis" });
+        }
+
+        // Verify access
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+        const hasAccess = await prisma.courseEnrollment.findFirst({
+            where: { userId, courseCode: String(courseCode) }
+        });
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+
+        if (!hasAccess && !isSuperUser) {
+            return res.status(403).json({ message: "Accès refusé" });
         }
 
         // 1. Get Attendance Stats
@@ -675,9 +706,9 @@ export const getStudentPerformance = async (req: AuthRequest, res: Response) => 
                 studentId,
                 sessionId: { in: sessionIds }
             }
-        });
+        }) as any[];
 
-        const presentCount = attendanceRecords.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length;
+        const presentCount = attendanceRecords.filter((r: any) => r.status === 'PRESENT' || r.status === 'LATE').length;
         const attendanceRate = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : 0;
 
         // 2. Get Grades
@@ -698,7 +729,7 @@ export const getStudentPerformance = async (req: AuthRequest, res: Response) => 
             attendanceRate,
             totalSessions,
             presentCount,
-            grades: grades.map(g => ({
+            grades: grades.map((g: any) => ({
                 id: g.id,
                 title: g.assessment.title,
                 score: g.score,
@@ -725,7 +756,7 @@ export const unenrollStudent = async (req: AuthRequest, res: Response) => {
             where: { userId, courseCode }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
 
         if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
@@ -809,7 +840,7 @@ export const enrollStudent = async (req: AuthRequest, res: Response) => {
             where: { userId, courseCode }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
 
         if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
@@ -858,7 +889,7 @@ export const createAssessment = async (req: AuthRequest, res: Response) => {
             where: { userId, courseCode }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
 
         if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à créer un devoir pour ce cours." });
@@ -930,7 +961,7 @@ export const getCourseAssessments = async (req: AuthRequest, res: Response) => {
     try {
         const { courseCode } = req.params;
         const assessments = await prisma.assessment.findMany({
-            where: { courseCode },
+            where: { courseCode: String(courseCode) },
             include: {
                 grades: true,
                 submissions: {
@@ -967,7 +998,7 @@ export const saveGrades = async (req: AuthRequest, res: Response) => {
             where: { id: assessmentId }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
 
         if (!assessment || (assessment.creatorId !== userId && !isSuperUser)) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à modifier ces notes" });
@@ -1055,7 +1086,6 @@ export const uploadCourseResource = async (req: AuthRequest, res: Response) => {
                     select: { name: true }
                 });
 
-                const { sendPushNotifications } = require('../../utils/pushNotifications');
                 await sendPushNotifications(tokens, {
                     title: `📚 Nouveau document : ${course?.name || courseCode}`,
                     body: `Le support de cours "${resource.title}" vient d'être publié. Consultez-le dans votre section Documents.`,
@@ -1077,7 +1107,7 @@ export const getCourseResources = async (req: AuthRequest, res: Response) => {
     try {
         const { courseCode } = req.params;
         const resources = await prisma.courseResource.findMany({
-            where: { courseCode },
+            where: { courseCode: String(courseCode) },
             orderBy: { uploadedAt: 'desc' }
         });
         res.json(resources);
@@ -1094,7 +1124,7 @@ export const deleteCourseResource = async (req: AuthRequest, res: Response) => {
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
         const resource = await prisma.courseResource.findUnique({
-            where: { id: parseInt(id) }
+            where: { id: parseInt(String(id)) }
         });
 
         if (!resource) return res.status(404).json({ message: 'Ressource non trouvée' });
@@ -1115,7 +1145,7 @@ export const deleteCourseResource = async (req: AuthRequest, res: Response) => {
 
         // Supprimer de la DB
         await prisma.courseResource.delete({
-            where: { id: parseInt(id) }
+            where: { id: parseInt(String(id)) }
         });
 
         res.json({ message: 'Ressource supprimée avec succès' });
@@ -1132,7 +1162,7 @@ export const deleteAssessment = async (req: AuthRequest, res: Response) => {
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
         const assessment = await prisma.assessment.findUnique({
-            where: { id: parseInt(id) }
+            where: { id: parseInt(String(id)) }
         });
 
         if (!assessment) return res.status(404).json({ message: 'Évaluation non trouvée' });
@@ -1144,7 +1174,7 @@ export const deleteAssessment = async (req: AuthRequest, res: Response) => {
 
         // 1. Récupérer tous les IDs des notes liées à cette épreuve
         const grades = await prisma.grade.findMany({
-            where: { assessmentId: parseInt(id) },
+            where: { assessmentId: parseInt(String(id)) },
             select: { id: true }
         });
         const gradeIds = grades.map(g => g.id);
@@ -1157,15 +1187,15 @@ export const deleteAssessment = async (req: AuthRequest, res: Response) => {
             }),
             // Supprimer les notes
             prisma.grade.deleteMany({
-                where: { assessmentId: parseInt(id) }
+                where: { assessmentId: parseInt(String(id)) }
             }),
             // Supprimer les soumissions (fichiers)
             prisma.submission.deleteMany({
-                where: { assessmentId: parseInt(id) }
+                where: { assessmentId: parseInt(String(id)) }
             }),
             // Supprimer l'épreuve elle-même
             prisma.assessment.delete({
-                where: { id: parseInt(id) }
+                where: { id: parseInt(String(id)) }
             })
         ]);
 
@@ -1184,14 +1214,14 @@ export const publishAssessment = async (req: AuthRequest, res: Response) => {
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
         const assessment = await prisma.assessment.findUnique({
-            where: { id: parseInt(id) },
+            where: { id: parseInt(String(id)) },
         });
 
         if (!assessment) return res.status(404).json({ message: 'Évaluation non trouvée' });
 
         // 1. Mark as published
         await prisma.assessment.update({
-            where: { id: parseInt(id) },
+            where: { id: parseInt(String(id)) },
             data: { isPublished: true }
         });
 
@@ -1341,39 +1371,39 @@ export const getCoursePerformance = async (req: AuthRequest, res: Response) => {
 
         const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
         const hasAccess = await prisma.courseEnrollment.findFirst({
-            where: { userId, courseCode }
+            where: { userId, courseCode: String(courseCode) }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
 
         if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Accès refusé" });
         }
 
         const assessments = await prisma.assessment.findMany({
-            where: { courseCode },
+            where: { courseCode: String(courseCode) },
             include: {
                 grades: true
             }
-        });
+        }) as any[];
 
         const enrolledStudentsCount = await prisma.studentCourseEnrollment.count({
-            where: { courseCode, isActive: true }
+            where: { courseCode: String(courseCode), isActive: true }
         });
 
         const examStats = await Promise.all(assessments.map(async (exam) => {
             const allGrades = exam.grades;
             const totalCount = allGrades.length;
 
-            const successGrades = allGrades.filter(g => g.score >= (exam.maxPoints / 2));
-            const failureGrades = allGrades.filter(g => g.score < (exam.maxPoints / 2));
+            const successGrades = allGrades.filter((g: any) => g.score >= (exam.maxPoints / 2));
+            const failureGrades = allGrades.filter((g: any) => g.score < (exam.maxPoints / 2));
 
             const successCount = successGrades.length;
             const failureCount = totalCount - successCount;
-            const sumScores = allGrades.reduce((sum, g) => sum + g.score, 0);
+            const sumScores = allGrades.reduce((sum: number, g: any) => sum + g.score, 0);
 
             // Fetch names for these students to make stats "real"
-            const studentIds = exam.grades.map(g => g.studentId);
+            const studentIds = exam.grades.map((g: any) => g.studentId);
             const students = await prisma.user.findMany({
                 where: { id: { in: studentIds } },
                 select: { id: true, name: true }
@@ -1388,8 +1418,8 @@ export const getCoursePerformance = async (req: AuthRequest, res: Response) => {
                 avg: totalCount > 0 ? parseFloat((sumScores / totalCount).toFixed(2)) : 0,
                 total: totalCount,
                 enrolled: enrolledStudentsCount,
-                successList: successGrades.map(g => ({ id: g.studentId, name: studentMap.get(g.studentId), score: g.score })),
-                failureList: failureGrades.map(g => ({ id: g.studentId, name: studentMap.get(g.studentId), score: g.score }))
+                successList: successGrades.map((g: any) => ({ id: g.studentId, name: studentMap.get(g.studentId) || 'Étudiant', score: g.score })),
+                failureList: failureGrades.map((g: any) => ({ id: g.studentId, name: studentMap.get(g.studentId) || 'Étudiant', score: g.score }))
             };
         }));
 
