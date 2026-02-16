@@ -106,13 +106,38 @@ export function AttendanceScan() {
             const data = await response.json();
 
             if (!response.ok) {
-                // If 401, maybe token expired?
+                // If 401, token expired - prompt for login
                 if (response.status === 401) {
                     localStorage.removeItem(PERSISTENT_TOKEN_KEY);
+                    sessionStorage.removeItem('token'); // Also clear session token
                     setStatus('login-required');
+                    setErrorDetails('Votre session a expiré. Veuillez vous reconnecter pour continuer.');
                     return;
                 }
-                throw new Error(`${data.message || "Erreur lors de la validation."} (Code: ${response.status})`);
+
+                // More explicit error messages based on status and message content
+                let userMessage = data.message || "Erreur lors de la validation.";
+
+                if (response.status === 403) {
+                    // Check for specific 403 reasons
+                    if (data.message?.includes("pas enregistré") || data.message?.includes("pas inscrit")) {
+                        userMessage = `❌ Inscription manquante\n\nVous n'êtes pas inscrit au cours "${data.course || 'ce cours'}". Contactez le Service Académique pour régulariser votre inscription.`;
+                    } else if (data.message?.includes("trop loin") || data.message?.includes("Faculté")) {
+                        userMessage = `📍 Position GPS incorrecte\n\nVous devez être physiquement à la Faculté de Géologie pour valider votre présence. Vérifiez que vous êtes bien sur le campus et que votre GPS est activé.`;
+                    } else if (data.message?.includes("date") || data.message?.includes("aujourd'hui")) {
+                        userMessage = `📅 QR Code périmé\n\nCe code QR a été généré pour une autre date. Demandez au professeur de générer un nouveau code pour aujourd'hui.`;
+                    } else if (data.message?.includes("verrouillée")) {
+                        userMessage = `🔒 Session verrouillée\n\nLa prise de présence pour ce cours a été fermée par le professeur.`;
+                    } else {
+                        userMessage = `⚠️ Accès refusé\n\n${data.message}`;
+                    }
+                } else if (response.status === 404) {
+                    userMessage = `❌ QR Code invalide\n\nCe code QR n'existe pas ou a expiré. Scannez le code affiché par votre professeur en classe.`;
+                } else if (response.status === 400 && data.alreadyMarked) {
+                    userMessage = `✅ Déjà validé\n\nVous avez déjà validé votre présence pour ce cours aujourd'hui.`;
+                }
+
+                throw new Error(userMessage);
             }
 
             setSuccessData(data);

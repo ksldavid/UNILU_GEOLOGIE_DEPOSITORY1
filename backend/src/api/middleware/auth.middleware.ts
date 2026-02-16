@@ -23,7 +23,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
         req.user = decoded
         next()
     } catch (error) {
-        return res.status(403).json({ message: 'Token invalide ou expiré' })
+        return res.status(401).json({ message: 'Session expirée. Veuillez vous reconnecter.' })
     }
 }
 
