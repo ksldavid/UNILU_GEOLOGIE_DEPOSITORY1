@@ -28,7 +28,14 @@ export function StudentHeader({ studentData, onMenuClick, hasUnreadAnnouncements
         >
           <Menu className="w-6 h-6" />
         </button>
-        <div className="flex-1"></div>
+
+        <div className="flex-1 flex justify-center items-center">
+          <div className="hidden lg:flex items-center gap-3 px-6 py-2 bg-blue-50/50 border border-blue-100 rounded-full shadow-sm">
+            <span className="text-[11px] font-black text-blue-900 uppercase tracking-widest">Année Académique 2025-2026</span>
+            <div className="w-1 h-1 bg-blue-300 rounded-full"></div>
+            <span className="text-[11px] font-extrabold text-blue-600 uppercase tracking-widest">1er Semestre</span>
+          </div>
+        </div>
         <div className="flex items-center gap-2 md:gap-6 ml-2 md:ml-8">
           <div className="hidden md:flex items-center gap-2 text-gray-700">
             <Calendar className="w-5 h-5" />
@@ -62,6 +69,6 @@ export function StudentHeader({ studentData, onMenuClick, hasUnreadAnnouncements
           </div>
         </div>
       </div>
-    </header>
+    </header >
   );
 }
