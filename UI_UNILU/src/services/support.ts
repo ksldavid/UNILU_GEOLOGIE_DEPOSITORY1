@@ -33,7 +33,7 @@ export const supportService = {
         return response.json();
     },
 
-    async addMessage(ticketId: string, content: string) {
+    async addMessage(ticketId: string, content: string, isAdmin: boolean = false) {
         const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/support/messages`, {
             method: 'POST',
@@ -41,7 +41,7 @@ export const supportService = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ ticketId, content })
+            body: JSON.stringify({ ticketId, content, isAdmin })
         });
         if (!response.ok) throw new Error('Erreur envoi message');
         return response.json();

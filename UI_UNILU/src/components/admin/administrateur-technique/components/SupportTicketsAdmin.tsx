@@ -1,4 +1,3 @@
-import { API_URL } from '../../../../services/config';
 import { useState, useEffect } from 'react';
 import { MessageSquare, Clock, User, ChevronRight, Send, UserPlus, X } from 'lucide-react';
 import { supportService } from '../../../../services/support';
@@ -38,22 +37,7 @@ export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) =
         if (!selectedTicket || !reply.trim()) return;
 
         try {
-            await supportService.addMessage(selectedTicket.id, reply); // TODO: backend needs to handle isAdmin flag or infer from role
-            // Actually our backend addMessage takes {ticketId, content, isAdmin}
-            // Let's call it correctly:
-            const token = sessionStorage.getItem('token');
-            await fetch(`${API_URL}/support/messages`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    ticketId: selectedTicket.id,
-                    content: reply,
-                    isAdmin: true
-                })
-            });
+            await supportService.addMessage(selectedTicket.id, reply, true);
 
             setReply('');
             // Refresh details

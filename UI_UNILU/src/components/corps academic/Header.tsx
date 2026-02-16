@@ -1,4 +1,4 @@
-import { Search, Calendar, Bell, Menu } from "lucide-react";
+import { Calendar, Bell, Menu } from "lucide-react";
 import { UserData } from "../../App";
 
 interface HeaderProps {
@@ -30,16 +30,7 @@ export function Header({ userData, onMenuClick, hasUnreadAnnouncements, onBellCl
           <Menu className="w-6 h-6" />
         </button>
 
-        <div className="flex-1 max-w-2xl">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Rechercher..."
-              className="w-full pl-12 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-sm md:text-base"
-            />
-          </div>
-        </div>
+
 
         <div className="flex items-center gap-2 md:gap-6 ml-2 md:ml-8">
           <div className="hidden md:flex items-center gap-2 text-gray-700">

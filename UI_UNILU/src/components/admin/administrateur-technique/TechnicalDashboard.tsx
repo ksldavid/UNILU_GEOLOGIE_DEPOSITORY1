@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     Activity, ShieldCheck, Database, Server,
-    Terminal, Settings, LogOut, Bell, Search, Megaphone,
+    Terminal, Settings, LogOut, Bell, Megaphone,
     Clock, Cpu, Shield, LayoutDashboard, Globe, Menu, X, MessageSquare, Smartphone
 } from 'lucide-react';
 import { SystemStatus } from './components/SystemStatus';
@@ -264,14 +264,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                         >
                             <Menu className="w-5 h-5" />
                         </button>
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600" />
-                            <input
-                                type="text"
-                                placeholder="Search.."
-                                className="w-full bg-[#111827] border border-white/5 rounded-xl md:rounded-2xl pl-10 md:pl-12 pr-4 md:pr-6 py-2 md:py-3 text-[10px] md:text-xs text-slate-300 outline-none focus:border-blue-500/30 transition-all font-medium"
-                            />
-                        </div>
+
                         <div className="hidden lg:flex items-center gap-2 text-slate-700 font-mono text-[10px] uppercase font-bold tracking-tighter">
                             <Globe className="w-3 h-3" /> EU-WEST-3
                         </div>

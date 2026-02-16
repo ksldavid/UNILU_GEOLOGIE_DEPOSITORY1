@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import {
     LayoutDashboard, Users, ClipboardCheck, FileText, Calendar,
-    GraduationCap, Search, Bell, ChevronDown, LogOut,
-    FileCheck, X, Check, Clock, AlertCircle, Megaphone, Send, Wrench, AlertTriangle, CheckCircle, ChevronLeft, PieChart
+    GraduationCap, Bell, ChevronDown, LogOut,
+    FileCheck, X, Check, Clock, AlertCircle, Megaphone, Send, Wrench, AlertTriangle, CheckCircle, ChevronLeft, PieChart, Search
 } from "lucide-react";
 import { InscriptionsManager } from "./components/InscriptionsManager";
 import { AttendanceManager } from "./components/AttendanceManager";
@@ -306,11 +306,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <div className="hidden md:flex items-center gap-2 bg-[#FEFCF3] rounded-[20px] px-4 py-2 w-80 border border-[#1B4332]/10">
-                                <Search className="w-4 h-4 text-[#52796F]" />
-                                <input type="text" placeholder="Rechercher étudiant, CMD+K" className="bg-transparent border-none outline-none text-sm flex-1 text-[#1B4332]" />
-                                <kbd className="px-2 py-0.5 bg-[#D8F3DC] rounded text-xs text-[#52796F] font-medium">⌘K</kbd>
-                            </div>
+
 
                             <button
                                 onClick={() => setShowAnnouncementModal(true)}
