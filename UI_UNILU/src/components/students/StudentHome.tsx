@@ -24,7 +24,8 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
   const [showScanner, setShowScanner] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [showAttendanceHistory, setShowAttendanceHistory] = useState(false);
-  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
+  const [selectedCourseFilter, setSelectedCourseFilter] = useState("all");
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState("all");
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [readAnnouncements, setReadAnnouncements] = useState<Set<number>>(new Set());
   const [readAttendance, setReadAttendance] = useState<Set<number>>(new Set());
@@ -686,31 +687,87 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
               </button>
             </div>
 
-            {/* Filter Search */}
-            <div className="p-4 md:p-6 border-b border-gray-100 bg-white">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Filtrer par cours..."
-                  value={attendanceSearchQuery}
-                  onChange={(e) => setAttendanceSearchQuery(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl md:rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                />
+            {/* Filter Controls */}
+            <div className="p-4 md:p-6 border-b border-gray-100 bg-white space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Course Select */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Cours</label>
+                  <select
+                    value={selectedCourseFilter}
+                    onChange={(e) => setSelectedCourseFilter(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all cursor-pointer font-bold"
+                  >
+                    <option value="all">Tous les cours</option>
+                    {Array.from(new Set(data.recentAttendance.map((r: any) => r.courseName))).sort().map((course: any) => (
+                      <option key={course} value={course}>{course}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status Select */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">État</label>
+                  <select
+                    value={selectedStatusFilter}
+                    onChange={(e) => setSelectedStatusFilter(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all cursor-pointer font-bold"
+                  >
+                    <option value="all">Tout voir</option>
+                    <option value="PRESENT">Présences uniquement</option>
+                    <option value="ABSENT">Absences uniquement</option>
+                  </select>
+                </div>
               </div>
+
+              {/* Statistics Panel */}
+              {selectedCourseFilter !== "all" && (
+                <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black uppercase text-blue-600 tracking-tighter">Sessions Totales</span>
+                      <span className="text-xl font-black text-blue-900 leading-none">
+                        {data.recentAttendance.filter((r: any) => r.courseName === selectedCourseFilter).length}
+                      </span>
+                    </div>
+                    <div className="w-px h-8 bg-blue-200"></div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black uppercase text-green-600 tracking-tighter">Présences</span>
+                      <span className="text-xl font-black text-green-700 leading-none">
+                        {data.recentAttendance.filter((r: any) => r.courseName === selectedCourseFilter && r.status !== 'ABSENT').length}
+                      </span>
+                    </div>
+                    <div className="w-px h-8 bg-blue-200"></div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black uppercase text-red-600 tracking-tighter">Absences</span>
+                      <span className="text-xl font-black text-red-700 leading-none">
+                        {data.recentAttendance.filter((r: any) => r.courseName === selectedCourseFilter && r.status === 'ABSENT').length}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-black text-blue-800 uppercase tracking-widest">Taux d'assiduité</div>
+                    <div className="text-lg font-black text-blue-600">
+                      {Math.round((data.recentAttendance.filter((r: any) => r.courseName === selectedCourseFilter && r.status !== 'ABSENT').length / data.recentAttendance.filter((r: any) => r.courseName === selectedCourseFilter).length) * 100)}%
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-3 md:space-y-4">
               {data.recentAttendance
-                .filter((r: any) => r.courseName.toLowerCase().includes(attendanceSearchQuery.toLowerCase()))
+                .filter((r: any) => (selectedCourseFilter === "all" || r.courseName === selectedCourseFilter))
+                .filter((r: any) => (selectedStatusFilter === "all" || (selectedStatusFilter === "PRESENT" ? r.status !== "ABSENT" : r.status === "ABSENT")))
                 .length === 0 ? (
                 <div className="py-12 text-center">
-                  <p className="text-gray-400 font-bold italic">Aucun résultat trouvé pour "{attendanceSearchQuery}"</p>
+                  <p className="text-gray-400 font-bold italic">Aucun enregistrement trouvé pour ces critères.</p>
                 </div>
               ) : (
                 data.recentAttendance
-                  .filter((r: any) => r.courseName.toLowerCase().includes(attendanceSearchQuery.toLowerCase()))
+                  .filter((r: any) => (selectedCourseFilter === "all" || r.courseName === selectedCourseFilter))
+                  .filter((r: any) => (selectedStatusFilter === "all" || (selectedStatusFilter === "PRESENT" ? r.status !== "ABSENT" : r.status === "ABSENT")))
                   .map((record: any) => (
                     <div
                       key={record.id}
