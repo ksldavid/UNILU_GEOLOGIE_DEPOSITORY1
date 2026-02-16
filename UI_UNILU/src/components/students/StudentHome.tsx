@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Calendar, BookOpen, Clock, MapPin, User as UserIcon, Megaphone, CheckCircle, ChevronRight, X, QrCode, Loader2, SignalHigh, SignalLow, Send } from "lucide-react";
+import { Calendar, BookOpen, Clock, MapPin, User as UserIcon, Megaphone, CheckCircle, ChevronRight, X, QrCode, Loader2, SignalHigh, SignalLow, Send, Search } from "lucide-react";
 import { motion } from "motion/react";
 import { StudentPage } from "./StudentSidebar";
 import welcomeImage from '../../assets/slide1.png';
@@ -23,6 +23,8 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
   // Scanner States
   const [showScanner, setShowScanner] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [showAttendanceHistory, setShowAttendanceHistory] = useState(false);
+  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState("");
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [readAnnouncements, setReadAnnouncements] = useState<Set<number>>(new Set());
   const [readAttendance, setReadAttendance] = useState<Set<number>>(new Set());
@@ -481,10 +483,20 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
               variants={item}
               className="bg-white rounded-3xl md:rounded-[40px] p-5 md:p-8 border border-gray-100 shadow-sm"
             >
-              <h3 className="text-lg md:text-xl font-black text-gray-900 mb-5 md:mb-6 flex items-center gap-2 md:gap-3">
-                <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
-                Présences
-              </h3>
+              <div className="flex items-center justify-between mb-5 md:mb-6">
+                <h3 className="text-lg md:text-xl font-black text-gray-900 flex items-center gap-2 md:gap-3">
+                  <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                  Présences
+                </h3>
+                {data.recentAttendance.length > 3 && (
+                  <button
+                    onClick={() => setShowAttendanceHistory(true)}
+                    className="text-[10px] md:text-xs font-black text-blue-600 uppercase tracking-widest hover:underline"
+                  >
+                    Voir plus
+                  </button>
+                )}
+              </div>
               <div className="space-y-3 md:space-y-4">
                 {data.recentAttendance.slice(0, 3).map((record: any) => (
                   <div
@@ -493,14 +505,17 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
                     className={`flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all ${readAttendance.has(record.id) ? 'bg-gray-50 border-transparent' : 'bg-blue-50 border-blue-200 shadow-sm'}`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 ${record.status === 'PRESENT' ? 'bg-green-500' : 'bg-orange-500'}`} />
+                      <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 ${record.status === 'ABSENT' ? 'bg-red-500' : 'bg-green-500'}`} />
                       <div className="min-w-0">
                         <p className="text-[10px] md:text-xs font-black text-gray-900 uppercase truncate pr-2">{record.courseName}</p>
                         <p className="text-[8px] md:text-[10px] text-gray-400 font-bold uppercase tracking-widest">{record.date ? new Date(record.date).toLocaleDateString() : 'Aujourd\'hui'}</p>
                       </div>
                     </div>
-                    <span className="text-[8px] md:text-[10px] font-black text-gray-400 bg-white px-2 md:px-3 py-0.5 md:py-1 rounded-lg border border-gray-100 italic shrink-0">
-                      {record.status === 'LATE' ? 'En retard' : 'Présent'}
+                    <span className={`text-[8px] md:text-[10px] font-black px-2 md:px-3 py-0.5 md:py-1 rounded-lg border italic shrink-0 ${record.status === 'ABSENT'
+                      ? 'text-red-600 bg-red-50 border-red-100'
+                      : 'text-green-600 bg-green-50 border-green-100'
+                      }`}>
+                      {record.status === 'ABSENT' ? 'Absent' : 'Présent'}
                     </span>
                   </div>
                 ))}
@@ -639,6 +654,106 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
               <button
                 onClick={() => setSelectedCourseDetail(null)}
                 className="w-full py-3.5 md:py-4 bg-gray-900 text-white font-black rounded-xl md:rounded-[24px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all text-xs md:text-base uppercase tracking-widest"
+              >
+                Fermer
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      {/* Attendance History Modal */}
+      {showAttendanceHistory && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-xl animate-in fade-in duration-300">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-3xl md:rounded-[40px] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          >
+            {/* Header */}
+            <div className="p-6 md:p-8 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 text-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <CheckCircle className="w-5 h-5 md:w-6 md:h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg md:text-xl font-black text-gray-900 uppercase tracking-tight">Historique des présences</h3>
+                  <p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-widest">{data?.recentAttendance?.length || 0} enregistrements au total</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAttendanceHistory(false)}
+                className="p-2 md:p-3 hover:bg-red-50 hover:text-red-500 rounded-xl md:rounded-2xl transition-all"
+              >
+                <X className="w-5 h-5 md:w-6 md:h-6" />
+              </button>
+            </div>
+
+            {/* Filter Search */}
+            <div className="p-4 md:p-6 border-b border-gray-100 bg-white">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Filtrer par cours..."
+                  value={attendanceSearchQuery}
+                  onChange={(e) => setAttendanceSearchQuery(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl md:rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-3 md:space-y-4">
+              {data.recentAttendance
+                .filter((r: any) => r.courseName.toLowerCase().includes(attendanceSearchQuery.toLowerCase()))
+                .length === 0 ? (
+                <div className="py-12 text-center">
+                  <p className="text-gray-400 font-bold italic">Aucun résultat trouvé pour "{attendanceSearchQuery}"</p>
+                </div>
+              ) : (
+                data.recentAttendance
+                  .filter((r: any) => r.courseName.toLowerCase().includes(attendanceSearchQuery.toLowerCase()))
+                  .map((record: any) => (
+                    <div
+                      key={record.id}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl md:rounded-3xl border border-transparent hover:border-gray-100 hover:bg-white transition-all group"
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${record.status === 'ABSENT' ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
+                        <div className="min-w-0">
+                          <h4 className="text-xs md:text-sm font-black text-gray-900 uppercase truncate">{record.courseName}</h4>
+                          <div className="flex items-center gap-3 text-[9px] md:text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                            <span>{new Date(record.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                            {record.time && (
+                              <>
+                                <div className="w-1 h-1 bg-gray-200 rounded-full" />
+                                <span>{record.time}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`flex flex-col items-end gap-1`}>
+                        <span className={`text-[9px] md:text-[10px] font-black px-3 py-1 rounded-full border uppercase tracking-widest ${record.status === 'ABSENT'
+                          ? 'text-red-600 bg-red-50 border-red-200 animate-pulse'
+                          : 'text-green-600 bg-green-50 border-green-200'
+                          }`}>
+                          {record.status === 'ABSENT' ? 'Absent' : 'Présent'}
+                        </span>
+                        {record.status !== 'ABSENT' && record.status === 'LATE' && (
+                          <span className="text-[8px] text-orange-500 font-bold italic">En retard</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 md:p-8 border-t border-gray-100 bg-gray-50">
+              <button
+                onClick={() => setShowAttendanceHistory(false)}
+                className="w-full py-4 bg-gray-900 text-white font-black rounded-2xl shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all text-xs md:text-sm uppercase tracking-widest"
               >
                 Fermer
               </button>
