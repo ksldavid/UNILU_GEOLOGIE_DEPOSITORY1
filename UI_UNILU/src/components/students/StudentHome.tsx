@@ -488,14 +488,12 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
                   <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                   Présences
                 </h3>
-                {data.recentAttendance.length > 3 && (
-                  <button
-                    onClick={() => setShowAttendanceHistory(true)}
-                    className="text-[10px] md:text-xs font-black text-blue-600 uppercase tracking-widest hover:underline"
-                  >
-                    Voir plus
-                  </button>
-                )}
+                <button
+                  onClick={() => setShowAttendanceHistory(true)}
+                  className="text-[10px] md:text-xs font-black text-blue-600 uppercase tracking-widest hover:underline"
+                >
+                  Voir plus
+                </button>
               </div>
               <div className="space-y-3 md:space-y-4">
                 {data.recentAttendance.slice(0, 3).map((record: any) => (
