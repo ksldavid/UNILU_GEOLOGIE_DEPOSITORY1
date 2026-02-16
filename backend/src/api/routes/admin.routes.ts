@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getAllUsers, createAdminUser, updateUserStatus, resetUserPassword, deleteUser, suggestNextUserCredentials } from '../controllers/admin.controller'
+import { getAllUsers, createAdminUser, updateUserStatus, resetUserPassword, deleteUser, suggestNextUserCredentials, updateUserAcademicLevel } from '../controllers/admin.controller'
 import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 
 const router = Router()
@@ -13,6 +13,7 @@ router.get('/credentials/suggest', suggestNextUserCredentials)
 router.post('/users', createAdminUser)
 router.patch('/users/:id/status', updateUserStatus)
 router.patch('/users/:id/password', resetUserPassword)
+router.patch('/users/:id/academic-level', updateUserAcademicLevel)
 router.delete('/users/:id', deleteUser)
 
 export default router

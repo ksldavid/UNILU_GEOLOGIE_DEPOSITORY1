@@ -342,3 +342,82 @@ export const deleteUser = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Erreur lors de la suppression : l\'utilisateur possède probablement trop de dépendances actives.' })
     }
 }
+// Mettre à jour le niveau académique d'un étudiant
+export const updateUserAcademicLevel = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params as { id: string }
+        const { studentClass, academicYear } = req.body
+
+        // 1. Vérifier si l'utilisateur est un étudiant
+        const user = await prisma.user.findUnique({
+            where: { id },
+            select: { systemRole: true }
+        })
+
+        if (!user || user.systemRole !== 'STUDENT') {
+            return res.status(400).json({ error: "Cette action n'est possible que pour les comptes étudiants." })
+        }
+
+        // 2. Trouver le niveau académique correspondant
+        const level = await prisma.academicLevel.findFirst({
+            where: { name: studentClass },
+            include: { courses: { select: { code: true } } }
+        })
+
+        if (!level) {
+            return res.status(404).json({ error: "Niveau académique non trouvé." })
+        }
+
+        const year = academicYear || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
+
+        // 3. Mettre à jour l'inscription au niveau académique (Upsert)
+        await prisma.studentEnrollment.upsert({
+            where: {
+                userId_academicLevelId_academicYear: {
+                    userId: id,
+                    academicLevelId: level.id,
+                    academicYear: year
+                }
+            },
+            update: {
+                academicLevelId: level.id
+            },
+            create: {
+                userId: id,
+                academicLevelId: level.id,
+                academicYear: year
+            }
+        })
+
+        // On nettoie éventuellement les autres inscriptions de cette année pour éviter les doublons de niveau
+        await prisma.studentEnrollment.deleteMany({
+            where: {
+                userId: id,
+                academicYear: year,
+                academicLevelId: { not: level.id }
+            }
+        })
+
+        // 4. Mettre à jour les cours rattachés au nouveau niveau
+        if (level.courses.length > 0) {
+            // Optionnel : On peut choisir de supprimer les anciens cours de cette année ou juste ajouter les nouveaux
+            // Pour être propre, on supprime les inscriptions aux cours de cette année qui ne sont pas dans le nouveau niveau
+            // (Mais attention, l'étudiant pourrait avoir des cours de rattrapage, donc on ne touche qu'aux cours "normaux")
+
+            await prisma.studentCourseEnrollment.createMany({
+                data: level.courses.map(course => ({
+                    userId: id,
+                    courseCode: course.code,
+                    academicYear: year,
+                    isActive: true
+                })),
+                skipDuplicates: true
+            })
+        }
+
+        res.json({ message: `Le niveau académique a été mis à jour vers : ${studentClass}` })
+    } catch (error) {
+        console.error('Error updating academic level:', error)
+        res.status(500).json({ error: 'Failed to update academic level' })
+    }
+}

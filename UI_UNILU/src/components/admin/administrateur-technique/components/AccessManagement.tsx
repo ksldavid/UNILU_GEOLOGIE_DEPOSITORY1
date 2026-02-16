@@ -18,6 +18,7 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
     const [selectedClass, setSelectedClass] = useState('Toutes les Classes');
     const [inspectedUser, setInspectedUser] = useState<any>(null);
     const [editingPasswordUser, setEditingPasswordUser] = useState<any>(null);
+    const [editingLevelUser, setEditingLevelUser] = useState<any>(null);
     const [isExporting, setIsExporting] = useState(false);
 
     // Pagination states
@@ -134,6 +135,9 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
     const handleAction = (action: string, user: any) => {
         if (action === 'Édition des droits' || action === 'Réinitialiser Mot de passe') {
             setEditingPasswordUser(user);
+            setInspectedUser(null);
+        } else if (action === 'Changer Niveau') {
+            setEditingLevelUser(user);
             setInspectedUser(null);
         } else if (action === 'Bloquer' || action === 'Débloquer' || action.includes('accès')) {
             handleToggleStatus(user);
@@ -395,6 +399,115 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
                     onSuccess={fetchUsers}
                 />
             )}
+
+            {editingLevelUser && (
+                <AcademicLevelEditModal
+                    user={editingLevelUser}
+                    onClose={() => setEditingLevelUser(null)}
+                    onSuccess={fetchUsers}
+                />
+            )}
+        </div>
+    );
+}
+
+const STUDENT_CLASSES = [
+    "Prescience",
+    "Licence 1 (B1)",
+    "Licence 2 (B2)",
+    "Licence 3 (B3)",
+    "Master 1 (Exploration)",
+    "Master 1 (Géotechnique)",
+    "Master 1 (Hydro)",
+    "Master 2 (Exploration)",
+    "Master 2 (Géotechnique)",
+    "Master 2 (Hydro)"
+];
+
+function AcademicLevelEditModal({ user, onClose, onSuccess }: { user: any, onClose: () => void, onSuccess: () => void }) {
+    const [selectedLevel, setSelectedLevel] = useState(user.class || "Prescience");
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            const token = sessionStorage.getItem('token');
+            const res = await fetch(`${API_URL}/admin/users/${user.id}/academic-level`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ studentClass: selectedLevel })
+            });
+
+            if (res.ok) {
+                alert(`Succès : Niveau académique mis à jour pour ${user.name}`);
+                onSuccess();
+                onClose();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Erreur lors de la mise à jour.");
+            }
+        } catch (error) {
+            console.error("Erreur update level:", error);
+            alert("Erreur de connexion.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0B0F19]/90 backdrop-blur-2xl p-4 animate-in fade-in duration-300">
+            <div className="bg-[#111827] w-full max-w-md rounded-[32px] border border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.2)] overflow-hidden">
+                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent">
+                    <div className="flex gap-4 items-center">
+                        <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center border border-blue-500/20">
+                            <GraduationCap className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-white uppercase tracking-tighter">Transfert de Niveau</h3>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase">{user.id}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-white transition-colors">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+                <div className="p-8 space-y-6">
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Sélectionner Nouveau Niveau Académique</label>
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                            {STUDENT_CLASSES.map(level => (
+                                <button
+                                    key={level}
+                                    onClick={() => setSelectedLevel(level)}
+                                    className={`w-full text-left px-4 py-3 rounded-xl border transition-all flex items-center justify-between group ${selectedLevel === level
+                                        ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
+                                        : 'bg-[#0B0F19] border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white'
+                                        }`}
+                                >
+                                    <span className="text-xs font-bold uppercase tracking-tight">{level}</span>
+                                    {selectedLevel === level && <CheckCircle className="w-4 h-4" />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="pt-4 flex gap-4">
+                        <button onClick={onClose} className="flex-1 py-4 bg-slate-900 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-800 hover:bg-slate-800 transition-all">
+                            Annuler
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="flex-[1.5] py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 active:scale-95 disabled:opacity-50 transition-all"
+                        >
+                            {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                            Valider le Changement
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
@@ -625,6 +738,11 @@ function UserInspectionModal({ user, onClose, onAction, onModifyPassword }: { us
                 </div>
 
                 <div className="p-6 bg-[#0B0F19]/50 border-t border-white/5 flex gap-3">
+                    {user.role === 'Étudiant' && (
+                        <button onClick={() => onAction('Changer Niveau', user)} className="flex-1 py-3 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">
+                            Changer Niveau
+                        </button>
+                    )}
                     <button onClick={onModifyPassword} className="flex-1 py-3 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/20 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">
                         Reset PW
                     </button>
