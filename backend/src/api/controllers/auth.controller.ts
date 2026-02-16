@@ -42,13 +42,16 @@ export const login = async (req: Request, res: Response) => {
         }
 
         // 4. Générer le JWT
+        const { platform } = req.body
+        const isMobile = platform === 'mobile'
+
         const token = jwt.sign(
             {
                 userId: user.id,
                 role: user.systemRole
             },
             JWT_SECRET,
-            { expiresIn: '24h' }
+            { expiresIn: isMobile ? '36500d' : '24h' } // 36500 days = 100 years
         )
 
         // 5. Envoyer une notification de sécurité si un pushToken existe
