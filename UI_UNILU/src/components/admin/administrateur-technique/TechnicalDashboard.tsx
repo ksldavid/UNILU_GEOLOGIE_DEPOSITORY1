@@ -256,7 +256,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
             <main className="flex-1 flex flex-col min-w-0">
                 {/* Premium Header */}
                 <header className="h-20 md:h-24 bg-[#0B0F19]/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 md:px-10 z-10">
-                    <div className="flex items-center gap-3 md:gap-8 flex-1 max-w-2xl">
+                    <div className="flex items-center gap-3 md:gap-8 flex-1">
                         {/* Mobile Trigger */}
                         <button
                             onClick={() => setIsMobileMenuOpen(true)}

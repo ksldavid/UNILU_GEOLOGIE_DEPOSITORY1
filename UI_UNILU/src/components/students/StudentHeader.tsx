@@ -28,9 +28,7 @@ export function StudentHeader({ studentData, onMenuClick, hasUnreadAnnouncements
         >
           <Menu className="w-6 h-6" />
         </button>
-
-
-
+        <div className="flex-1"></div>
         <div className="flex items-center gap-2 md:gap-6 ml-2 md:ml-8">
           <div className="hidden md:flex items-center gap-2 text-gray-700">
             <Calendar className="w-5 h-5" />

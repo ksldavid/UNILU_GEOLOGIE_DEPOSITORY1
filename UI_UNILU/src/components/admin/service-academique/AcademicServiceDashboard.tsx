@@ -305,6 +305,8 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                             <p className="text-sm text-[#52796F] capitalize">{formattedDate}</p>
                         </div>
 
+                        <div className="flex-1"></div>
+
                         <div className="flex items-center gap-4">
 
 
