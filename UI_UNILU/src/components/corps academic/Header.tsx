@@ -1,4 +1,4 @@
-import { Calendar, Bell, Menu } from "lucide-react";
+import { Calendar, Bell, Menu, GraduationCap } from "lucide-react";
 import { UserData } from "../../App";
 
 interface HeaderProps {
@@ -31,10 +31,14 @@ export function Header({ userData, onMenuClick, hasUnreadAnnouncements, onBellCl
         </button>
 
         <div className="flex-1 flex justify-center items-center">
-          <div className="hidden lg:flex items-center gap-3 px-6 py-2 bg-teal-50/50 border border-teal-100 rounded-full shadow-sm">
-            <span className="text-[11px] font-black text-teal-900 uppercase tracking-widest">Année Académique 2025-2026</span>
-            <div className="w-1 h-1 bg-teal-300 rounded-full"></div>
-            <span className="text-[11px] font-extrabold text-teal-600 uppercase tracking-widest">1er Semestre</span>
+          <div className="hidden lg:flex items-center gap-4 px-5 py-2.5 bg-[#F0FDFA] border border-teal-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 group">
+            <div className="p-1.5 bg-teal-500 rounded-lg text-white group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-teal-500/20">
+              <GraduationCap className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="text-[10px] font-bold text-teal-600 uppercase tracking-[0.2em]">Année Académique</span>
+              <span className="text-[13px] font-black text-teal-900">2025-2026 — 1er Semestre</span>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2 md:gap-6 ml-2 md:ml-8">
