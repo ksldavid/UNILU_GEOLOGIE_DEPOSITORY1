@@ -65,10 +65,10 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        // Si une session existe déjà avec un token, on le renvoie TOUJOURS
-        // même si la session était verrouillée par erreur, on la déverrouille pour le scan
+        // FIX: Si une session existe déjà, on renvoie TOUJOURS le token existant s'il y en a un.
+        // Cela évite d'invalider les scans des étudiants si le prof rafraîchit sa page.
         if (existingSession && existingSession.qrToken) {
-            // Optionnel: On s'assure qu'elle est déverrouillée si le prof demande à nouveau le QR
+            // On s'assure qu'elle est déverrouillée si le prof redemande le code
             if (existingSession.isLocked) {
                 await (prisma as any).attendanceSession.update({
                     where: { id: existingSession.id },
@@ -83,9 +83,10 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // Sinon, on génère un nouveau token (première fois de la journée)
+        // Sinon (première fois de la journée), on génère un nouveau token
         const qrToken = crypto.randomBytes(32).toString('hex');
 
+        // On utilise upsert pour être sûr de ne pas créer de doublon en cas de clics simultanés
         const session = await (prisma as any).attendanceSession.upsert({
             where: {
                 courseCode_date: {
@@ -94,7 +95,7 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
                 }
             },
             update: {
-                // IMPORTANT: On ne change JAMAIS le qrToken si par miracle il est apparu entre temps
+                // Si par miracle un token a été créé entre temps, on le garde (sécurité supplémentaire)
                 qrToken: existingSession?.qrToken || qrToken,
                 latitude,
                 longitude,
@@ -111,7 +112,7 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         });
 
         res.json({
-            qrToken,
+            qrToken: session.qrToken,
             sessionId: session.id,
             expiresAt: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
         });
