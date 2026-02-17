@@ -63,6 +63,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
     const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
     const [announcementMessage, setAnnouncementMessage] = useState("");
     const [isPublishing, setIsPublishing] = useState(false);
+    const [hasNewTickets, setHasNewTickets] = useState(false);
 
     // Navigation Guard for Planning
     const [isPlanningModified, setIsPlanningModified] = useState(false);
@@ -156,12 +157,19 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
             setAttendanceData(attStats.slice(0, 8)); // Par défaut 8 mois
 
             // Fetch Support and Notifications
-            const [notifs, tickets] = await Promise.all([
+            const [notifs, tickets, allAdminTickets] = await Promise.all([
                 supportService.getNotifications(),
-                supportService.getMyTickets()
+                supportService.getMyTickets(),
+                supportService.adminGetAllTickets()
             ]);
             setNotifications(notifs);
             setSupportTickets(tickets);
+
+            // Check for new academic support tickets (Open or In Progress)
+            const hasUnresolvedAcademic = allAdminTickets.some((t: any) =>
+                t.category === 'SUPPORT_ACADEMIQUE' && (t.status === 'OPEN' || t.status === 'IN_PROGRESS')
+            );
+            setHasNewTickets(hasUnresolvedAcademic);
         } catch (error) {
             console.error("Erreur chargement dashboard:", error);
         } finally {
@@ -173,6 +181,8 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
     // Chargement des données réelles
     useEffect(() => {
         fetchDashboardData();
+        const interval = setInterval(fetchDashboardData, 30000);
+        return () => clearInterval(interval);
     }, [fetchDashboardData]);
 
     const formatActivityTime = (dateStr: string) => {
@@ -272,9 +282,12 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                         const Icon = item.icon;
                         const isActive = activeSection === item.id;
                         return (
-                            <button key={item.id} onClick={() => handleNavigate(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-[20px] transition-all ${isActive ? "bg-[#74C69D] text-[#1B4332] shadow-lg" : "text-[#FEFCF3] hover:bg-[#2D6A4F]"}`}>
+                            <button key={item.id} onClick={() => handleNavigate(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-[20px] transition-all relative ${isActive ? "bg-[#74C69D] text-[#1B4332] shadow-lg" : "text-[#FEFCF3] hover:bg-[#2D6A4F]"}`}>
                                 <Icon className="w-5 h-5" />
                                 <span className="text-sm font-medium">{item.label}</span>
+                                {item.id === 'tickets_profs' && hasNewTickets && (
+                                    <span className="absolute right-4 w-2 h-2 bg-red-500 rounded-full shadow-sm animate-pulse"></span>
+                                )}
                             </button>
                         );
                     })}

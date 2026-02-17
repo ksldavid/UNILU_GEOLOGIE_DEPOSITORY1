@@ -8,9 +8,10 @@ interface SidebarProps {
   onLogout: () => void;
   isOpen: boolean;
   onClose: () => void;
+  hasUnreadSupport?: boolean;
 }
 
-export function Sidebar({ currentPage, onNavigate, onLogout, isOpen, onClose }: SidebarProps) {
+export function Sidebar({ currentPage, onNavigate, onLogout, isOpen, onClose, hasUnreadSupport }: SidebarProps) {
   const navItems = [
     { id: 'dashboard' as const, label: "Vue d'ensemble", icon: LayoutGrid },
     { id: 'courses' as const, label: "Mes Cours", icon: GraduationCap },
@@ -49,7 +50,7 @@ export function Sidebar({ currentPage, onNavigate, onLogout, isOpen, onClose }: 
                   onClose();
                 }}
                 className={`
-                  w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
+                  w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative
                   ${isActive
                     ? 'bg-teal-50 text-teal-700'
                     : 'text-gray-700 hover:bg-gray-50'
@@ -58,6 +59,9 @@ export function Sidebar({ currentPage, onNavigate, onLogout, isOpen, onClose }: 
               >
                 <Icon className="w-5 h-5" />
                 <span className="font-medium">{item.label}</span>
+                {item.id === 'support' && hasUnreadSupport && (
+                  <span className="absolute right-4 w-2 h-2 bg-red-500 rounded-full shadow-sm animate-pulse" />
+                )}
               </button>
             );
           })}

@@ -75,7 +75,31 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hasUnreadAnnouncements, setHasUnreadAnnouncements] = useState(false);
   const [hasUnreadProfAnnouncements, setHasUnreadProfAnnouncements] = useState(false);
+  const [hasUnreadSupportNotifications, setHasUnreadSupportNotifications] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  // Check for Support notifications (Professor)
+  useEffect(() => {
+    if (userData?.role === 'USER' && isLoggedIn) {
+      const checkSupport = async () => {
+        try {
+          const res = await fetch(`${API_URL}/support/notifications`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+          });
+          if (res.ok) {
+            const notifs = await res.json();
+            const hasUnread = notifs.some((n: any) => !n.isRead);
+            setHasUnreadSupportNotifications(hasUnread);
+          }
+        } catch (err) {
+          console.error("Erreur check support notifications:", err);
+        }
+      };
+
+      checkSupport();
+      const interval = setInterval(checkSupport, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [userData, isLoggedIn]);
   const [showNavigationConfirm, setShowNavigationConfirm] = useState(false);
   const [pendingPage, setPendingPage] = useState<Page | null>(null);
   const [saveTrigger, setSaveTrigger] = useState<number>(0);
@@ -499,6 +523,7 @@ export default function App() {
             onLogout={handleLogout}
             isOpen={isMobileMenuOpen}
             onClose={() => setIsMobileMenuOpen(false)}
+            hasUnreadSupport={hasUnreadSupportNotifications}
           />
           <div className="flex-1 flex flex-col overflow-hidden">
             <Header

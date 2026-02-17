@@ -18,6 +18,7 @@ import { InvitationLetterManager } from './components/InvitationLetterManager';
 import { QRCodeCanvas } from 'qrcode.react';
 import { API_URL } from '../../../services/config';
 import { Mail } from 'lucide-react';
+import { supportService } from '../../../services/support';
 
 export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
     const [activeTab, setActiveTab] = useState('System');
@@ -25,6 +26,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
     const [initialModalData, setInitialModalData] = useState<any>(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [userRefreshKey, setUserRefreshKey] = useState(0);
+    const [hasNewSupportTickets, setHasNewSupportTickets] = useState(false);
     const [systemData, setSystemData] = useState<{
         status: string,
         uptime: string,
@@ -63,8 +65,25 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                 setSystemData((prev: any) => ({ ...prev, status: 'Offline' }));
             }
         };
+
+        const checkSupportTickets = async () => {
+            try {
+                const tickets = await supportService.adminGetAllTickets();
+                const hasOpenTech = tickets.some((t: any) =>
+                    t.category === 'SUPPORT_TECHNIQUE' && (t.status === 'OPEN' || t.status === 'IN_PROGRESS')
+                );
+                setHasNewSupportTickets(hasOpenTech);
+            } catch (error) {
+                console.error("Erreur check support tickets:", error);
+            }
+        };
+
         fetchSystem();
-        const interval = setInterval(fetchSystem, 30000);
+        checkSupportTickets();
+        const interval = setInterval(() => {
+            fetchSystem();
+            checkSupportTickets();
+        }, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -151,10 +170,13 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                             <button
                                 key={item.id}
                                 onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }}
-                                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${activeTab === item.id ? 'bg-blue-600/10 text-white border-l-4 border-blue-500' : 'text-slate-500'}`}
+                                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all relative ${activeTab === item.id ? 'bg-blue-600/10 text-white border-l-4 border-blue-500' : 'text-slate-500'}`}
                             >
                                 <item.icon className="w-5 h-5" />
                                 <span className="font-bold uppercase tracking-widest">{item.label}</span>
+                                {item.id === 'Support' && hasNewSupportTickets && (
+                                    <span className="absolute right-6 w-2.5 h-2.5 bg-red-500 rounded-full shadow-[0_0_12px_rgba(239,68,68,0.5)] animate-pulse" />
+                                )}
                             </button>
                         ))}
                     </nav>
@@ -191,8 +213,11 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                             >
                                 <item.icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? 'text-blue-500' : ''}`} />
                                 <span className="text-[11px] font-black uppercase tracking-widest">{item.label}</span>
-                                {isActive && (
+                                {isActive && !hasNewSupportTickets && (
                                     <div className="absolute right-4 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                                )}
+                                {item.id === 'Support' && hasNewSupportTickets && (
+                                    <span className="absolute right-4 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.4)] animate-pulse" />
                                 )}
                             </button>
                         );

@@ -400,9 +400,14 @@ export const updateUserAcademicLevel = async (req: Request, res: Response) => {
 
         // 4. Mettre à jour les cours rattachés au nouveau niveau
         if (level.courses.length > 0) {
-            // Optionnel : On peut choisir de supprimer les anciens cours de cette année ou juste ajouter les nouveaux
-            // Pour être propre, on supprime les inscriptions aux cours de cette année qui ne sont pas dans le nouveau niveau
-            // (Mais attention, l'étudiant pourrait avoir des cours de rattrapage, donc on ne touche qu'aux cours "normaux")
+            // On supprime les anciennes inscriptions aux cours de cette année 
+            // pour éviter d'accumuler les cours de deux promotions différentes
+            await prisma.studentCourseEnrollment.deleteMany({
+                where: {
+                    userId: id,
+                    academicYear: year
+                }
+            })
 
             await prisma.studentCourseEnrollment.createMany({
                 data: level.courses.map(course => ({
