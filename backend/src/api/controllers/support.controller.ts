@@ -88,29 +88,41 @@ export const addMessage = async (req: Request, res: Response) => {
                 content,
                 isAdmin: isAdmin || false
             }
-        })
+        });
 
-        // Si l'admin répond, on crée une notification pour l'utilisateur
-        if (isAdmin) {
-            const ticket = await prisma.supportTicket.findUnique({
+        // Mettre à jour la date de modification du ticket
+        const ticket = await prisma.supportTicket.findUnique({
+            where: { id: ticketId }
+        });
+
+        if (ticket) {
+            const updateData: any = { updatedAt: new Date() };
+
+            // Si l'utilisateur répond à un ticket RESOLVED, on le réouvre
+            if (!isAdmin && ticket.status === 'RESOLVED') {
+                updateData.status = 'IN_PROGRESS';
+            }
+
+            await prisma.supportTicket.update({
                 where: { id: ticketId },
-                select: { userId: true, subject: true }
-            })
+                data: updateData
+            });
 
-            if (ticket) {
+            // Si l'admin répond, on crée une notification pour l'utilisateur
+            if (isAdmin) {
                 await prisma.notification.create({
                     data: {
                         userId: ticket.userId,
-                        title: 'Réponse du Support Technique',
+                        title: 'Réponse du Support',
                         message: `Nouvelle réponse pour votre ticket : ${ticket.subject}`,
                         type: 'SUPPORT',
-                        linkTo: '/dashboard/support' // Ajuster selon le front
+                        linkTo: '/dashboard/support'
                     }
-                })
+                });
             }
         }
 
-        res.status(201).json(message)
+        res.status(201).json(message);
     } catch (error) {
         console.error('Erreur message ticket:', error)
         res.status(500).json({ message: 'Erreur serveur' })
@@ -176,10 +188,40 @@ export const getAllTickets = async (req: Request, res: Response) => {
     }
 }
 
+// Supprimer un ticket (seulement par son auteur)
+export const deleteTicket = async (req: Request, res: Response) => {
+    try {
+        const { userId } = (req as any).user
+        const { id } = req.params as { id: string }
+
+        const ticket = await prisma.supportTicket.findUnique({
+            where: { id },
+            select: { userId: true }
+        })
+
+        if (!ticket) {
+            return res.status(404).json({ message: 'Ticket non trouvé' })
+        }
+
+        if (ticket.userId !== userId) {
+            return res.status(403).json({ message: 'Action interdite : vous n\'êtes pas l\'auteur de ce ticket' })
+        }
+
+        await prisma.supportTicket.delete({
+            where: { id }
+        })
+
+        res.json({ message: 'Ticket supprimé avec succès' })
+    } catch (error) {
+        console.error('Erreur suppression ticket:', error)
+        res.status(500).json({ message: 'Erreur serveur' })
+    }
+}
+
 // Mettre à jour le statut d'un ticket
 export const updateTicketStatus = async (req: Request, res: Response) => {
     try {
-        const id = req.params.id as string
+        const { id } = req.params as { id: string }
         const { status } = req.body
 
         const ticket = await prisma.supportTicket.update({

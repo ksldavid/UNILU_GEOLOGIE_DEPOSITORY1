@@ -2,13 +2,26 @@ import { useState, useEffect } from 'react';
 import { MessageSquare, Clock, User, ChevronRight, Send, UserPlus, X } from 'lucide-react';
 import { supportService } from '../../../../services/support';
 
-export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) => void }) {
+export function SupportTicketsAdmin({ onRegister, categoryRestrict }: { onRegister?: (data: any) => void, categoryRestrict?: string }) {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedTicket, setSelectedTicket] = useState<any>(null);
     const [reply, setReply] = useState('');
-    const [filter, setFilter] = useState('ALL'); // ALL, OPEN, RESOLVED
+    const [filter, setFilter] = useState('ALL'); // ALL, OPEN, RESOLVED, SUPPORT_TECHNIQUE, SUPPORT_ACADEMIQUE
     // Removed isFullscreen logic as we now use a modal.
+
+    // Filter available tabs based on categoryRestrict
+    const tabs = [
+        { id: 'ALL', label: 'Tous' },
+        { id: 'OPEN', label: 'Ouverts' },
+        { id: 'IN_PROGRESS', label: 'En cours' },
+    ];
+
+    if (!categoryRestrict) {
+        tabs.push({ id: 'SUPPORT_TECHNIQUE', label: 'Technique' });
+        tabs.push({ id: 'SUPPORT_ACADEMIQUE', label: 'Académique' });
+    }
+
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setSelectedTicket(null);
@@ -19,12 +32,15 @@ export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) =
 
     useEffect(() => {
         fetchTickets();
-    }, []);
+    }, [categoryRestrict]);
 
     const fetchTickets = async () => {
         setLoading(true);
         try {
-            const data = await supportService.adminGetAllTickets();
+            let data = await supportService.adminGetAllTickets();
+            if (categoryRestrict) {
+                data = data.filter((t: any) => t.category === categoryRestrict);
+            }
             setTickets(data);
         } catch (error) {
             console.error("Erreur chargement tickets:", error);
@@ -63,7 +79,7 @@ export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) =
 
     const filteredTickets = tickets.filter(t => {
         if (filter === 'ALL') return true;
-        if (filter === 'Inscription') return t.category === 'Inscription';
+        if (filter === 'SUPPORT_TECHNIQUE' || filter === 'SUPPORT_ACADEMIQUE') return t.category === filter;
         return t.status === filter;
     });
 
@@ -71,8 +87,19 @@ export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) =
         switch (priority) {
             case 'URGENT': return 'text-red-500 bg-red-500/10 border-red-500/20';
             case 'HIGH': return 'text-orange-500 bg-orange-500/10 border-orange-500/20';
-            case 'MEDIUM': return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
-            default: return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
+            case 'MEDIUM': return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
+            default: return 'text-slate-500 bg-slate-500/10 border-slate-500/20';
+        }
+    };
+
+    const getCategoryBadge = (category: string) => {
+        switch (category) {
+            case 'SUPPORT_TECHNIQUE':
+                return <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-widest">Technique</span>;
+            case 'SUPPORT_ACADEMIQUE':
+                return <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-widest">Académique</span>;
+            default:
+                return null;
         }
     };
 
@@ -80,28 +107,21 @@ export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) =
         <div className="flex flex-col h-[calc(100vh-200px)] animate-in fade-in duration-500">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Support Technique</h2>
-                    <p className="text-slate-500 text-xs font-mono uppercase tracking-widest mt-1">Gestion des tickets d'assistance</p>
+                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Support & Assistance</h2>
+                    <p className="text-slate-500 text-xs font-mono uppercase tracking-widest mt-1">
+                        {categoryRestrict === 'SUPPORT_ACADEMIQUE' ? 'Service Académique' : categoryRestrict === 'SUPPORT_TECHNIQUE' ? 'Service Technique' : 'Administration Globale'}
+                    </p>
                 </div>
                 <div className="flex gap-2">
-                    <button
-                        onClick={() => setFilter('ALL')}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === 'ALL' ? 'bg-blue-600 text-white' : 'bg-slate-800/50 text-slate-500 hover:text-white'}`}
-                    >
-                        Tous
-                    </button>
-                    <button
-                        onClick={() => setFilter('Inscription')}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === 'Inscription' ? 'bg-emerald-600 text-white' : 'bg-slate-800/50 text-slate-500 hover:text-white'}`}
-                    >
-                        Inscriptions
-                    </button>
-                    <button
-                        onClick={() => setFilter('PENDING')}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === 'PENDING' ? 'bg-orange-600 text-white' : 'bg-slate-800/50 text-slate-500 hover:text-white'}`}
-                    >
-                        En attente
-                    </button>
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setFilter(tab.id)}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === tab.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800/50 text-slate-500 hover:text-white'}`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -133,14 +153,17 @@ export function SupportTicketsAdmin({ onRegister }: { onRegister?: (data: any) =
                                         {new Date(ticket.createdAt).toLocaleDateString()}
                                     </span>
                                 </div>
-                                <h4 className="text-base font-bold text-white mb-2 group-hover:text-blue-400 transition-colors line-clamp-2 flex-1">{ticket.subject}</h4>
-                                <div className="flex items-center gap-2 text-[11px] text-slate-500 mb-4">
-                                    <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center border border-white/5">
-                                        <User className="w-3 h-3" />
+                                <h4 className="text-base font-bold text-white mb-2 group-hover:text-blue-400 transition-colors line-clamp-2">{ticket.subject}</h4>
+                                <div className="flex items-center gap-3 mb-4">
+                                    {getCategoryBadge(ticket.category)}
+                                    <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                                        <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center border border-white/5">
+                                            <User className="w-3 h-3" />
+                                        </div>
+                                        <span className="truncate max-w-[120px]">{ticket.user?.name || 'Inconnu'}</span>
                                     </div>
-                                    <span className="truncate">{ticket.user?.name || 'Inconnu'}</span>
                                 </div>
-                                <div className="flex items-center justify-between pt-4 border-t border-white/5 w-full">
+                                <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between w-full">
                                     <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${ticket.status === 'RESOLVED' ? 'text-emerald-500' : 'text-blue-500'}`}>
                                         {ticket.status}
                                     </span>

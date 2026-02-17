@@ -19,6 +19,7 @@ import { Students } from "./components/corps academic/Students";
 import { Sidebar } from "./components/corps academic/Sidebar";
 import { Header } from "./components/corps academic/Header";
 import { MyAnnouncements } from "./components/corps academic/MyAnnouncements";
+import { Support } from "./components/corps academic/Support";
 import { TechnicalDashboard } from './components/admin/administrateur-technique/TechnicalDashboard';
 import { AcademicServiceDashboard } from './components/admin/service-academique/AcademicServiceDashboard';
 import { AutoLogout } from './components/common/AutoLogout';
@@ -30,7 +31,7 @@ import { professorService } from './services/professor';
 import { API_URL } from './services/config';
 
 
-export type Page = 'dashboard' | 'courses' | 'planning' | 'students' | 'course-detail' | 'attendance' | 'announcements';
+export type Page = 'dashboard' | 'courses' | 'planning' | 'students' | 'course-detail' | 'attendance' | 'announcements' | 'support';
 export type UserRole = 'STUDENT' | 'USER' | 'ADMIN' | 'ACADEMIC_OFFICE';
 
 export interface Course {
@@ -145,7 +146,7 @@ export default function App() {
       return;
     }
 
-    const validProfPages: Page[] = ['dashboard', 'courses', 'planning', 'students', 'course-detail', 'attendance', 'announcements'];
+    const validProfPages: Page[] = ['dashboard', 'courses', 'planning', 'students', 'course-detail', 'attendance', 'announcements', 'support'];
     const validStudentPages: StudentPage[] = ['dashboard', 'courses', 'planning', 'grades', 'announcements', 'settings'];
 
     if (userData?.role === 'USER' && validProfPages.includes(path as Page)) {
@@ -534,6 +535,7 @@ export default function App() {
               {currentPage === 'planning' && <Planning />}
               {currentPage === 'students' && <Students />}
               {currentPage === 'announcements' && <MyAnnouncements />}
+              {currentPage === 'support' && <Support />}
             </main>
           </div>
         </div>

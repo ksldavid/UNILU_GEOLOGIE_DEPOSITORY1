@@ -1,4 +1,4 @@
-import { LayoutGrid, GraduationCap, Calendar, Users, LogOut, Megaphone } from "lucide-react";
+import { LayoutGrid, GraduationCap, Calendar, Users, LogOut, Megaphone, LifeBuoy } from "lucide-react";
 // import logoImage from "../../assets/unilu-official-logo.png";
 import type { Page } from "../../App";
 
@@ -17,6 +17,7 @@ export function Sidebar({ currentPage, onNavigate, onLogout, isOpen, onClose }: 
     { id: 'planning' as const, label: "Planning", icon: Calendar },
     { id: 'students' as const, label: "Étudiants", icon: Users },
     { id: 'announcements' as const, label: "Mes Annonces", icon: Megaphone },
+    { id: 'support' as const, label: "Aide & Support", icon: LifeBuoy },
   ];
 
   return (

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
     LayoutDashboard, Users, ClipboardCheck, FileText, Calendar,
     GraduationCap, Bell, ChevronDown, LogOut,
-    FileCheck, X, Check, Clock, AlertCircle, Megaphone, Send, Wrench, AlertTriangle, CheckCircle, ChevronLeft, PieChart, Search
+    FileCheck, X, Check, Clock, AlertCircle, Megaphone, Send, Wrench, AlertTriangle, CheckCircle, ChevronLeft, PieChart, Search, MessageSquare
 } from "lucide-react";
 import { InscriptionsManager } from "./components/InscriptionsManager";
 import { AttendanceManager } from "./components/AttendanceManager";
@@ -11,6 +11,7 @@ import { ScheduleManager } from "./components/ScheduleManager";
 import { StaffAssignmentManager } from "./components/StaffAssignmentManager";
 import { TechnicalSupport } from "./components/TechnicalSupport";
 import { ActivityHistory } from "./components/ActivityHistory";
+import { SupportTicketsAdmin } from "../administrateur-technique/components/SupportTicketsAdmin";
 import { StudentDemographics } from "./components/StudentDemographics";
 import { userService } from "../../../services/user";
 import { supportService } from "../../../services/support";
@@ -28,6 +29,7 @@ const navItems = [
     { id: "planning", label: "Planning", icon: Calendar },
     { id: "stats_demog", label: "Stats. Étudiants", icon: PieChart },
     { id: "history", label: "Historique", icon: Clock },
+    { id: "tickets_profs", label: "Tickets Profs", icon: MessageSquare },
 ];
 
 // Note: stats sera dynamique à l'intérieur du composant, je retire la constante globale 'stats' pour la mettre dans le composant
@@ -749,6 +751,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                     )}
 
                     {activeSection === "stats_demog" && <StudentDemographics />}
+                    {activeSection === "tickets_profs" && <SupportTicketsAdmin categoryRestrict="SUPPORT_ACADEMIQUE" />}
                 </main>
 
                 {/* Confirm Leave Modal */}
