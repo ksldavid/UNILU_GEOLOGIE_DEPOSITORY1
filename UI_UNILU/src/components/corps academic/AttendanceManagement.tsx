@@ -1,5 +1,5 @@
 
-import { QrCode, Save, Search, ArrowLeft, X, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle, Download, Clock, Trash2, ShieldCheck, AlertTriangle } from "lucide-react";
+import { QrCode, Save, Search, ArrowLeft, X, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle, Download, Clock, Trash2, ShieldCheck, AlertTriangle, FileSpreadsheet } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
@@ -291,6 +291,70 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleDownloadSingleSession = (session: any) => {
+    const headers = ["Matricule", "Nom de l'etudiant", "Statut", "Heure de marquage"];
+    const rows = (session.records || [])
+      .sort((a: any, b: any) => (a.studentName || "").localeCompare(b.studentName || ""))
+      .map((r: any) => [
+        r.studentId,
+        `"${r.studentName}"`, // Use quotes for names with commas
+        r.status,
+        r.markedAt ? new Date(r.markedAt).toLocaleTimeString('fr-FR') : "--"
+      ]);
+
+    const csvContent = "\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Presence_${course.code}_${session.date}_S${session.sessionNumber}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadAllHistory = () => {
+    if (history.length === 0) return;
+
+    // 1. Get all unique students across all sessions
+    const studentMap = new Map<string, string>();
+    history.forEach(session => {
+      (session.records || []).forEach((r: any) => {
+        studentMap.set(r.studentId, r.studentName);
+      });
+    });
+
+    const studentIds = Array.from(studentMap.keys()).sort((a, b) =>
+      (studentMap.get(a) || "").localeCompare(studentMap.get(b) || "")
+    );
+
+    // 2. Prepare headers: ID, Name, [Date 1], [Date 2]...
+    const sortedSessions = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const headers = ["Matricule", "Nom", ...sortedSessions.map(s => `${s.date} (S${s.sessionNumber})`)];
+
+    // 3. Prepare rows
+    const rows = studentIds.map(id => {
+      const row = [id, `"${studentMap.get(id)}"`];
+      sortedSessions.forEach(session => {
+        const record = session.records.find((r: any) => r.studentId === id);
+        row.push(record ? record.status : "ABSENT"); // Fallback to ABSENT if no record found
+      });
+      return row;
+    });
+
+    const csvContent = "\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Historique_Presence_${course.code}_Global.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   useEffect(() => {
@@ -852,14 +916,25 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
         <div className="space-y-6">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xl font-semibold text-gray-900 italic">Historique des Sessions</h3>
-            <button
-              onClick={handleSyncPastRecords}
-              disabled={isRefreshing || loadingHistory}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-teal-600 hover:text-teal-700 hover:bg-teal-50 border border-teal-200 rounded-lg font-medium transition-all shadow-sm disabled:opacity-50 active:scale-95"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Synchronisation...' : 'Synchroniser les absences'}
-            </button>
+            <div className="flex items-center gap-3">
+              {history.length > 0 && (
+                <button
+                  onClick={handleDownloadAllHistory}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg font-bold transition-all shadow-sm active:scale-95"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Exporter tout (Excel)
+                </button>
+              )}
+              <button
+                onClick={handleSyncPastRecords}
+                disabled={isRefreshing || loadingHistory}
+                className="flex items-center gap-2 px-4 py-2 bg-white text-teal-600 hover:text-teal-700 hover:bg-teal-50 border border-teal-200 rounded-lg font-medium transition-all shadow-sm disabled:opacity-50 active:scale-95"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Synchronisation...' : 'Synchroniser les absences'}
+              </button>
+            </div>
           </div>
           {loadingHistory ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
@@ -910,6 +985,13 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleDownloadSingleSession(session)}
+                        className="p-2.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                        title="Télécharger cette session"
+                      >
+                        <Download className="w-5 h-5" />
+                      </button>
                       <button
                         onClick={() => {
                           setSessionToDelete(session);
