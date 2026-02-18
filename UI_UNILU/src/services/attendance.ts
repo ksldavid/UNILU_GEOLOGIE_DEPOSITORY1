@@ -46,5 +46,31 @@ export const attendanceService = {
             throw new Error(error.message || 'Erreur lors du scan du QR Code');
         }
         return response.json();
+    },
+
+    // --- ADMIN / SERVICE ACADÉMIQUE ---
+
+    async getCourseSessions(courseCode: string) {
+        const response = await fetch(`${API_URL}/sessions/${courseCode}`, {
+            headers: getHeaders()
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Erreur lors de la récupération des sessions');
+        }
+        return response.json();
+    },
+
+    async overrideAttendance(sessionId: number, studentId: string, newStatus: 'PRESENT' | 'ABSENT' | 'LATE') {
+        const response = await fetch(`${API_URL}/override`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ sessionId, studentId, newStatus })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Erreur lors de la rectification');
+        }
+        return response.json();
     }
 };

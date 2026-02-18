@@ -313,3 +313,115 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Erreur lors de la validation de la présence' });
     }
 }
+
+/**
+ * [ADMIN/ACADEMIC_OFFICE] Récupère toutes les sessions d'un cours
+ * avec le statut de présence de chaque étudiant inscrit.
+ */
+export const getCourseAttendanceSessions = async (req: AuthRequest, res: Response) => {
+    try {
+        const { courseCode } = req.params;
+
+        const sessions = await (prisma as any).attendanceSession.findMany({
+            where: { courseCode },
+            orderBy: { date: 'desc' },
+            include: {
+                records: {
+                    include: {
+                        student: { select: { id: true, name: true } }
+                    }
+                }
+            }
+        });
+
+        const enrollments = await prisma.studentCourseEnrollment.findMany({
+            where: { courseCode: courseCode as string, isActive: true },
+            include: {
+                user: { select: { id: true, name: true } }
+            }
+        });
+
+        const formattedSessions = sessions.map((session: any) => {
+            const studentsStatus = enrollments.map((enrollment: any) => {
+                const record = session.records.find((r: any) => r.studentId === enrollment.userId);
+                return {
+                    studentId: enrollment.userId,
+                    studentName: enrollment.user.name,
+                    status: record ? record.status : 'ABSENT',
+                    recordId: record ? record.id : null
+                };
+            });
+            const presentCount = studentsStatus.filter((s: any) => s.status !== 'ABSENT').length;
+            return {
+                sessionId: session.id,
+                date: session.date,
+                courseCode: session.courseCode,
+                isLocked: session.isLocked,
+                totalStudents: enrollments.length,
+                presentCount,
+                absentCount: enrollments.length - presentCount,
+                students: studentsStatus
+            };
+        });
+
+        res.json(formattedSessions);
+    } catch (error) {
+        console.error('Erreur getCourseAttendanceSessions:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+/**
+ * [ADMIN/ACADEMIC_OFFICE] Rectifie manuellement la présence d'un étudiant.
+ */
+export const overrideAttendance = async (req: AuthRequest, res: Response) => {
+    try {
+        const adminId = req.user?.userId;
+        const adminRole = req.user?.role;
+        const { sessionId, studentId, newStatus } = req.body;
+
+        if (!adminId) return res.status(401).json({ message: 'Non authentifié' });
+        if (!['ADMIN', 'ACADEMIC_OFFICE'].includes(adminRole || '')) {
+            return res.status(403).json({ message: 'Accès refusé : droits insuffisants' });
+        }
+        if (!sessionId || !studentId || !newStatus) {
+            return res.status(400).json({ message: 'sessionId, studentId et newStatus sont requis' });
+        }
+        if (!['PRESENT', 'ABSENT', 'LATE'].includes(newStatus)) {
+            return res.status(400).json({ message: 'Statut invalide' });
+        }
+
+        const session = await (prisma as any).attendanceSession.findUnique({
+            where: { id: sessionId }
+        });
+        if (!session) return res.status(404).json({ message: 'Session introuvable' });
+
+        const enrollment = await prisma.studentCourseEnrollment.findFirst({
+            where: { userId: studentId, courseCode: session.courseCode }
+        });
+        if (!enrollment) {
+            return res.status(404).json({ message: "Cet étudiant n'est pas inscrit à ce cours" });
+        }
+
+        const record = await (prisma as any).attendanceRecord.upsert({
+            where: { sessionId_studentId: { sessionId, studentId } },
+            update: { status: newStatus },
+            create: { sessionId, studentId, status: newStatus }
+        });
+
+        const student = await prisma.user.findUnique({
+            where: { id: studentId },
+            select: { name: true }
+        });
+
+        console.log(`[OVERRIDE] ${adminRole} ${adminId} -> ${student?.name} session ${sessionId} = ${newStatus}`);
+
+        res.json({
+            message: `Présence de ${student?.name} mise à jour : ${newStatus}`,
+            record
+        });
+    } catch (error) {
+        console.error('Erreur overrideAttendance:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
