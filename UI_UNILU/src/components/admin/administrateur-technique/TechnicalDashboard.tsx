@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
     Activity, ShieldCheck, Database, Server,
     Terminal, Settings, LogOut, Bell, Megaphone,
-    Clock, Cpu, Shield, LayoutDashboard, Globe, Menu, X, MessageSquare, Smartphone
+    Clock, Cpu, Shield, LayoutDashboard, Globe, Menu, X, MessageSquare, Smartphone, Users
 } from 'lucide-react';
 import { SystemStatus } from './components/SystemStatus';
 import { AccessManagement } from './components/AccessManagement';
@@ -15,6 +15,7 @@ import { ConfigManager } from './components/ConfigManager';
 import { CommunicationManager } from './components/CommunicationManager';
 import { AdsManager } from './components/AdsManager';
 import { InvitationLetterManager } from './components/InvitationLetterManager';
+import { AttendanceManager } from '../service-academique/components/AttendanceManager';
 import { QRCodeCanvas } from 'qrcode.react';
 import { API_URL } from '../../../services/config';
 import { Mail } from 'lucide-react';
@@ -97,6 +98,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
         { id: 'Support', icon: MessageSquare, label: 'Support' },
         { id: 'Ads', icon: Globe, label: 'Régie Pub' },
         { id: 'Invitations', icon: Mail, label: 'Générer une lettre' },
+        { id: 'Attendance', icon: Users, label: 'Rectifier Présences' },
         { id: 'SupportQR', icon: Smartphone, label: 'QR Verification' },
         { id: 'Config', icon: Settings, label: 'Configuration' },
     ];
@@ -121,6 +123,8 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                 return <AdsManager />;
             case 'Invitations':
                 return <InvitationLetterManager />;
+            case 'Attendance':
+                return <AttendanceManager />;
             case 'Config':
                 return <ConfigManager />;
             case 'SupportQR':
