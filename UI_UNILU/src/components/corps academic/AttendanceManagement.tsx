@@ -85,8 +85,8 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
     const checkTodaySessions = async () => {
       try {
         const data = await professorService.getAttendanceHistory(course.code);
-        const lubumbashiTime = new Date(new Date().getTime() + (2 * 60 * 60 * 1000));
-        const todayStr = lubumbashiTime.toISOString().split('T')[0];
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
         const todaySessions = data.filter((s: any) => s.date.startsWith(todayStr));
         if (todaySessions.length > 0) {
@@ -239,7 +239,9 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
     try {
       // Get the date from the input
       const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
-      const date = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const date = dateInput ? dateInput.value : localToday;
 
       const records = Object.entries(selectedStatus).map(([studentId, status]) => ({
         studentId,
@@ -384,7 +386,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                   </label>
                   <input
                     type="date"
-                    defaultValue={new Date().toISOString().split('T')[0]} // Use today's date
+                    defaultValue={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`} // Use local today's date
                     className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white shadow-sm"
                   />
                 </div>
