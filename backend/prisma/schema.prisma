@@ -445,9 +445,10 @@ model AttendanceSession {
   isLocked      Boolean  @default(false)
 
   // Security & QR Code
-  qrToken   String? @unique
-  latitude  Float?
-  longitude Float?
+  qrToken     String?   @unique
+  qrExpiresAt DateTime?
+  latitude    Float?
+  longitude   Float?
 
   course  Course             @relation(fields: [courseCode], references: [code])
   records AttendanceRecord[]

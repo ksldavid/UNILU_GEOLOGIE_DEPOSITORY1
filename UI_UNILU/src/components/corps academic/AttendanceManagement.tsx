@@ -1,5 +1,5 @@
 
-import { QrCode, Save, Search, ArrowLeft, X, MapPin, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle, Download } from "lucide-react";
+import { QrCode, Save, Search, ArrowLeft, X, MapPin, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle, Download, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
@@ -33,6 +33,9 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
   const [isDirty, setIsDirty] = useState(false);
   const [sessionNumber, setSessionNumber] = useState(1);
   const [maxSessionToday, setMaxSessionToday] = useState(1);
+  const [qrExpiresIn, setQrExpiresIn] = useState(1440); // Minutes
+  const [qrExpirationActual, setQrExpirationActual] = useState<Date | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
 
   // Prevention de perte de données (Refresh/Fermeture onglet)
   useEffect(() => {
@@ -103,6 +106,29 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
       setLoadingHistory(false);
     }
   };
+
+  // Timer pour l'expiration du QR Code
+  useEffect(() => {
+    if (!qrExpirationActual) return;
+
+    const timer = setInterval(() => {
+      const now = new Date();
+      const expiration = new Date(qrExpirationActual);
+      const diff = expiration.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeLeft("EXPIRÉ");
+        setQrToken(null);
+        clearInterval(timer);
+      } else {
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        setTimeLeft(`${mins}:${secs < 10 ? '0' : ''}${secs}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [qrExpirationActual]);
 
   const handleSyncPastRecords = async () => {
     setIsRefreshing(true);
@@ -177,9 +203,12 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
     setShowQRModal(true);
 
     try {
-      // On ne demande plus la localisation au prof, le serveur utilise les points fixes
-      const result = await attendanceService.generateQR(course.code, sessionNumber);
+      // On envoie le délai d'expiration choisi
+      const result = await attendanceService.generateQR(course.code, sessionNumber, qrExpiresIn);
       setQrToken(result.qrToken);
+      if (result.expiresAt) {
+        setQrExpirationActual(new Date(result.expiresAt));
+      }
       if (sessionNumber > maxSessionToday) setMaxSessionToday(sessionNumber);
       setGeneratingQR(false);
     } catch (error: any) {
@@ -376,6 +405,56 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                   )}
                   {generatingQR ? "Localisation..." : "Générer le QR code de présence"}
                 </button>
+
+                {!qrToken && !generatingQR && (
+                  <div className="flex flex-col items-end gap-2 mt-4">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <Clock className="w-3 h-3 text-teal-600" /> Validité du QR Code :
+                    </label>
+                    <div className="flex gap-2">
+                      {[5, 10, 20, 30, 1440].map((mins) => (
+                        <button
+                          key={mins}
+                          onClick={() => setQrExpiresIn(mins)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${qrExpiresIn === mins
+                            ? 'bg-teal-50 border-teal-200 text-teal-700 shadow-sm'
+                            : 'bg-white border-gray-200 text-gray-500 hover:border-teal-200'
+                            }`}
+                        >
+                          {mins === 1440 ? '24h' : `${mins} min`}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[9px] text-gray-400 italic">
+                      Après ce délai, les scans seront refusés.
+                    </p>
+                  </div>
+                )}
+
+                {qrToken && timeLeft && (
+                  <div className={`mt-4 px-6 py-3 rounded-2xl flex items-center gap-3 animate-in slide-in-from-right duration-500 border ${timeLeft === 'EXPIRÉ' ? 'bg-red-50 border-red-100' : 'bg-teal-50 border-teal-100 shadow-lg shadow-teal-600/10'}`}>
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${timeLeft === 'EXPIRÉ' ? 'bg-red-100 text-red-600' : 'bg-white text-teal-600'}`}>
+                      <Clock className={`w-5 h-5 ${timeLeft !== 'EXPIRÉ' ? 'animate-pulse' : ''}`} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-teal-800/50 uppercase tracking-[0.2em] leading-none mb-1">Expiration</span>
+                      <span className={`text-xl font-black tabular-nums tracking-tighter ${timeLeft === 'EXPIRÉ' ? 'text-red-600' : 'text-teal-700'}`}>
+                        {timeLeft}
+                      </span>
+                    </div>
+                    {timeLeft !== 'EXPIRÉ' && (
+                      <div className="ml-4 border-l border-teal-200 pl-4">
+                        <button
+                          onClick={handleGenerateQR}
+                          className="text-[10px] font-black text-teal-600 uppercase hover:text-teal-700"
+                        >
+                          Renouveler
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {generatingQR && (
                   <div className="flex items-center gap-3 mt-4 bg-teal-50/50 border border-teal-100/50 px-4 py-3 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-500">
                     <div className="relative">

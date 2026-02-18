@@ -11,7 +11,7 @@ const getHeaders = () => {
 };
 
 export const attendanceService = {
-    async generateQR(courseCode: string, sessionNumber: number = 1, latitude?: number, longitude?: number) {
+    async generateQR(courseCode: string, sessionNumber: number = 1, expiresInMinutes: number = 1440, latitude?: number, longitude?: number) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
 
@@ -19,7 +19,7 @@ export const attendanceService = {
             const response = await fetch(`${API_URL}/generate`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ courseCode, sessionNumber, latitude, longitude }),
+                body: JSON.stringify({ courseCode, sessionNumber, expiresInMinutes, latitude, longitude }),
                 signal: controller.signal
             });
             clearTimeout(timeoutId);

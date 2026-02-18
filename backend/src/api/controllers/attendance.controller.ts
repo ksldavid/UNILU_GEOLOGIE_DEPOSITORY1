@@ -31,8 +31,12 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export const generateQRToken = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode, sessionNumber = 1 } = req.body;
+        const { courseCode, sessionNumber = 1, expiresInMinutes = 1440 } = req.body;
         const sessionNum = Number(sessionNumber);
+
+        // Coordonnées par défaut
+        const latitude = FACULTY_LOCATIONS[0].lat;
+        const longitude = FACULTY_LOCATIONS[0].lng;
 
         const userId = req.user?.userId;
 
@@ -64,6 +68,9 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             }
         });
 
+        // Calcul de l'expiration
+        const qrExpiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+
         // FIX: Si une session existe déjà, on renvoie TOUJOURS le token existant s'il y en a un.
         // Cela évite d'invalider les scans des étudiants si le prof rafraîchit sa page.
         if (existingSession && existingSession.qrToken) {
@@ -71,14 +78,23 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             if (existingSession.isLocked) {
                 await (prisma as any).attendanceSession.update({
                     where: { id: existingSession.id },
-                    data: { isLocked: false }
+                    data: {
+                        isLocked: false,
+                        qrExpiresAt: qrExpiresAt // On met à jour l'expiration si le prof la change
+                    }
+                });
+            } else {
+                // Même si pas locké, on met à jour le délai d'expiration si demandé
+                await (prisma as any).attendanceSession.update({
+                    where: { id: existingSession.id },
+                    data: { qrExpiresAt: qrExpiresAt }
                 });
             }
 
             return res.json({
                 qrToken: existingSession.qrToken,
                 sessionId: existingSession.id,
-                expiresAt: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
+                expiresAt: qrExpiresAt
             });
         }
 
@@ -96,6 +112,7 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             },
             update: {
                 qrToken: existingSession?.qrToken || qrToken,
+                qrExpiresAt,
                 latitude,
                 longitude,
                 isLocked: false
@@ -105,8 +122,9 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
                 date: today,
                 sessionNumber: sessionNum,
                 qrToken,
-                latitude: FACULTY_LOCATIONS[0].lat,
-                longitude: FACULTY_LOCATIONS[0].lng,
+                qrExpiresAt,
+                latitude,
+                longitude,
                 isLocked: false
             }
         });
@@ -114,7 +132,7 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         res.json({
             qrToken: session.qrToken,
             sessionId: session.id,
-            expiresAt: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
+            expiresAt: qrExpiresAt
         });
 
     } catch (error) {
@@ -149,6 +167,14 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
 
         if (session.isLocked) {
             return res.status(403).json({ message: "La prise de présence pour cette session est verrouillée." });
+        }
+
+        // 1.5 Vérifier l'expiration du QR Code
+        if (session.qrExpiresAt && new Date() > new Date(session.qrExpiresAt)) {
+            return res.status(403).json({
+                message: "Ce QR Code a expiré. Veuillez demander au professeur d'en générer un nouveau.",
+                debugCode: "ERR_TOKEN_EXPIRED"
+            });
         }
 
         // 2. Vérifier la date (Mise à jour avec logs précis)
