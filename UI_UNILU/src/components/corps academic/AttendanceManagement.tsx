@@ -1,5 +1,5 @@
-
-import { QrCode, Save, Search, ArrowLeft, X, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle, Download, Clock, Trash2, ShieldCheck, AlertTriangle, FileSpreadsheet } from "lucide-react";
+import { QrCode, Save, Search, ArrowLeft, X, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle, Download, Clock, Trash2, ShieldCheck, AlertTriangle, FileSpreadsheet, ChevronDown, FileDown } from "lucide-react";
+import { jsPDF } from "jspdf";
 import { useState, useEffect } from "react";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
@@ -33,6 +33,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
   const [isDirty, setIsDirty] = useState(false);
   const [sessionNumber, setSessionNumber] = useState(1);
   const [maxSessionToday, setMaxSessionToday] = useState(1);
+  const [showExportMenu, setShowExportMenu] = useState<string | null>(null); // For handling multiple download options
   const [qrExpiresIn, setQrExpiresIn] = useState(1440); // Minutes
   const [qrExpirationActual, setQrExpirationActual] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
@@ -293,13 +294,160 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
     }
   };
 
+  const handleDownloadSingleSessionPDF = (session: any) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(13, 148, 136); // Teal 600
+    doc.text("RAPPORT DE PRESENCE", pageWidth / 2, 20, { align: 'center' });
+
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Cours: ${course.name} (${course.code})`, 20, 35);
+    doc.text(`Date: ${new Date(session.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`, 20, 42);
+    doc.text(`Session: ${session.sessionNumber || 1}`, 20, 49);
+
+    // Summary
+    doc.setDrawColor(230);
+    doc.line(20, 55, pageWidth - 20, 55);
+
+    doc.setFontSize(10);
+    doc.text(`Total Inscrits: ${session.totalStudents || students.length}`, 20, 65);
+    doc.setTextColor(16, 185, 129); // Emerald 600
+    doc.text(`Presents: ${session.present}`, 80, 65);
+    doc.setTextColor(245, 158, 11); // Amber 600
+    doc.text(`En retard: ${session.late}`, 130, 65);
+    doc.setTextColor(239, 68, 68); // Red 600
+    doc.text(`Absents: ${session.absent}`, 170, 65);
+
+    doc.setTextColor(0);
+    doc.line(20, 70, pageWidth - 20, 70);
+
+    // Table Header
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Matricule", 20, 80);
+    doc.text("Nom de l'Etudiant", 50, 80);
+    doc.text("Statut", 140, 80);
+    doc.text("Heure", 180, 80);
+
+    doc.line(20, 83, pageWidth - 20, 83);
+
+    // Table Rows
+    doc.setFont("helvetica", "normal");
+    let y = 90;
+    const sortedRecords = (session.records || []).sort((a: any, b: any) =>
+      (a.studentName || "").localeCompare(b.studentName || "")
+    );
+
+    sortedRecords.forEach((r: any) => {
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.text(r.studentId, 20, y);
+      doc.text(r.studentName.substring(0, 40), 50, y);
+
+      const statusColor = r.status === 'PRESENT' ? [16, 185, 129] : (r.status === 'LATE' ? [245, 158, 11] : [239, 68, 68]);
+      doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+      doc.text(r.status, 140, y);
+
+      doc.setTextColor(150);
+      doc.text(r.markedAt ? new Date(r.markedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : "--", 180, y);
+      doc.setTextColor(0);
+
+      y += 8;
+    });
+
+    doc.save(`Presence_${course.code}_${session.date}_S${session.sessionNumber}.pdf`);
+  };
+
+  const handleDownloadAllHistoryPDF = () => {
+    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(22);
+    doc.setTextColor(13, 148, 136);
+    doc.text("HISTORIQUE GLOBAL DES PRESENCES", pageWidth / 2, 20, { align: 'center' });
+
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Cours: ${course.name} (${course.code})`, 20, 35);
+    doc.text(`Date d'exportation: ${new Date().toLocaleDateString('fr-FR')}`, 20, 42);
+
+    // Get all unique students
+    const studentMap = new Map<string, string>();
+    history.forEach(session => {
+      (session.records || []).forEach((r: any) => {
+        studentMap.set(r.studentId, r.studentName);
+      });
+    });
+
+    const studentIds = Array.from(studentMap.keys()).sort((a, b) =>
+      (studentMap.get(a) || "").localeCompare(studentMap.get(b) || "")
+    );
+
+    const sortedSessions = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Table Header
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0);
+    doc.text("Etudiant", 10, 55);
+
+    let x = 60;
+    const dateWidth = (pageWidth - 70) / Math.max(sortedSessions.length, 1);
+
+    sortedSessions.forEach(s => {
+      const dateStr = s.date.substring(5); // Show MM-DD
+      doc.text(`${dateStr}/S${s.sessionNumber}`, x, 55);
+      x += dateWidth;
+    });
+
+    doc.line(10, 58, pageWidth - 10, 58);
+
+    let y = 65;
+    doc.setFont("helvetica", "normal");
+
+    studentIds.forEach(id => {
+      if (y > 190) {
+        doc.addPage('a4', 'l');
+        y = 20;
+      }
+
+      const name = studentMap.get(id) || "";
+      doc.text(`${name.substring(0, 25)} (${id})`, 10, y);
+
+      let sessionX = 60;
+      sortedSessions.forEach(session => {
+        const record = session.records.find((r: any) => r.studentId === id);
+        const status = record ? record.status : "ABSENT";
+
+        if (status === 'PRESENT') doc.setTextColor(16, 185, 129);
+        else if (status === 'LATE') doc.setTextColor(245, 158, 11);
+        else doc.setTextColor(239, 68, 68);
+
+        doc.text(status.charAt(0), sessionX, y);
+        sessionX += dateWidth;
+      });
+
+      doc.setTextColor(0);
+      y += 6;
+    });
+
+    doc.save(`Historique_Presence_${course.code}_Global.pdf`);
+  };
+
   const handleDownloadSingleSession = (session: any) => {
     const headers = ["Matricule", "Nom de l'etudiant", "Statut", "Heure de marquage"];
     const rows = (session.records || [])
       .sort((a: any, b: any) => (a.studentName || "").localeCompare(b.studentName || ""))
       .map((r: any) => [
         r.studentId,
-        `"${r.studentName}"`, // Use quotes for names with commas
+        `"${r.studentName}"`,
         r.status,
         r.markedAt ? new Date(r.markedAt).toLocaleTimeString('fr-FR') : "--"
       ]);
@@ -319,7 +467,6 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
   const handleDownloadAllHistory = () => {
     if (history.length === 0) return;
 
-    // 1. Get all unique students across all sessions
     const studentMap = new Map<string, string>();
     history.forEach(session => {
       (session.records || []).forEach((r: any) => {
@@ -331,16 +478,14 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
       (studentMap.get(a) || "").localeCompare(studentMap.get(b) || "")
     );
 
-    // 2. Prepare headers: ID, Name, [Date 1], [Date 2]...
     const sortedSessions = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const headers = ["Matricule", "Nom", ...sortedSessions.map(s => `${s.date} (S${s.sessionNumber})`)];
 
-    // 3. Prepare rows
     const rows = studentIds.map(id => {
       const row = [id, `"${studentMap.get(id)}"`];
       sortedSessions.forEach(session => {
         const record = session.records.find((r: any) => r.studentId === id);
-        row.push(record ? record.status : "ABSENT"); // Fallback to ABSENT if no record found
+        row.push(record ? record.status : "ABSENT");
       });
       return row;
     });
@@ -909,8 +1054,6 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
               </tbody>
             </table>
           </div>
-
-
         </>
       ) : (
         <div className="space-y-6">
@@ -918,13 +1061,35 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
             <h3 className="text-xl font-semibold text-gray-900 italic">Historique des Sessions</h3>
             <div className="flex items-center gap-3">
               {history.length > 0 && (
-                <button
-                  onClick={handleDownloadAllHistory}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg font-bold transition-all shadow-sm active:scale-95"
-                >
-                  <FileSpreadsheet className="w-4 h-4" />
-                  Exporter tout (Excel)
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowExportMenu(showExportMenu === 'global' ? null : 'global')}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg font-bold transition-all shadow-sm active:scale-95"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    Exporter tout
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showExportMenu === 'global' ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showExportMenu === 'global' && (
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-1.5 space-y-1">
+                        <button
+                          onClick={() => { handleDownloadAllHistory(); setShowExportMenu(null); }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors font-bold"
+                        >
+                          <FileSpreadsheet className="w-5 h-5" /> Excel / CSV (.csv)
+                        </button>
+                        <button
+                          onClick={() => { handleDownloadAllHistoryPDF(); setShowExportMenu(null); }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors font-bold"
+                        >
+                          <FileText className="w-5 h-5" /> PDF Global (.pdf)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
               <button
                 onClick={handleSyncPastRecords}
@@ -936,6 +1101,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
               </button>
             </div>
           </div>
+
           {loadingHistory ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
               <Loader2 className="w-10 h-10 text-teal-600 animate-spin mb-4" />
@@ -984,14 +1150,37 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleDownloadSingleSession(session)}
-                        className="p-2.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
-                        title="Télécharger cette session"
-                      >
-                        <Download className="w-5 h-5" />
-                      </button>
+                    <div className="flex items-center gap-2 relative">
+                      {/* Dropdown for individual session download */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowExportMenu(showExportMenu === session.id ? null : session.id)}
+                          className="p-2.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                          title="Télécharger"
+                        >
+                          <Download className="w-5 h-5" />
+                        </button>
+
+                        {showExportMenu === session.id && (
+                          <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="p-1">
+                              <button
+                                onClick={() => { handleDownloadSingleSession(session); setShowExportMenu(null); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors font-medium"
+                              >
+                                <FileSpreadsheet className="w-4 h-4" /> Excel / CSV
+                              </button>
+                              <button
+                                onClick={() => { handleDownloadSingleSessionPDF(session); setShowExportMenu(null); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors font-medium"
+                              >
+                                <FileText className="w-4 h-4" /> PDF Report
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                       <button
                         onClick={() => {
                           setSessionToDelete(session);
@@ -1223,4 +1412,3 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
     </div>
   );
 }
-
