@@ -74,9 +74,10 @@ export function StaffAssignmentManager() {
     const fetchCourses = async () => {
         try {
             const coursesData = await courseService.getCourses();
-            setCourses(coursesData);
+            setCourses(Array.isArray(coursesData) ? coursesData : []);
         } catch (error) {
             console.error("Erreur chargement cours:", error);
+            setCourses([]);
         }
     };
 
@@ -85,6 +86,11 @@ export function StaffAssignmentManager() {
             setLoading(true);
             const data = await staffService.getAssignments();
             console.log("Assignments fetched:", data);
+
+            if (!Array.isArray(data)) {
+                setAssignments([]);
+                return;
+            }
 
             const processed: StaffAssignment[] = data.map((enr: any) => {
                 const level = enr.course?.academicLevels?.[0]?.displayName || 'Non défini';
@@ -111,19 +117,19 @@ export function StaffAssignmentManager() {
         }
     };
 
-    const filteredCourses = courses
+    const filteredCourses = (courses || [])
         .filter(c => {
             // Filter by level
             if (selectedLevelId !== 'all') {
-                return c.academicLevels?.some((l: any) => l.id.toString() === selectedLevelId);
+                return c.academicLevels?.some((l: any) => l.id?.toString() === selectedLevelId);
             }
             return true;
         })
         .filter(c =>
-            c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.code.toLowerCase().includes(searchTerm.toLowerCase())
+            (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (c.code || '').toLowerCase().includes(searchTerm.toLowerCase())
         )
-        .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+        .sort((a, b) => (a.name || '').localeCompare(b.name || '')); // Sort alphabetically
 
     const getCourseStaff = (courseCode: string) => {
         return assignments.filter(a => a.courseCode === courseCode && a.academicYear === filterYear);
@@ -260,8 +266,8 @@ export function StaffAssignmentManager() {
                     onChange={(e) => setSelectedLevelId(e.target.value)}
                 >
                     <option value="all">Toutes les classes</option>
-                    {levels.map(l => (
-                        <option key={l.id} value={l.id.toString()}>{l.displayName}</option>
+                    {Array.isArray(levels) && levels.map(l => (
+                        <option key={l.id} value={l.id?.toString()}>{l.displayName}</option>
                     ))}
                 </select>
 
@@ -324,7 +330,7 @@ export function StaffAssignmentManager() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-wrap gap-1">
-                                                    {course.academicLevels.map((l: any, i: number) => (
+                                                    {course.academicLevels?.map((l: any, i: number) => (
                                                         <span key={i} className="inline-block bg-[#1B4332]/10 text-[#1B4332] px-2 py-0.5 rounded-full text-[10px] font-bold border border-[#1B4332]/20">
                                                             {l.displayName}
                                                         </span>
@@ -504,7 +510,7 @@ export function StaffAssignmentManager() {
                                         <span className="font-mono bg-white/10 px-2 rounded">{selectedCourse.code}</span>
                                         <span>•</span>
                                         <span className="flex gap-1">
-                                            {selectedCourse.academicLevels.map((l: any, i: number) => (
+                                            {selectedCourse.academicLevels?.map((l: any, i: number) => (
                                                 <span key={i}>{l.displayName}{i < selectedCourse.academicLevels.length - 1 ? ',' : ''}</span>
                                             ))}
                                         </span>
