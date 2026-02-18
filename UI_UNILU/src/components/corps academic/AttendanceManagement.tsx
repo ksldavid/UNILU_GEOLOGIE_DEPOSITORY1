@@ -996,29 +996,31 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                   </tr>
                 </thead>
                 <tbody>
-                  {(selectedHistorySession.records || []).map((record: any) => (
-                    <tr key={record.studentId} className="bg-gray-50/50 hover:bg-gray-100 transition-colors">
-                      <td className="px-6 py-4 rounded-l-2xl">
-                        <span className="font-bold text-gray-900">{record.studentName}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-gray-500 text-sm">{record.studentId}</span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${record.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-700' :
-                          record.status === 'LATE' ? 'bg-orange-100 text-orange-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                          {record.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right rounded-r-2xl">
-                        <span className="text-gray-400 font-medium">
-                          {new Date(record.markedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {(selectedHistorySession.records || [])
+                    .sort((a: any, b: any) => (a.studentName || "").localeCompare(b.studentName || ""))
+                    .map((record: any) => (
+                      <tr key={record.studentId} className="bg-gray-50/50 hover:bg-gray-100 transition-colors">
+                        <td className="px-6 py-4 rounded-l-2xl">
+                          <span className="font-bold text-gray-900">{record.studentName}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-mono text-gray-500 text-sm">{record.studentId}</span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${record.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-700' :
+                            record.status === 'LATE' ? 'bg-orange-100 text-orange-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                            {record.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right rounded-r-2xl">
+                          <span className="text-gray-400 font-medium">
+                            {new Date(record.markedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
