@@ -940,83 +940,100 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
       {selectedHistorySession && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
           <div className="bg-white rounded-[32px] shadow-2xl max-w-4xl w-full h-[85vh] overflow-hidden relative border border-gray-100 flex flex-col">
-            <div className="p-8 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-teal-100 text-teal-600 rounded-2xl flex items-center justify-center">
-                  <FileText className="w-6 h-6" />
+                <div className="w-10 h-10 bg-teal-100 text-teal-600 rounded-xl flex items-center justify-center">
+                  <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-xl font-bold text-gray-900">
                     Détails du {new Date(selectedHistorySession.date).toLocaleDateString('fr-FR')}
                     {selectedHistorySession.sessionNumber && ` - Session ${selectedHistorySession.sessionNumber}`}
                   </h2>
-                  <p className="text-gray-500 font-medium">{course.name} ({course.code})</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{course.code}</p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedHistorySession(null)}
-                className="p-2.5 bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 rounded-xl transition-colors"
+                className="p-2 bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-6 p-8 bg-white text-center">
-              <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-2xl">
-                <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest mb-2">Présents</p>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-3xl font-black text-emerald-700">{selectedHistorySession.present}</span>
-                  <span className="text-emerald-300 font-bold">/ {selectedHistorySession.totalStudents}</span>
+            <div className="grid grid-cols-3 gap-4 p-6 bg-white border-b border-gray-100">
+              <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <p className="text-emerald-600 text-[10px] font-black uppercase tracking-widest mb-1">Présents</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-emerald-700">{selectedHistorySession.present}</span>
+                    <span className="text-emerald-300 text-xs font-bold">/ {selectedHistorySession.totalStudents}</span>
+                  </div>
+                </div>
+                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+                  <Users className="w-5 h-5" />
                 </div>
               </div>
-              <div className="bg-orange-50 border border-orange-100 p-6 rounded-2xl">
-                <p className="text-orange-500 text-[10px] font-black uppercase tracking-widest mb-2">En retard</p>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-3xl font-black text-orange-700">{selectedHistorySession.late}</span>
-                  <span className="text-orange-300 font-bold">/ {selectedHistorySession.totalStudents}</span>
+
+              <div className="bg-orange-50/50 border border-orange-100 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <p className="text-orange-600 text-[10px] font-black uppercase tracking-widest mb-1">En retard</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-orange-700">{selectedHistorySession.late}</span>
+                    <span className="text-orange-300 text-xs font-bold">/ {selectedHistorySession.totalStudents}</span>
+                  </div>
+                </div>
+                <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600">
+                  <Clock className="w-5 h-5" />
                 </div>
               </div>
-              <div className="bg-red-50 border border-red-100 p-6 rounded-2xl">
-                <p className="text-red-500 text-[10px] font-black uppercase tracking-widest mb-2">Absents</p>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-3xl font-black text-red-700">{selectedHistorySession.absent}</span>
-                  <span className="text-red-300 font-bold">/ {selectedHistorySession.totalStudents}</span>
+
+              <div className="bg-red-50/50 border border-red-100 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <p className="text-red-600 text-[10px] font-black uppercase tracking-widest mb-1">Absents</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-red-700">{selectedHistorySession.absent}</span>
+                    <span className="text-red-300 text-xs font-bold">/ {selectedHistorySession.totalStudents}</span>
+                  </div>
+                </div>
+                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
+                  <X className="w-5 h-5" />
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-8 pb-8">
-              <table className="w-full border-separate border-spacing-y-2">
+            <div className="flex-1 overflow-y-auto px-6 pb-6">
+              <table className="w-full border-separate border-spacing-y-1">
                 <thead className="sticky top-0 bg-white z-10">
-                  <tr className="text-left text-gray-400 font-bold text-xs uppercase tracking-widest">
-                    <th className="px-6 py-4">Étudiant</th>
-                    <th className="px-6 py-4">Matricule</th>
-                    <th className="px-6 py-4 text-center">Statut</th>
-                    <th className="px-6 py-4 text-right">Heure</th>
+                  <tr className="text-left text-gray-400 font-bold text-[10px] uppercase tracking-widest">
+                    <th className="px-6 py-3">Étudiant</th>
+                    <th className="px-6 py-3">Matricule</th>
+                    <th className="px-6 py-3 text-center">Statut</th>
+                    <th className="px-6 py-3 text-right">Heure</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(selectedHistorySession.records || [])
                     .sort((a: any, b: any) => (a.studentName || "").localeCompare(b.studentName || ""))
                     .map((record: any) => (
-                      <tr key={record.studentId} className="bg-gray-50/50 hover:bg-gray-100 transition-colors">
-                        <td className="px-6 py-4 rounded-l-2xl">
-                          <span className="font-bold text-gray-900">{record.studentName}</span>
+                      <tr key={record.studentId} className="bg-gray-50/50 hover:bg-gray-100 transition-colors group">
+                        <td className="px-6 py-2 rounded-l-xl">
+                          <span className="font-bold text-gray-900 group-hover:text-teal-600 transition-colors">{record.studentName}</span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="font-mono text-gray-500 text-sm">{record.studentId}</span>
+                        <td className="px-6 py-2">
+                          <span className="font-mono text-gray-400 text-xs">{record.studentId}</span>
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${record.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-700' :
+                        <td className="px-6 py-2 text-center">
+                          <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${record.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-700' :
                             record.status === 'LATE' ? 'bg-orange-100 text-orange-700' :
                               'bg-red-100 text-red-700'
                             }`}>
                             {record.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right rounded-r-2xl">
-                          <span className="text-gray-400 font-medium">
-                            {new Date(record.markedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                        <td className="px-6 py-2 text-right rounded-r-xl">
+                          <span className="text-gray-400 font-bold text-xs">
+                            {record.markedAt ? new Date(record.markedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'}
                           </span>
                         </td>
                       </tr>
@@ -1025,10 +1042,10 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
               </table>
             </div>
 
-            <div className="p-8 border-t border-gray-100 bg-gray-50/50">
+            <div className="p-6 border-t border-gray-100 bg-gray-50/50">
               <button
                 onClick={() => setSelectedHistorySession(null)}
-                className="w-full py-4 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold text-lg transition-all shadow-xl active:scale-[0.98]"
+                className="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-xl font-bold text-base transition-all shadow-lg active:scale-[0.98]"
               >
                 Fermer les détails
               </button>
