@@ -1,5 +1,5 @@
 
-import { QrCode, Save, Search, ArrowLeft, X, MapPin, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle, Download, Clock } from "lucide-react";
+import { QrCode, Save, Search, ArrowLeft, X, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle, Download, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
@@ -22,7 +22,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
 
   // QR Code State
   const [showQRModal, setShowQRModal] = useState(false);
-  const [qrToken, setQrToken] = useState("");
+  const [qrToken, setQrToken] = useState<string | null>(null);
   const [generatingQR, setGeneratingQR] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
@@ -406,7 +406,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                   {generatingQR ? "Localisation..." : "Générer le QR code de présence"}
                 </button>
 
-                {!qrToken && !generatingQR && (
+                {!qrToken && (
                   <div className="flex flex-col items-end gap-2 mt-4">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
                       <Clock className="w-3 h-3 text-teal-600" /> Validité du QR Code :
@@ -416,6 +416,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                         <button
                           key={mins}
                           onClick={() => setQrExpiresIn(mins)}
+                          disabled={generatingQR}
                           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${qrExpiresIn === mins
                             ? 'bg-teal-50 border-teal-200 text-teal-700 shadow-sm'
                             : 'bg-white border-gray-200 text-gray-500 hover:border-teal-200'
@@ -425,9 +426,6 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                         </button>
                       ))}
                     </div>
-                    <p className="text-[9px] text-gray-400 italic">
-                      Après ce délai, les scans seront refusés.
-                    </p>
                   </div>
                 )}
 
@@ -513,7 +511,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
 
                   <div className="bg-white p-4 border-2 border-dashed border-teal-200 rounded-2xl mb-4 shadow-sm inline-block min-w-[232px] min-h-[232px] flex items-center justify-center relative overflow-hidden">
                     {qrToken ? (
-                      <div className="animate-in fade-in zoom-in duration-500">
+                      <div className="animate-in fade-in zoom-in duration-500 relative">
                         <QRCodeCanvas
                           value={`${window.location.protocol}//${window.location.host}/scan?t=${qrToken}`}
                           size={200}
@@ -521,6 +519,14 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                           includeMargin={true}
                           className="rounded-lg"
                         />
+                        {timeLeft === 'EXPIRÉ' && (
+                          <div className="absolute inset-0 bg-white/90 backdrop-blur-[2px] flex items-center justify-center p-4">
+                            <div className="text-center">
+                              <X className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                              <p className="text-sm font-black text-red-600 uppercase">Code Expiré</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-4 text-center p-6">
@@ -557,16 +563,46 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                         </p>
                       </div>
                     ) : (
-                      <div className="bg-teal-50 border border-teal-100 rounded-xl p-3 flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-teal-600 shrink-0" />
-                        <p className="text-[11px] text-teal-800 text-left leading-tight">
-                          Zone de sécurité : Étudiants à moins de <b>400m</b> uniquement.
-                        </p>
+                      <div className="bg-teal-50 border border-teal-100 rounded-xl p-3 flex items-center justify-between gap-2 overflow-hidden">
+                        <div className="flex items-center gap-2">
+                          <Clock className={`w-4 h-4 ${timeLeft === 'EXPIRÉ' ? 'text-red-500' : 'text-teal-600 animate-pulse'}`} />
+                          <p className={`text-[11px] font-bold ${timeLeft === 'EXPIRÉ' ? 'text-red-600' : 'text-teal-800'}`}>
+                            {timeLeft === 'EXPIRÉ' ? 'QR Code expiré' : `Expire dans : ${timeLeft || '...'}`}
+                          </p>
+                        </div>
+                        {timeLeft !== 'EXPIRÉ' && qrToken && (
+                          <span className="text-[9px] bg-white px-2 py-0.5 rounded-full text-teal-600 font-black border border-teal-100">
+                            SÉCURISÉ
+                          </span>
+                        )}
                       </div>
                     )}
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                      {qrToken ? "Valide pour toute la séance" : "Veuillez patienter..."}
+                      {qrToken
+                        ? (timeLeft === 'EXPIRÉ' ? "Générez un nouveau code" : `Vérification locale active (400m)`)
+                        : "Veuillez patienter..."
+                      }
                     </p>
+
+                    {!qrToken && (
+                      <div className="pt-2 border-t border-gray-100">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Délai souhaité :</p>
+                        <div className="flex justify-center gap-2">
+                          {[5, 10, 20, 30].map((mins) => (
+                            <button
+                              key={mins}
+                              onClick={() => setQrExpiresIn(mins)}
+                              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${qrExpiresIn === mins
+                                ? 'bg-teal-50 border-teal-200 text-teal-700'
+                                : 'bg-white border-gray-200 text-gray-400 hover:border-teal-200'
+                                }`}
+                            >
+                              {mins} min
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
