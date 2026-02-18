@@ -3,6 +3,7 @@ import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../../lib/prisma'
 import crypto from 'crypto'
+import bcrypt from 'bcrypt'
 
 // Coordonnées autorisées de la Faculté (Bâtiment Géologie et environs)
 const FACULTY_LOCATIONS = [
@@ -450,5 +451,73 @@ export const overrideAttendance = async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error('Erreur overrideAttendance:', error);
         res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+/**
+ * Supprime une session de présence et tous ses enregistrements.
+ * Nécessite une confirmation par mot de passe.
+ */
+export const deleteAttendanceSession = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.userId;
+        const userRole = req.user?.role;
+        const { sessionId } = req.params;
+        const { password } = req.body; // Mot de passe envoyé dans le body de la requête DELETE
+
+        if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+        if (!sessionId) return res.status(400).json({ message: 'ID de session requis' });
+        if (!password) return res.status(400).json({ message: 'Mot de passe de confirmation requis' });
+
+        const sessionNumId = Number(sessionId);
+
+        // 1. Récupérer l'utilisateur pour vérifier son mot de passe
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user) return res.status(404).json({ message: 'Utilisateur introuvable' });
+
+        // 2. Vérifier le mot de passe
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Mot de passe incorrect' });
+        }
+
+        // 3. Récupérer la session pour vérifier les droits
+        const session = await (prisma as any).attendanceSession.findUnique({
+            where: { id: sessionNumId }
+        });
+
+        if (!session) return res.status(404).json({ message: 'Session introuvable' });
+
+        // 4. Vérifier si l'utilisateur est autorisé
+        const isSuperUser = ['ADMIN', 'ACADEMIC_OFFICE'].includes(userRole || '');
+        const isProfessorOfCourse = await prisma.courseEnrollment.findFirst({
+            where: { userId, courseCode: session.courseCode }
+        });
+
+        if (!isSuperUser && !isProfessorOfCourse) {
+            return res.status(403).json({ message: "Vous n'êtes pas autorisé à supprimer cette session." });
+        }
+
+        // 5. Supprimer la session et ses enregistrements (Prisma gère la suppression si configuré, ou on le fait manuellement)
+        // Pour être sûr, on utilise une transaction
+        await prisma.$transaction([
+            prisma.attendanceRecord.deleteMany({
+                where: { sessionId: sessionNumId }
+            }),
+            (prisma as any).attendanceSession.delete({
+                where: { id: sessionNumId }
+            })
+        ]);
+
+        console.log(`[DELETE SESSION] Utilisateur ${userId} (${userRole}) a supprimé la session ${sessionNumId} de ${session.courseCode}`);
+
+        res.json({ message: "La session et toutes les présences associées ont été supprimées avec succès." });
+
+    } catch (error) {
+        console.error('Erreur deleteAttendanceSession:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la suppression' });
     }
 };

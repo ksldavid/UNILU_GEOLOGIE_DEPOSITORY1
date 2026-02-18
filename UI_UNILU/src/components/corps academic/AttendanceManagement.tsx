@@ -1,5 +1,5 @@
 
-import { QrCode, Save, Search, ArrowLeft, X, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle, Download, Clock } from "lucide-react";
+import { QrCode, Save, Search, ArrowLeft, X, Loader2, RefreshCw, History, Calendar, Users, ChevronRight, FileText, AlertCircle, Download, Clock, Trash2, ShieldCheck, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
@@ -36,6 +36,13 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
   const [qrExpiresIn, setQrExpiresIn] = useState(1440); // Minutes
   const [qrExpirationActual, setQrExpirationActual] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
+
+  // Deletion States
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<any | null>(null);
+  const [deletionPassword, setDeletionPassword] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Prevention de perte de données (Refresh/Fermeture onglet)
   useEffect(() => {
@@ -259,6 +266,28 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
       console.error(error);
       if (!silent) alert("Erreur lors de l'enregistrement.");
       return false;
+    }
+  };
+
+  const handleDeleteSession = async () => {
+    if (!sessionToDelete || !deletionPassword) return;
+
+    setIsDeleting(true);
+    try {
+      await attendanceService.deleteSession(sessionToDelete.id, deletionPassword);
+
+      // Mettre à jour l'historique local
+      setHistory(prev => prev.filter(s => s.id !== sessionToDelete.id));
+
+      setShowPasswordModal(false);
+      setSessionToDelete(null);
+      setDeletionPassword("");
+      alert("Session supprimée avec succès.");
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || "Erreur lors de la suppression.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -854,13 +883,25 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                         </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setSelectedHistorySession(session)}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 hover:bg-teal-600 text-gray-600 hover:text-white rounded-xl font-bold transition-all active:scale-95 group-hover:translate-x-1"
-                    >
-                      Voir détails
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSessionToDelete(session);
+                          setShowDeleteConfirm(true);
+                        }}
+                        className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                        title="Supprimer la session"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => setSelectedHistorySession(session)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 hover:bg-teal-600 text-gray-600 hover:text-white rounded-xl font-bold transition-all active:scale-95 group-hover:translate-x-1"
+                      >
+                        Voir détails
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -967,6 +1008,92 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
           </div>
         </div>
       )}
+
+      {/* Modal Confirmation Suppression - Etape 1 */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[32px] shadow-2xl max-w-md w-full p-8 border border-gray-100">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 text-center mb-4 italic">Attention !</h3>
+            <p className="text-gray-600 text-center mb-8 leading-relaxed font-medium">
+              Êtes-vous sûr de vouloir supprimer cette session ? <br />
+              Toutes les données récoltées ainsi que les présences du <span className="text-red-600 font-bold">{sessionToDelete && new Date(sessionToDelete.date).toLocaleDateString('fr-FR')}</span> pour le cours <span className="text-red-600 font-bold">{course.name}</span> seront définitivement supprimées.
+              <br /><span className="text-xs text-gray-400 mt-2 block italic">Cette action est irréversible.</span>
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setShowPasswordModal(true);
+                }}
+                className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-red-600/20 active:scale-95 transition-all"
+              >
+                Continuer vers la confirmation
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setSessionToDelete(null);
+                }}
+                className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-xl font-bold transition-all"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Mot de passe - Etape 2 */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-[32px] shadow-2xl max-w-md w-full p-8 border border-gray-100">
+            <div className="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <ShieldCheck className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 text-center mb-2 italic">Dernière étape</h3>
+            <p className="text-gray-500 text-center mb-8 font-medium">Veuillez entrer votre mot de passe pour confirmer la suppression définitive.</p>
+
+            <div className="mb-6">
+              <input
+                type="password"
+                value={deletionPassword}
+                onChange={(e) => setDeletionPassword(e.target.value)}
+                placeholder="Votre mot de passe"
+                className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 font-medium text-center text-lg"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && deletionPassword && !isDeleting) handleDeleteSession();
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleDeleteSession}
+                disabled={isDeleting || !deletionPassword}
+                className="w-full py-4 bg-gray-900 hover:bg-black disabled:bg-gray-300 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95"
+              >
+                {isDeleting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                {isDeleting ? "Suppression en cours..." : "Confirmer la suppression"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setDeletionPassword("");
+                  setSessionToDelete(null);
+                }}
+                className="w-full py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition-all"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

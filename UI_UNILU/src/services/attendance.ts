@@ -72,5 +72,18 @@ export const attendanceService = {
             throw new Error(error.message || 'Erreur lors de la rectification');
         }
         return response.json();
+    },
+
+    async deleteSession(sessionId: number, password: string) {
+        const response = await fetch(`${API_URL}/session/${sessionId}`, {
+            method: 'DELETE',
+            headers: getHeaders(),
+            body: JSON.stringify({ password })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Erreur lors de la suppression de la session');
+        }
+        return response.json();
     }
 };
