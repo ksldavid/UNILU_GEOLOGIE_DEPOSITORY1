@@ -90,7 +90,7 @@ export const getProfessorAttendanceHistory = async (req: AuthRequest, res: Respo
                 present: present,
                 absent: absent,
                 late: late,
-                records: allRecords.sort((a, b) => a.studentName.localeCompare(b.studentName))
+                records: allRecords.sort((a: any, b: any) => a.studentName.localeCompare(b.studentName))
             };
         });
 
