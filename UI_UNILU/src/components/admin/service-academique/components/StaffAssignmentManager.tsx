@@ -134,10 +134,6 @@ export function StaffAssignmentManager() {
 
         try {
             await staffService.removeStaff({ userId, courseCode, academicYear });
-            // Refresh local state if deleting the selected assignment main user
-            if (selectedAssignment && selectedAssignment.profId === userId && selectedAssignment.courseCode === courseCode) {
-                setSelectedAssignment(null);
-            }
             // Refresh list
             fetchAssignments();
         } catch (error) {
