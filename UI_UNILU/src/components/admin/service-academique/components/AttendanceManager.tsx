@@ -92,7 +92,6 @@ export function AttendanceManager() {
         ? sessions.map(session => {
             const studentStatus = session.students.find(s => s.studentId === selectedStudent.id);
             return {
-                sessionId: session.id,
                 ...session,
                 myStatus: studentStatus?.status ?? 'ABSENT',
                 myRecordId: studentStatus?.recordId ?? null
