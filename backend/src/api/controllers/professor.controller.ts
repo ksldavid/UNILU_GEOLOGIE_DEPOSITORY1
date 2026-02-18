@@ -10,7 +10,7 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
         const userRole = req.user?.role;
-        const { courseCode, sessionNumber = 1 } = req.query;
+        const { courseCode, sessionNumber = 1, date } = req.query;
         const sessionNum = Number(sessionNumber);
 
         if (!userId) {
@@ -107,8 +107,9 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
             include: { assessment: true }
         });
 
-        // 5. Get today's attendance records for all courses
-        const today = new Date();
+        // 5. Get attendance records for the specified date (or today)
+        const targetDate = date ? new Date(date as string) : new Date();
+        const today = new Date(targetDate);
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);

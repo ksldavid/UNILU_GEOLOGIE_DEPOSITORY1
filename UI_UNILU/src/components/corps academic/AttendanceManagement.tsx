@@ -36,6 +36,10 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
   const [qrExpiresIn, setQrExpiresIn] = useState(1440); // Minutes
   const [qrExpirationActual, setQrExpirationActual] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
 
   // Deletion States
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -58,9 +62,10 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
 
   useEffect(() => {
     const fetchStudents = async () => {
+      setLoading(true);
       try {
-        // IMPORTANT: Pass course code and session number to get relevant status
-        const courseStudents = await professorService.getStudents(course.code, sessionNumber);
+        // IMPORTANT: Pass course code, session number AND selected date
+        const courseStudents = await professorService.getStudents(course.code, sessionNumber, selectedDate);
         setStudents(courseStudents);
 
         const initialStatus: { [key: string]: 'present' | 'absent' | 'late' } = {};
@@ -78,15 +83,14 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
       }
     };
     fetchStudents();
-  }, [course, sessionNumber]);
+  }, [course, sessionNumber, selectedDate]);
 
   // Détecter les sessions existantes aujourd'hui pour mettre à jour maxSessionToday
   useEffect(() => {
     const checkTodaySessions = async () => {
       try {
         const data = await professorService.getAttendanceHistory(course.code);
-        const now = new Date();
-        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const todayStr = selectedDate;
 
         const todaySessions = data.filter((s: any) => s.date.startsWith(todayStr));
         if (todaySessions.length > 0) {
@@ -98,7 +102,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
       }
     };
     if (course?.code) checkTodaySessions();
-  }, [course]);
+  }, [course, selectedDate]);
 
   const fetchHistory = async () => {
     setLoadingHistory(true);
@@ -234,15 +238,8 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
       link.click();
     }
   };
-
   const handleSave = async (silent = false) => {
     try {
-      // Get the date from the input
-      const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
-      const now = new Date();
-      const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const date = dateInput ? dateInput.value : localToday;
-
       const records = Object.entries(selectedStatus).map(([studentId, status]) => ({
         studentId,
         status
@@ -255,7 +252,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
 
       await professorService.saveAttendance({
         courseCode: course.code,
-        date: date,
+        date: selectedDate,
         sessionNumber: sessionNumber,
         records: records
       });
@@ -386,8 +383,9 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                   </label>
                   <input
                     type="date"
-                    defaultValue={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`} // Use local today's date
-                    className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white shadow-sm"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white shadow-sm font-bold text-teal-900"
                   />
                 </div>
 

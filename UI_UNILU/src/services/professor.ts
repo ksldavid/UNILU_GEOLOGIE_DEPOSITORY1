@@ -59,10 +59,11 @@ export const professorService = {
         return handleResponse(response, 'Erreur lors de la récupération des cours');
     },
 
-    async getStudents(courseCode?: string, sessionNumber: number = 1) {
+    async getStudents(courseCode?: string, sessionNumber: number = 1, date?: string) {
         let url = `${PROFESSOR_API_URL}/students`;
         if (courseCode) {
             url += `?courseCode=${courseCode}&sessionNumber=${sessionNumber}`;
+            if (date) url += `&date=${date}`;
         }
         console.log('👨‍🎓 [Professor Service] Appel GET /students', courseCode ? `(course: ${courseCode}, session: ${sessionNumber})` : '');
         const response = await fetch(url, {
