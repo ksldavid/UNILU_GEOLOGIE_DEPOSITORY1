@@ -10,7 +10,8 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
         const userRole = req.user?.role;
-        const { courseCode } = req.query;
+        const { courseCode, sessionNumber = 1 } = req.query;
+        const sessionNum = Number(sessionNumber);
 
         if (!userId) {
             return res.status(401).json({ message: 'Non autorisé' });
@@ -119,7 +120,8 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
                     date: {
                         gte: today,
                         lt: tomorrow
-                    }
+                    },
+                    sessionNumber: sessionNum
                 }
             },
             include: {
@@ -557,7 +559,8 @@ export const removeCourseAssignment = async (req: AuthRequest, res: Response) =>
 
 export const saveAttendance = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode, date, records } = req.body;
+        const { courseCode, date, records, sessionNumber = 1 } = req.body;
+        const sessionNum = Number(sessionNumber);
         const userId = req.user?.userId;
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
@@ -581,12 +584,12 @@ export const saveAttendance = async (req: AuthRequest, res: Response) => {
         const startOfDay = new Date(sessionDate.setHours(0, 0, 0, 0));
         const endOfDay = new Date(sessionDate.setHours(23, 59, 59, 999));
 
-        let session = await prisma.attendanceSession.findFirst({
+        let session = await (prisma as any).attendanceSession.findUnique({
             where: {
-                courseCode,
-                date: {
-                    gte: startOfDay,
-                    lte: endOfDay
+                courseCode_date_sessionNumber: {
+                    courseCode,
+                    date: new Date(date),
+                    sessionNumber: sessionNum
                 }
             }
         });
@@ -595,7 +598,8 @@ export const saveAttendance = async (req: AuthRequest, res: Response) => {
             session = await prisma.attendanceSession.create({
                 data: {
                     courseCode,
-                    date: new Date(date)
+                    date: new Date(date),
+                    sessionNumber: sessionNum
                 }
             });
         }

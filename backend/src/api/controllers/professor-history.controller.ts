@@ -83,6 +83,7 @@ export const getProfessorAttendanceHistory = async (req: AuthRequest, res: Respo
             return {
                 id: session.id,
                 date: session.date,
+                sessionNumber: session.sessionNumber,
                 courseCode: session.course.code,
                 courseName: session.course.name,
                 totalStudents: totalEnrolled,

@@ -59,9 +59,12 @@ export const professorService = {
         return handleResponse(response, 'Erreur lors de la récupération des cours');
     },
 
-    async getStudents(courseCode?: string) {
-        const url = courseCode ? `${PROFESSOR_API_URL}/students?courseCode=${courseCode}` : `${PROFESSOR_API_URL}/students`;
-        console.log('👨‍🎓 [Professor Service] Appel GET /students', courseCode ? `(course: ${courseCode})` : '');
+    async getStudents(courseCode?: string, sessionNumber: number = 1) {
+        let url = `${PROFESSOR_API_URL}/students`;
+        if (courseCode) {
+            url += `?courseCode=${courseCode}&sessionNumber=${sessionNumber}`;
+        }
+        console.log('👨‍🎓 [Professor Service] Appel GET /students', courseCode ? `(course: ${courseCode}, session: ${sessionNumber})` : '');
         const response = await fetch(url, {
             headers: getHeaders()
         });
@@ -75,7 +78,7 @@ export const professorService = {
         return handleResponse(response, 'Erreur lors de la récupération du planning');
     },
 
-    async saveAttendance(data: { courseCode: string, date: string, records: { studentId: string, status: string }[] }) {
+    async saveAttendance(data: { courseCode: string, date: string, sessionNumber?: number, records: { studentId: string, status: string }[] }) {
         const response = await fetch(`${PROFESSOR_API_URL}/attendance`, {
             method: 'POST',
             headers: getHeaders(),

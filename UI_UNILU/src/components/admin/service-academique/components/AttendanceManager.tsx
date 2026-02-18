@@ -19,6 +19,7 @@ interface SessionStudentStatus {
 interface AttendanceSession {
     sessionId: number;
     date: string;
+    sessionNumber?: number;
     courseCode: string;
     isLocked: boolean;
     totalStudents: number;
@@ -312,8 +313,11 @@ export function AttendanceManager() {
                                                         <div className="flex items-center gap-3 flex-1 min-w-0">
                                                             <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isAbsent ? 'bg-red-500' : isLate ? 'bg-orange-400' : 'bg-[#1B4332]'}`} />
                                                             <div>
-                                                                <p className="font-bold text-[#1B4332] text-sm">
+                                                                <p className="font-bold text-[#1B4332] text-sm flex items-center gap-2">
                                                                     {new Date(session.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                                                    {(session.sessionNumber && session.sessionNumber > 0) && (
+                                                                        <span className="text-[10px] bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100">S{session.sessionNumber}</span>
+                                                                    )}
                                                                 </p>
                                                                 <p className={`text-[10px] font-black uppercase tracking-widest mt-0.5 ${isAbsent ? 'text-red-500' : isLate ? 'text-orange-500' : 'text-[#1B4332]'}`}>
                                                                     {isAbsent ? '✗ Absent' : isLate ? '⚠ En retard' : '✓ Présent'}

@@ -31,10 +31,8 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export const generateQRToken = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode } = req.body;
-        // On utilise maintenant une localisation par défaut
-        const latitude = FACULTY_LOCATIONS[0].lat;
-        const longitude = FACULTY_LOCATIONS[0].lng;
+        const { courseCode, sessionNumber = 1 } = req.body;
+        const sessionNum = Number(sessionNumber);
 
         const userId = req.user?.userId;
 
@@ -55,12 +53,13 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         const todayStr = lubumbashiTime.toISOString().split('T')[0];
         const today = new Date(todayStr);
 
-        // 3. Vérifier si une session existe déjà pour aujourd'hui
+        // 3. Vérifier si une session existe déjà pour aujourd'hui avec ce numéro
         const existingSession = await (prisma as any).attendanceSession.findUnique({
             where: {
-                courseCode_date: {
+                courseCode_date_sessionNumber: {
                     courseCode,
-                    date: today
+                    date: today,
+                    sessionNumber: sessionNum
                 }
             }
         });
@@ -89,13 +88,13 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         // On utilise upsert pour être sûr de ne pas créer de doublon en cas de clics simultanés
         const session = await (prisma as any).attendanceSession.upsert({
             where: {
-                courseCode_date: {
+                courseCode_date_sessionNumber: {
                     courseCode,
-                    date: today
+                    date: today,
+                    sessionNumber: sessionNum
                 }
             },
             update: {
-                // Si par miracle un token a été créé entre temps, on le garde (sécurité supplémentaire)
                 qrToken: existingSession?.qrToken || qrToken,
                 latitude,
                 longitude,
@@ -104,9 +103,10 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             create: {
                 courseCode,
                 date: today,
+                sessionNumber: sessionNum,
                 qrToken,
-                latitude,
-                longitude,
+                latitude: FACULTY_LOCATIONS[0].lat,
+                longitude: FACULTY_LOCATIONS[0].lng,
                 isLocked: false
             }
         });
@@ -355,6 +355,7 @@ export const getCourseAttendanceSessions = async (req: AuthRequest, res: Respons
             return {
                 sessionId: session.id,
                 date: session.date,
+                sessionNumber: session.sessionNumber,
                 courseCode: session.courseCode,
                 isLocked: session.isLocked,
                 totalStudents: enrollments.length,

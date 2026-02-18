@@ -438,10 +438,11 @@ model GradeChangeRequest {
 }
 
 model AttendanceSession {
-  id         Int      @id @default(autoincrement())
-  courseCode String
-  date       DateTime @default(now()) // Represents the day of the session
-  isLocked   Boolean  @default(false)
+  id            Int      @id @default(autoincrement())
+  courseCode    String
+  date          DateTime @default(now()) // Represents the day of the session
+  sessionNumber Int      @default(1)
+  isLocked      Boolean  @default(false)
 
   // Security & QR Code
   qrToken   String? @unique
@@ -451,7 +452,7 @@ model AttendanceSession {
   course  Course             @relation(fields: [courseCode], references: [code])
   records AttendanceRecord[]
 
-  @@unique([courseCode, date]) // One session per course per day
+  @@unique([courseCode, date, sessionNumber]) // Multiple sessions per day allowed via sessionNumber
   @@index([courseCode])
   @@index([date])
 }

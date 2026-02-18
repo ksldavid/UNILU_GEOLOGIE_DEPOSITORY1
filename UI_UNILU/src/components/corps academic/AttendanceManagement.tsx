@@ -31,6 +31,8 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
   const [selectedHistorySession, setSelectedHistorySession] = useState<any | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [sessionNumber, setSessionNumber] = useState(1);
+  const [maxSessionToday, setMaxSessionToday] = useState(1);
 
   // Prevention de perte de données (Refresh/Fermeture onglet)
   useEffect(() => {
@@ -47,11 +49,10 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        // IMPORTANT: Pass course code to get ONLY relevant students and avoid limits
-        const courseStudents = await professorService.getStudents(course.code);
+        // IMPORTANT: Pass course code and session number to get relevant status
+        const courseStudents = await professorService.getStudents(course.code, sessionNumber);
         setStudents(courseStudents);
 
-        // Initialize status with today's attendance from QR scans
         const initialStatus: { [key: string]: 'present' | 'absent' | 'late' } = {};
         courseStudents.forEach((student: any) => {
           if (student.todayStatus) {
@@ -67,6 +68,26 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
       }
     };
     fetchStudents();
+  }, [course, sessionNumber]);
+
+  // Détecter les sessions existantes aujourd'hui pour mettre à jour maxSessionToday
+  useEffect(() => {
+    const checkTodaySessions = async () => {
+      try {
+        const data = await professorService.getAttendanceHistory(course.code);
+        const lubumbashiTime = new Date(new Date().getTime() + (2 * 60 * 60 * 1000));
+        const todayStr = lubumbashiTime.toISOString().split('T')[0];
+
+        const todaySessions = data.filter((s: any) => s.date.startsWith(todayStr));
+        if (todaySessions.length > 0) {
+          const max = Math.max(...todaySessions.map((s: any) => s.sessionNumber || 1));
+          setMaxSessionToday(max);
+        }
+      } catch (e) {
+        console.error("Error checking sessions:", e);
+      }
+    };
+    if (course?.code) checkTodaySessions();
   }, [course]);
 
   const fetchHistory = async () => {
@@ -108,7 +129,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const courseStudents = await professorService.getStudents(course.code);
+      const courseStudents = await professorService.getStudents(course.code, sessionNumber);
       setStudents(courseStudents);
 
       // Sync the attendance status with what's on the server (scanned via QR)
@@ -157,8 +178,9 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
 
     try {
       // On ne demande plus la localisation au prof, le serveur utilise les points fixes
-      const result = await attendanceService.generateQR(course.code);
+      const result = await attendanceService.generateQR(course.code, sessionNumber);
       setQrToken(result.qrToken);
+      if (sessionNumber > maxSessionToday) setMaxSessionToday(sessionNumber);
       setGeneratingQR(false);
     } catch (error: any) {
       setLocationError(error.message || "Erreur de connexion au serveur.");
@@ -196,6 +218,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
       await professorService.saveAttendance({
         courseCode: course.code,
         date: date,
+        sessionNumber: sessionNumber,
         records: records
       });
 
@@ -306,6 +329,37 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                     defaultValue={new Date().toISOString().split('T')[0]} // Use today's date
                     className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white shadow-sm"
                   />
+                </div>
+
+                <div className="border-l border-gray-200 pl-6 space-y-2">
+                  <div className="flex items-center gap-3">
+                    {[...Array(maxSessionToday)].map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setSessionNumber(i + 1)}
+                        className={`px-4 py-2 rounded-xl font-bold transition-all ${sessionNumber === i + 1
+                          ? 'bg-teal-600 text-white shadow-lg'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          }`}
+                      >
+                        Session {i + 1}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Une session existe déjà pour aujourd'hui. Voulez-vous créer une nouvelle session de présence (Session ${maxSessionToday + 1}) ?`)) {
+                          setSessionNumber(maxSessionToday + 1);
+                          setMaxSessionToday(maxSessionToday + 1);
+                        }
+                      }}
+                      className="px-4 py-2 bg-white border border-teal-200 text-teal-600 rounded-xl font-bold hover:bg-teal-50 transition-all flex items-center gap-2"
+                    >
+                      <X className="w-4 h-4 rotate-45" /> Ajouter
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                    {sessionNumber === 1 ? "Session principale (Matin)" : `Session Additionnelle n°${sessionNumber}`}
+                  </p>
                 </div>
               </div>
 
@@ -660,13 +714,18 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                         <Calendar className="w-7 h-7" />
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-gray-900">
+                        <p className="text-lg font-bold text-gray-900 flex items-center gap-2">
                           {new Date(session.date).toLocaleDateString('fr-FR', {
                             weekday: 'long',
                             day: 'numeric',
                             month: 'long',
                             year: 'numeric'
                           })}
+                          {(session.sessionNumber && session.sessionNumber > 0) && (
+                            <span className="text-[10px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-md border border-teal-100 uppercase tracking-tighter">
+                              Session {session.sessionNumber}
+                            </span>
+                          )}
                         </p>
                         <div className="flex items-center gap-4 mt-1">
                           <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
@@ -707,6 +766,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
                     Détails du {new Date(selectedHistorySession.date).toLocaleDateString('fr-FR')}
+                    {selectedHistorySession.sessionNumber && ` - Session ${selectedHistorySession.sessionNumber}`}
                   </h2>
                   <p className="text-gray-500 font-medium">{course.name} ({course.code})</p>
                 </div>
