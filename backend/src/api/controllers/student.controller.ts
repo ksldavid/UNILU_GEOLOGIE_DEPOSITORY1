@@ -76,33 +76,39 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
             })
         )
 
-        // 3. Récupérer l'historique récent (derniers 10 scans)
-        const recentAttendance = await prisma.attendanceRecord.findMany({
-            where: { studentId: userId },
+        // Get active course codes for the student
+        const activeCourseCodes = student.studentCourseEnrollments.map((e: any) => e.courseCode);
+
+        // 3. Récupérer l'historique complet (Présences + Absences) pour les cours actifs
+        const allSessions = await prisma.attendanceSession.findMany({
+            where: {
+                courseCode: { in: activeCourseCodes }
+            },
             include: {
-                session: {
-                    include: { course: true }
+                course: true,
+                records: {
+                    where: { studentId: userId }
                 }
             },
-            orderBy: { createdAt: 'desc' },
-            take: 10
-        })
+            orderBy: { date: 'desc' },
+            take: 20 // On prend les 20 plus récents pour en afficher 10 au final
+        });
 
-        const formattedHistory = recentAttendance.map((record: any) => ({
-            id: record.id,
-            courseName: record.session.course.name,
-            date: record.session.date,
-            time: record.createdAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-            status: record.status
-        }))
+        const formattedHistory = allSessions.map((session: any) => {
+            const record = session.records[0];
+            return {
+                id: record ? record.id : `abs-${session.id}`,
+                courseName: session.course.name,
+                date: session.date,
+                time: record ? record.createdAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : null,
+                status: record ? record.status : 'ABSENT'
+            };
+        }).slice(0, 10);
 
         // Calculate overall attendance
         const totalSessions = courseStats.reduce((sum, course) => sum + course.totalCount, 0);
         const totalAttended = courseStats.reduce((sum, course) => sum + course.attendedCount, 0);
         const overallAttendance = totalSessions > 0 ? Math.round((totalAttended / totalSessions) * 100) : 0;
-
-        // Get active course codes for the student
-        const activeCourseCodes = student.studentCourseEnrollments.map((e: any) => e.courseCode);
 
         // 4. Récupérer le planning du jour
         const daysFr = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
@@ -445,6 +451,15 @@ export const getStudentCourseDetails = async (req: AuthRequest, res: Response) =
             room: course.schedules[0]?.room || 'Campus Kasapa',
             schedule: course.schedules.map((s: any) => `${s.day} ${s.startTime}-${s.endTime}`).join(', ') || 'Horaire non défini',
             attendance: attendanceRate,
+            attendanceHistory: sessions.map((s: any) => {
+                const record = attendanceRecords.find(r => r.sessionId === s.id);
+                return {
+                    id: record ? record.id : `abs-${s.id}`,
+                    date: s.date,
+                    status: record ? record.status : 'ABSENT',
+                    time: record ? record.createdAt : null
+                };
+            }).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()),
             colorFrom: colorPalette.from,
             colorTo: colorPalette.to,
             resources: course.resources.map((r: any) => ({

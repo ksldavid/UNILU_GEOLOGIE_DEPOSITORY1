@@ -483,11 +483,11 @@ export function StudentCourses() {
                   </div>
                   <div className="text-right">
                     <div className="text-4xl font-black">{selectedCourse.attendance}%</div>
-                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Présence</div>
+                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Assiduité</div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="h-2.5 bg-white/20 rounded-full overflow-hidden p-0.5">
                     <motion.div
                       initial={{ width: 0 }}
@@ -496,8 +496,33 @@ export function StudentCourses() {
                       className="h-full bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)]"
                     />
                   </div>
-                  <p className="text-[10px] font-bold italic opacity-80 leading-relaxed text-center">
-                    Excellent ! Continuez ainsi pour valider votre semestre.
+
+                  {/* Attendance History Mini-List */}
+                  <div className="pt-4 space-y-3 border-t border-white/10">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-2">Dernières séances</p>
+                    {(!selectedCourse.attendanceHistory || selectedCourse.attendanceHistory.length === 0) ? (
+                      <p className="text-[10px] italic font-bold text-white/40">Aucune séance enregistrée</p>
+                    ) : selectedCourse.attendanceHistory.slice(0, 5).map((session: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between group/row">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-1.5 h-1.5 rounded-full ${session.status === 'ABSENT' ? 'bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.5)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]'}`} />
+                          <span className="text-[10px] font-bold text-white/70 uppercase tracking-tighter italic">
+                            {new Date(session.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                          </span>
+                        </div>
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${session.status === 'ABSENT' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                          {session.status === 'ABSENT' ? 'Absent' : 'Présent'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] font-bold italic opacity-80 leading-relaxed text-center pt-2">
+                    {selectedCourse.attendance >= 80
+                      ? "Excellent ! Continuez ainsi pour valider votre semestre."
+                      : selectedCourse.attendance >= 50
+                        ? "Attention, restez régulier pour ne pas chuter."
+                        : "Alerte : Votre taux de présence est critique."}
                   </p>
                 </div>
               </div>
