@@ -28,6 +28,13 @@ export const getCourses = async (req: Request, res: Response) => {
                             }
                         }
                     }
+                },
+                academicLevels: {
+                    select: {
+                        id: true,
+                        displayName: true,
+                        code: true
+                    }
                 }
             },
             orderBy: {
@@ -40,6 +47,7 @@ export const getCourses = async (req: Request, res: Response) => {
             name: c.name,
             code: c.code,
             professor: c.enrollments?.[0]?.user?.name || 'À définir',
+            academicLevels: c.academicLevels,
             color: '#1B4332'
         }))
 
