@@ -11,17 +11,24 @@ export const assignStaff = async (req: Request, res: Response) => {
             return; // Ensure void return
         }
 
-        // Si on remplace un titulaire, on doit d'abord retirer l'ancien titulaire de ce cours pour cette année
-        // Car un cours ne devrait avoir qu'un seul titulaire principal (règle métier, optionnelle mais logique)
-        if (role === 'PROFESSOR') {
-            await prisma.courseEnrollment.deleteMany({
-                where: {
-                    courseCode,
-                    academicYear,
-                    role: 'PROFESSOR',
-                    NOT: { userId } // Ne pas supprimer si c'est le même (update)
-                }
-            });
+        // Vérifier les limites de capacité pour le cours
+        const currentCount = await prisma.courseEnrollment.count({
+            where: {
+                courseCode,
+                academicYear,
+                role: role as CourseRole,
+                NOT: { userId } // Ne pas compter si on met à jour la même personne
+            }
+        });
+
+        if (role === 'PROFESSOR' && currentCount >= 5) {
+            res.status(400).json({ message: "Limite atteinte : maximum 5 titulaires autorisés pour ce cours." });
+            return;
+        }
+
+        if (role === 'ASSISTANT' && currentCount >= 10) {
+            res.status(400).json({ message: "Limite atteinte : maximum 10 assistants autorisés pour ce cours." });
+            return;
         }
 
         // Upsert l'inscription
