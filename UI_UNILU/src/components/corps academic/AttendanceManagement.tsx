@@ -1118,7 +1118,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {history.map((session) => (
-                <div key={session.id} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                <div key={session.id} className={`bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all group relative ${showExportMenu === session.id ? 'z-20' : 'z-0'}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors duration-300">
