@@ -14,6 +14,7 @@ export function StudentCourses() {
   const [activeAssignmentId, setActiveAssignmentId] = useState<number | null>(null);
   const [showAllResources, setShowAllResources] = useState(false);
   const [showAllSubmissions, setShowAllSubmissions] = useState(false);
+  const [showFullAttendance, setShowFullAttendance] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCourseClick = async (course: any) => {
@@ -95,506 +96,627 @@ export function StudentCourses() {
 
   if (selectedCourse) {
     return (
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className={`p-8 space-y-8 max-w-7xl mx-auto ${loadingDetails ? 'opacity-50 pointer-events-none' : ''}`}
-      >
-        <button
-          onClick={() => setSelectedCourse(null)}
-          className="flex items-center gap-2 text-gray-500 font-bold hover:text-blue-600 transition-colors group px-2 py-1 rounded-lg hover:bg-blue-50 w-fit"
+      <>
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className={`p-8 space-y-8 max-w-7xl mx-auto ${loadingDetails ? 'opacity-50 pointer-events-none' : ''}`}
         >
-          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Retour aux cours
-        </button>
+          <button
+            onClick={() => setSelectedCourse(null)}
+            className="flex items-center gap-2 text-gray-500 font-bold hover:text-blue-600 transition-colors group px-2 py-1 rounded-lg hover:bg-blue-50 w-fit"
+          >
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Retour aux cours
+          </button>
 
-        {/* Course Info Header */}
-        <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
-          <div
-            className="absolute top-0 right-0 w-64 h-64 opacity-[0.03] -mr-32 -mt-32 rounded-full"
-            style={{ background: `linear-gradient(to bottom right, ${selectedCourse.colorFrom}, ${selectedCourse.colorTo})` }}
-          />
+          {/* Course Info Header */}
+          <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm relative overflow-hidden">
+            <div
+              className="absolute top-0 right-0 w-64 h-64 opacity-[0.03] -mr-32 -mt-32 rounded-full"
+              style={{ background: `linear-gradient(to bottom right, ${selectedCourse.colorFrom}, ${selectedCourse.colorTo})` }}
+            />
 
-          <div className="relative space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex items-center gap-6">
-                <div
-                  className="w-20 h-20 rounded-[28px] flex items-center justify-center shadow-2xl shadow-blue-500/10 shrink-0"
-                  style={{ background: `linear-gradient(to bottom right, ${selectedCourse.colorFrom}, ${selectedCourse.colorTo})` }}
-                >
-                  <BookOpen className="w-10 h-10 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap text-[10px] font-black uppercase tracking-widest">
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg">{selectedCourse.code}</span>
-                    <span className="text-blue-600 px-3 py-1 bg-blue-50 rounded-lg">{academicLevel}</span>
-                    {selectedCourse.isFinished && (
-                      <span className="px-3 py-1 bg-slate-800 text-white rounded-lg flex items-center gap-2">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                        Cours Terminé
-                      </span>
-                    )}
+            <div className="relative space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-6">
+                  <div
+                    className="w-20 h-20 rounded-[28px] flex items-center justify-center shadow-2xl shadow-blue-500/10 shrink-0"
+                    style={{ background: `linear-gradient(to bottom right, ${selectedCourse.colorFrom}, ${selectedCourse.colorTo})` }}
+                  >
+                    <BookOpen className="w-10 h-10 text-white" />
                   </div>
-                  <h1 className={`font-black text-gray-900 tracking-tight leading-tight ${selectedCourse.name.length > 50 ? 'text-2xl' :
-                    selectedCourse.name.length > 30 ? 'text-3xl' : 'text-4xl'
-                    }`}>{selectedCourse.name}</h1>
-                </div>
-              </div>
-            </div>
-
-            {/* Metadata Row - Full width to avoid squeezing */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t border-gray-100">
-              <div className="flex items-center gap-4 group">
-                <div className="w-12 h-12 bg-blue-50/50 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 transition-colors duration-300">
-                  <User className="w-6 h-6 text-blue-600 group-hover:text-white transition-colors" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em] mb-1">Professeur</p>
-                  <p className="text-gray-900 font-bold leading-none">{selectedCourse.professor}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 group">
-                <div className="w-12 h-12 bg-purple-50/50 rounded-2xl flex items-center justify-center group-hover:bg-purple-600 transition-colors duration-300">
-                  <MapPin className="w-6 h-6 text-purple-600 group-hover:text-white transition-colors" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em] mb-1">Lieu d'étude</p>
-                  <p className="text-gray-900 font-bold leading-none">{selectedCourse.room}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap text-[10px] font-black uppercase tracking-widest">
+                      <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg">{selectedCourse.code}</span>
+                      <span className="text-blue-600 px-3 py-1 bg-blue-50 rounded-lg">{academicLevel}</span>
+                      {selectedCourse.isFinished && (
+                        <span className="px-3 py-1 bg-slate-800 text-white rounded-lg flex items-center gap-2">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          Cours Terminé
+                        </span>
+                      )}
+                    </div>
+                    <h1 className={`font-black text-gray-900 tracking-tight leading-tight ${selectedCourse.name.length > 50 ? 'text-2xl' :
+                      selectedCourse.name.length > 30 ? 'text-3xl' : 'text-4xl'
+                      }`}>{selectedCourse.name}</h1>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 group">
-                <div className="w-12 h-12 bg-orange-50/50 rounded-2xl flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-300">
-                  <Clock className="w-6 h-6 text-orange-600 group-hover:text-white transition-colors" />
+              {/* Metadata Row - Full width to avoid squeezing */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t border-gray-100">
+                <div className="flex items-center gap-4 group">
+                  <div className="w-12 h-12 bg-blue-50/50 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 transition-colors duration-300">
+                    <User className="w-6 h-6 text-blue-600 group-hover:text-white transition-colors" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em] mb-1">Professeur</p>
+                    <p className="text-gray-900 font-bold leading-none">{selectedCourse.professor}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em] mb-1">Programmation</p>
-                  <p className="text-gray-900 font-bold leading-none">{selectedCourse.schedule}</p>
+
+                <div className="flex items-center gap-4 group">
+                  <div className="w-12 h-12 bg-purple-50/50 rounded-2xl flex items-center justify-center group-hover:bg-purple-600 transition-colors duration-300">
+                    <MapPin className="w-6 h-6 text-purple-600 group-hover:text-white transition-colors" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em] mb-1">Lieu d'étude</p>
+                    <p className="text-gray-900 font-bold leading-none">{selectedCourse.room}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 group">
+                  <div className="w-12 h-12 bg-orange-50/50 rounded-2xl flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-300">
+                    <Clock className="w-6 h-6 text-orange-600 group-hover:text-white transition-colors" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em] mb-1">Programmation</p>
+                    <p className="text-gray-900 font-bold leading-none">{selectedCourse.schedule}</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content: Materials & Assignments */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content: Materials & Assignments */}
+            <div className="lg:col-span-2 space-y-8">
 
-            {/* Devoirs à remettre */}
-            <div className="bg-[#0F172A] rounded-[40px] p-10 text-white shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:bg-blue-500/20 transition-colors duration-700"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl -ml-24 -mb-24"></div>
+              {/* Devoirs à remettre */}
+              <div className="bg-[#0F172A] rounded-[40px] p-10 text-white shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:bg-blue-500/20 transition-colors duration-700"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl -ml-24 -mb-24"></div>
 
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept=".pdf"
-                onChange={handleFileChange}
-              />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept=".pdf"
+                  onChange={handleFileChange}
+                />
 
-              <div className="relative">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-2xl font-black flex items-center gap-4">
-                    <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10">
-                      <Send className="w-7 h-7 text-blue-400" />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-black flex items-center gap-4">
+                      <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10">
+                        <Send className="w-7 h-7 text-blue-400" />
+                      </div>
+                      Travaux Pratiques
+                    </h3>
+                    <div className="flex flex-col items-end">
+                      <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] px-4 py-1.5 bg-blue-400/10 rounded-full border border-blue-400/20">
+                        En cours
+                      </span>
                     </div>
-                    Travaux Pratiques
-                  </h3>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] px-4 py-1.5 bg-blue-400/10 rounded-full border border-blue-400/20">
-                      En cours
-                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6">
+                    {(!selectedCourse.assignments || selectedCourse.assignments.length === 0) ? (
+                      <div className="py-12 flex flex-col items-center justify-center bg-white/5 rounded-3xl border border-white/10 border-dashed">
+                        <Send className="w-10 h-10 text-white/20 mb-4" />
+                        <p className="text-gray-400 font-bold italic">Aucun travail à remettre pour le moment</p>
+                      </div>
+                    ) : selectedCourse.assignments.filter((a: any) => (a.type === 'TP' || a.type === 'TD') && !a.submitted).map((assignment: any) => {
+                      const isLate = assignment.dueDate && new Date() > new Date(assignment.dueDate);
+                      const getTimeRemaining = (dueDate: string) => {
+                        const diff = new Date(dueDate).getTime() - new Date().getTime();
+                        if (diff <= 0) return null;
+                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        if (days > 0) return `${days}j ${hours}h restants`;
+                        if (hours > 0) return `${hours}h ${minutes}m restants`;
+                        return `${minutes}m restants`;
+                      };
+                      const remaining = assignment.dueDate ? getTimeRemaining(assignment.dueDate) : null;
+
+                      return (
+                        <motion.div
+                          key={assignment.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="p-8 bg-white/5 border border-white/10 rounded-[32px] hover:bg-white/10 hover:border-white/20 transition-all relative overflow-hidden group/item"
+                        >
+                          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
+                            <div className="flex-1 space-y-4">
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] px-3 py-1 bg-blue-400/10 rounded-lg border border-blue-400/20 italic">{assignment.type}</span>
+                                {assignment.dueDate && (
+                                  <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${isLate ? 'text-rose-400' : 'text-gray-400'}`}>
+                                    <Clock className="w-3.5 h-3.5" />
+                                    {isLate ? 'Délai dépassé' : `Échéance : ${new Date(assignment.dueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} à ${new Date(assignment.dueDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}`}
+                                  </div>
+                                )}
+                                {!isLate && remaining && !assignment.submitted && (
+                                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 px-3 py-1 rounded-lg border border-amber-400/20 animate-pulse">
+                                    {remaining}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div>
+                                <h4 className="text-xl font-black group-hover/item:text-blue-400 transition-colors uppercase tracking-tight mb-2">{assignment.title}</h4>
+                                {assignment.instructions ? (
+                                  <p className="text-gray-400 text-sm font-medium leading-relaxed italic border-l-2 border-white/10 pl-4 py-1">
+                                    {assignment.instructions}
+                                  </p>
+                                ) : (
+                                  <p className="text-gray-500 text-xs italic font-medium">Aucune consigne particulière fournie.</p>
+                                )}
+                              </div>
+
+                              {assignment.submitted && (
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 w-fit px-3 py-1 rounded-full border border-emerald-400/20">
+                                  <CheckCircle2 className="w-3 h-3" /> Remis le {new Date(assignment.submittedAt).toLocaleDateString('fr-FR')} à {new Date(assignment.submittedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="shrink-0 pt-2">
+                              {assignment.submitted ? (
+                                <div className="flex flex-col gap-3 items-end">
+                                  <div className="px-6 py-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-lg shadow-emerald-900/20">
+                                    <CheckCircle2 className="w-4 h-4" /> Terminé
+                                  </div>
+                                  <a
+                                    href={assignment.submissionUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[10px] text-gray-500 hover:text-white font-black uppercase tracking-widest flex items-center gap-2 transition-colors pr-2"
+                                  >
+                                    Voir mon dépôt <ChevronRight className="w-3 h-3" />
+                                  </a>
+                                </div>
+                              ) : isLate ? (
+                                <div className="px-6 py-4 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 opacity-60">
+                                  <AlertCircle className="w-4 h-4" /> Fermé
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleAssignmentClick(assignment.id)}
+                                  disabled={isSubmitting}
+                                  className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center gap-3 shadow-xl shadow-blue-900/40 active:scale-95 disabled:opacity-50"
+                                >
+                                  {isSubmitting && activeAssignmentId === assignment.id ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                  ) : (
+                                    <UploadCloud className="w-5 h-5" />
+                                  )}
+                                  Déposer le PDF
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )
+                    })}
+                    {selectedCourse.assignments && selectedCourse.assignments.filter((a: any) => (a.type === 'TP' || a.type === 'TD') && !a.submitted).length === 0 && selectedCourse.assignments.some((a: any) => a.submitted) && (
+                      <div className="py-8 flex flex-col items-center justify-center bg-white/5 rounded-3xl border border-white/10 border-dashed">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-400/40 mb-3" />
+                        <p className="text-gray-400 font-bold italic text-sm text-center">Tous les travaux en cours ont été remis ! <br />Consultez l'onglet des travaux soumis ci-dessous.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-1 gap-6">
-                  {(!selectedCourse.assignments || selectedCourse.assignments.length === 0) ? (
-                    <div className="py-12 flex flex-col items-center justify-center bg-white/5 rounded-3xl border border-white/10 border-dashed">
-                      <Send className="w-10 h-10 text-white/20 mb-4" />
-                      <p className="text-gray-400 font-bold italic">Aucun travail à remettre pour le moment</p>
-                    </div>
-                  ) : selectedCourse.assignments.filter((a: any) => (a.type === 'TP' || a.type === 'TD') && !a.submitted).map((assignment: any) => {
-                    const isLate = assignment.dueDate && new Date() > new Date(assignment.dueDate);
-                    const getTimeRemaining = (dueDate: string) => {
-                      const diff = new Date(dueDate).getTime() - new Date().getTime();
-                      if (diff <= 0) return null;
-                      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                      if (days > 0) return `${days}j ${hours}h restants`;
-                      if (hours > 0) return `${hours}h ${minutes}m restants`;
-                      return `${minutes}m restants`;
-                    };
-                    const remaining = assignment.dueDate ? getTimeRemaining(assignment.dueDate) : null;
+              {/* Travaux Soumis */}
+              <div className="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-emerald-100/50 transition-colors duration-500"></div>
 
-                    return (
-                      <motion.div
-                        key={assignment.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-8 bg-white/5 border border-white/10 rounded-[32px] hover:bg-white/10 hover:border-white/20 transition-all relative overflow-hidden group/item"
-                      >
-                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
-                          <div className="flex-1 space-y-4">
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] px-3 py-1 bg-blue-400/10 rounded-lg border border-blue-400/20 italic">{assignment.type}</span>
-                              {assignment.dueDate && (
-                                <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${isLate ? 'text-rose-400' : 'text-gray-400'}`}>
-                                  <Clock className="w-3.5 h-3.5" />
-                                  {isLate ? 'Délai dépassé' : `Échéance : ${new Date(assignment.dueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} à ${new Date(assignment.dueDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}`}
-                                </div>
-                              )}
-                              {!isLate && remaining && !assignment.submitted && (
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 px-3 py-1 rounded-lg border border-amber-400/20 animate-pulse">
-                                  {remaining}
-                                </div>
-                              )}
-                            </div>
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-black text-gray-900 flex items-center gap-4">
+                      <div className="p-3 bg-emerald-50 rounded-2xl">
+                        <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+                      </div>
+                      Travaux soumis
+                    </h3>
+                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] px-4 py-1.5 bg-emerald-50 rounded-full italic">
+                      {selectedCourse.assignments?.filter((a: any) => a.submitted).length || 0} Remis
+                    </span>
+                  </div>
 
-                            <div>
-                              <h4 className="text-xl font-black group-hover/item:text-blue-400 transition-colors uppercase tracking-tight mb-2">{assignment.title}</h4>
-                              {assignment.instructions ? (
-                                <p className="text-gray-400 text-sm font-medium leading-relaxed italic border-l-2 border-white/10 pl-4 py-1">
-                                  {assignment.instructions}
-                                </p>
-                              ) : (
-                                <p className="text-gray-500 text-xs italic font-medium">Aucune consigne particulière fournie.</p>
-                              )}
-                            </div>
-
-                            {assignment.submitted && (
-                              <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 w-fit px-3 py-1 rounded-full border border-emerald-400/20">
-                                <CheckCircle2 className="w-3 h-3" /> Remis le {new Date(assignment.submittedAt).toLocaleDateString('fr-FR')} à {new Date(assignment.submittedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="shrink-0 pt-2">
-                            {assignment.submitted ? (
-                              <div className="flex flex-col gap-3 items-end">
-                                <div className="px-6 py-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-lg shadow-emerald-900/20">
-                                  <CheckCircle2 className="w-4 h-4" /> Terminé
+                  <div className="grid grid-cols-1 gap-4">
+                    {(!selectedCourse.assignments || selectedCourse.assignments.filter((a: any) => a.submitted).length === 0) ? (
+                      <div className="py-12 flex flex-col items-center justify-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                        <Send className="w-10 h-10 text-gray-300 mb-4" />
+                        <p className="text-gray-500 font-bold italic">Aucun travail soumis pour le moment</p>
+                      </div>
+                    ) : (
+                      <>
+                        {selectedCourse.assignments
+                          .filter((a: any) => a.submitted)
+                          .sort((a: any, b: any) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+                          .slice(0, showAllSubmissions ? undefined : 3)
+                          .map((assignment: any) => (
+                            <motion.div
+                              key={assignment.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              className="p-6 bg-gray-50/50 border border-gray-100 rounded-[28px] hover:bg-white hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 transition-all group/sub"
+                            >
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-4 flex-1 min-w-0">
+                                  <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 group-hover/sub:bg-emerald-600 group-hover/sub:text-white transition-colors">
+                                    <FileText className="w-6 h-6" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-gray-900 group-hover/sub:text-emerald-600 transition-colors truncate">{assignment.title}</h4>
+                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest flex items-center gap-2 mt-1">
+                                      <Clock className="w-3 h-3" />
+                                      Remis le {new Date(assignment.submittedAt).toLocaleDateString('fr-FR')}
+                                    </p>
+                                  </div>
                                 </div>
                                 <a
                                   href={assignment.submissionUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[10px] text-gray-500 hover:text-white font-black uppercase tracking-widest flex items-center gap-2 transition-colors pr-2"
+                                  className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 hover:text-emerald-600 hover:border-emerald-200 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm"
                                 >
-                                  Voir mon dépôt <ChevronRight className="w-3 h-3" />
+                                  Voir <ChevronRight className="w-3 h-3" />
                                 </a>
                               </div>
-                            ) : isLate ? (
-                              <div className="px-6 py-4 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 opacity-60">
-                                <AlertCircle className="w-4 h-4" /> Fermé
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => handleAssignmentClick(assignment.id)}
-                                disabled={isSubmitting}
-                                className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center gap-3 shadow-xl shadow-blue-900/40 active:scale-95 disabled:opacity-50"
-                              >
-                                {isSubmitting && activeAssignmentId === assignment.id ? (
-                                  <Loader2 className="w-5 h-5 animate-spin" />
-                                ) : (
-                                  <UploadCloud className="w-5 h-5" />
-                                )}
-                                Déposer le PDF
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
-                  {selectedCourse.assignments && selectedCourse.assignments.filter((a: any) => (a.type === 'TP' || a.type === 'TD') && !a.submitted).length === 0 && selectedCourse.assignments.some((a: any) => a.submitted) && (
-                    <div className="py-8 flex flex-col items-center justify-center bg-white/5 rounded-3xl border border-white/10 border-dashed">
-                      <CheckCircle2 className="w-8 h-8 text-emerald-400/40 mb-3" />
-                      <p className="text-gray-400 font-bold italic text-sm text-center">Tous les travaux en cours ont été remis ! <br />Consultez l'onglet des travaux soumis ci-dessous.</p>
-                    </div>
-                  )}
+                            </motion.div>
+                          ))}
+
+                        {selectedCourse.assignments.filter((a: any) => a.submitted).length > 3 && (
+                          <button
+                            onClick={() => setShowAllSubmissions(!showAllSubmissions)}
+                            className="w-full py-4 bg-gray-50 hover:bg-emerald-50 text-gray-500 hover:text-emerald-600 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-transparent hover:border-emerald-100 flex items-center justify-center gap-3 group"
+                          >
+                            {showAllSubmissions ? "Réduire la liste" : `Voir les ${selectedCourse.assignments.filter((a: any) => a.submitted).length - 3} autres soumissions`}
+                            <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showAllSubmissions ? "-rotate-90" : "rotate-90"}`} />
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Travaux Soumis */}
-            <div className="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-emerald-100/50 transition-colors duration-500"></div>
+              {/* Supports de cours */}
+              <div className="bg-white rounded-[32px] border border-gray-100 p-10 shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-indigo-100/50 transition-colors duration-500"></div>
 
-              <div className="relative">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-2xl font-black text-gray-900 flex items-center gap-4">
-                    <div className="p-3 bg-emerald-50 rounded-2xl">
-                      <CheckCircle2 className="w-7 h-7 text-emerald-600" />
-                    </div>
-                    Travaux soumis
-                  </h3>
-                  <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] px-4 py-1.5 bg-emerald-50 rounded-full italic">
-                    {selectedCourse.assignments?.filter((a: any) => a.submitted).length || 0} Remis
-                  </span>
-                </div>
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-black text-gray-900 flex items-center gap-4">
+                      <div className="p-3 bg-indigo-50 rounded-2xl">
+                        <FileText className="w-7 h-7 text-indigo-600" />
+                      </div>
+                      Supports de cours
+                    </h3>
+                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] px-4 py-1.5 bg-indigo-50 rounded-full italic">
+                      {selectedCourse.resources?.length || 0} Documents
+                    </span>
+                  </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                  {(!selectedCourse.assignments || selectedCourse.assignments.filter((a: any) => a.submitted).length === 0) ? (
-                    <div className="py-12 flex flex-col items-center justify-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                      <Send className="w-10 h-10 text-gray-300 mb-4" />
-                      <p className="text-gray-500 font-bold italic">Aucun travail soumis pour le moment</p>
-                    </div>
-                  ) : (
-                    <>
-                      {selectedCourse.assignments
-                        .filter((a: any) => a.submitted)
-                        .sort((a: any, b: any) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
-                        .slice(0, showAllSubmissions ? undefined : 3)
-                        .map((assignment: any) => (
-                          <motion.div
-                            key={assignment.id}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="p-6 bg-gray-50/50 border border-gray-100 rounded-[28px] hover:bg-white hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 transition-all group/sub"
+                  <div className="grid grid-cols-1 gap-4">
+                    {selectedCourse.resources?.length === 0 ? (
+                      <div className="col-span-full py-12 flex flex-col items-center justify-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
+                          <FileText className="w-8 h-8 text-gray-300" />
+                        </div>
+                        <p className="text-gray-500 font-bold italic">Aucun support disponible pour ce cours</p>
+                      </div>
+                    ) : (
+                      <>
+                        {selectedCourse.resources.slice(0, showAllResources ? undefined : 4).map((resource: any) => (
+                          <motion.a
+                            key={resource.id}
+                            href={resource.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            whileHover={{ x: 4, scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                            className="p-5 bg-white border border-gray-100 rounded-[28px] hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all cursor-pointer group/item flex items-center gap-5"
                           >
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-4 flex-1 min-w-0">
-                                <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 group-hover/sub:bg-emerald-600 group-hover/sub:text-white transition-colors">
-                                  <FileText className="w-6 h-6" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-bold text-gray-900 group-hover/sub:text-emerald-600 transition-colors truncate">{assignment.title}</h4>
-                                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest flex items-center gap-2 mt-1">
-                                    <Clock className="w-3 h-3" />
-                                    Remis le {new Date(assignment.submittedAt).toLocaleDateString('fr-FR')}
-                                  </p>
-                                </div>
-                              </div>
-                              <a
-                                href={assignment.submissionUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 hover:text-emerald-600 hover:border-emerald-200 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm"
-                              >
-                                Voir <ChevronRight className="w-3 h-3" />
-                              </a>
+                            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center group-hover/item:bg-indigo-600 transition-colors duration-300 shrink-0 shadow-inner">
+                              <FileText className="w-7 h-7 text-indigo-500 group-hover/item:text-white transition-colors" />
                             </div>
-                          </motion.div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-gray-900 group-hover/item:text-indigo-600 transition-colors text-base mb-1 tracking-tight leading-snug break-words">
+                                {resource.title}
+                              </h4>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest flex items-center gap-1.5">
+                                  <Clock className="w-3 h-3" />
+                                  {new Date(resource.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </span>
+                                <span className="w-1 h-1 rounded-full bg-gray-200" />
+                                <span className="text-[10px] text-indigo-500/60 font-black uppercase tracking-widest italic">PDF</span>
+                              </div>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-gray-50 group-hover/item:bg-indigo-50 transition-colors">
+                              <Download className="w-4 h-4 text-gray-400 group-hover/item:text-indigo-600" />
+                            </div>
+                          </motion.a>
                         ))}
 
-                      {selectedCourse.assignments.filter((a: any) => a.submitted).length > 3 && (
-                        <button
-                          onClick={() => setShowAllSubmissions(!showAllSubmissions)}
-                          className="w-full py-4 bg-gray-50 hover:bg-emerald-50 text-gray-500 hover:text-emerald-600 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-transparent hover:border-emerald-100 flex items-center justify-center gap-3 group"
-                        >
-                          {showAllSubmissions ? "Réduire la liste" : `Voir les ${selectedCourse.assignments.filter((a: any) => a.submitted).length - 3} autres soumissions`}
-                          <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showAllSubmissions ? "-rotate-90" : "rotate-90"}`} />
-                        </button>
-                      )}
-                    </>
-                  )}
+                        {selectedCourse.resources.length > 4 && (
+                          <button
+                            onClick={() => setShowAllResources(!showAllResources)}
+                            className="w-full py-4 bg-gray-50 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-transparent hover:border-indigo-100 flex items-center justify-center gap-3 group"
+                          >
+                            {showAllResources ? "Réduire la liste" : `Voir les ${selectedCourse.resources.length - 4} autres documents`}
+                            <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showAllResources ? "-rotate-90" : "rotate-90"}`} />
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
+
             </div>
 
-            {/* Supports de cours */}
-            <div className="bg-white rounded-[32px] border border-gray-100 p-10 shadow-sm relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-indigo-100/50 transition-colors duration-500"></div>
+            {/* Sidebar Panel */}
+            <div className="space-y-8">
+              {/* Presence Widget */}
+              <div
+                onClick={() => setShowFullAttendance(true)}
+                className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[40px] p-8 text-white shadow-xl relative overflow-hidden group cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full -mr-16 -mt-16 group-hover:bg-white/20 transition-all duration-500"></div>
 
-              <div className="relative">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-2xl font-black text-gray-900 flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 rounded-2xl">
-                      <FileText className="w-7 h-7 text-indigo-600" />
-                    </div>
-                    Supports de cours
-                  </h3>
-                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] px-4 py-1.5 bg-indigo-50 rounded-full italic">
-                    {selectedCourse.resources?.length || 0} Documents
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  {selectedCourse.resources?.length === 0 ? (
-                    <div className="col-span-full py-12 flex flex-col items-center justify-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                      <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
-                        <FileText className="w-8 h-8 text-gray-300" />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col">
+                      <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md w-fit mb-2 group-hover:scale-110 transition-transform">
+                        <CheckCircle2 className="w-6 h-6 text-white" />
                       </div>
-                      <p className="text-gray-500 font-bold italic">Aucun support disponible pour ce cours</p>
+                      <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                        {selectedCourse.attendedSessions || 0} / {selectedCourse.totalSessions || 0} Séances
+                      </div>
                     </div>
-                  ) : (
-                    <>
-                      {selectedCourse.resources.slice(0, showAllResources ? undefined : 4).map((resource: any) => (
-                        <motion.a
-                          key={resource.id}
-                          href={resource.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          whileHover={{ x: 4, scale: 1.01 }}
-                          whileTap={{ scale: 0.99 }}
-                          className="p-5 bg-white border border-gray-100 rounded-[28px] hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all cursor-pointer group/item flex items-center gap-5"
-                        >
-                          <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center group-hover/item:bg-indigo-600 transition-colors duration-300 shrink-0 shadow-inner">
-                            <FileText className="w-7 h-7 text-indigo-500 group-hover/item:text-white transition-colors" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 group-hover/item:text-indigo-600 transition-colors text-base mb-1 tracking-tight leading-snug break-words">
-                              {resource.title}
-                            </h4>
-                            <div className="flex items-center gap-3">
-                              <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest flex items-center gap-1.5">
-                                <Clock className="w-3 h-3" />
-                                {new Date(resource.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                              </span>
-                              <span className="w-1 h-1 rounded-full bg-gray-200" />
-                              <span className="text-[10px] text-indigo-500/60 font-black uppercase tracking-widest italic">PDF</span>
-                            </div>
-                          </div>
-                          <div className="p-2.5 rounded-xl bg-gray-50 group-hover/item:bg-indigo-50 transition-colors">
-                            <Download className="w-4 h-4 text-gray-400 group-hover/item:text-indigo-600" />
-                          </div>
-                        </motion.a>
-                      ))}
-
-                      {selectedCourse.resources.length > 4 && (
-                        <button
-                          onClick={() => setShowAllResources(!showAllResources)}
-                          className="w-full py-4 bg-gray-50 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-transparent hover:border-indigo-100 flex items-center justify-center gap-3 group"
-                        >
-                          {showAllResources ? "Réduire la liste" : `Voir les ${selectedCourse.resources.length - 4} autres documents`}
-                          <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showAllResources ? "-rotate-90" : "rotate-90"}`} />
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Sidebar Panel */}
-          <div className="space-y-8">
-            {/* Presence Widget */}
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[40px] p-8 text-white shadow-xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full -mr-16 -mt-16 group-hover:bg-white/20 transition-all duration-500"></div>
-
-              <div className="relative">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex flex-col">
-                    <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md w-fit mb-2">
-                      <CheckCircle2 className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
-                      {selectedCourse.attendedSessions || 0} / {selectedCourse.totalSessions || 0} Séances
+                    <div className="text-right">
+                      <div className="text-5xl font-black italic tracking-tighter">{selectedCourse.attendance}%</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Assiduité Réelle</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-5xl font-black italic tracking-tighter">{selectedCourse.attendance}%</div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Assiduité Réelle</div>
-                  </div>
-                </div>
 
-                <div className="space-y-6">
-                  <div className="h-3 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${selectedCourse.attendance}%` }}
-                      transition={{ duration: 1.5, ease: "easeOut" }}
-                      className="h-full bg-gradient-to-r from-emerald-400 to-white rounded-full shadow-[0_0_20px_rgba(52,211,153,0.4)]"
-                    />
-                  </div>
-
-                  {/* Attendance History List */}
-                  <div className="pt-6 space-y-4 border-t border-white/10">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Historique complet</p>
-                      <span className="text-[10px] font-bold text-white/30 italic">Défilez pour voir plus</span>
+                  <div className="space-y-6">
+                    <div className="h-3 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${selectedCourse.attendance}%` }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className="h-full bg-gradient-to-r from-emerald-400 to-white rounded-full shadow-[0_0_20px_rgba(52,211,153,0.4)]"
+                      />
                     </div>
-                    <div className="max-h-[280px] overflow-y-auto pr-2 custom-scrollbar space-y-2.5">
-                      {(!selectedCourse.attendanceHistory || selectedCourse.attendanceHistory.length === 0) ? (
-                        <div className="py-8 flex flex-col items-center justify-center opacity-30">
-                          <Clock className="w-8 h-8 mb-2" />
-                          <p className="text-[10px] italic font-bold">Aucune séance enregistrée</p>
+
+                    {/* Attendance History List - Compact VERSION (Last 3) */}
+                    <div className="pt-6 space-y-4 border-t border-white/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Dernières séances</p>
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-blue-300">
+                          Voir tout <ArrowRight className="w-3 h-3" />
                         </div>
-                      ) : selectedCourse.attendanceHistory.map((session: any, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors group/row">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-2.5 h-2.5 rounded-full ${session.status === 'ABSENT' ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.6)]' : 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.6)]'}`} />
-                            <div className="flex flex-col">
-                              <span className="text-[11px] font-black text-white group-hover/row:text-emerald-300 transition-colors uppercase tracking-tight">
-                                {new Date(session.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
-                              </span>
-                              <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">
-                                Séance n°{session.sessionNumber || idx + 1}
-                              </span>
-                            </div>
+                      </div>
+                      <div className="space-y-2.5">
+                        {(!selectedCourse.attendanceHistory || selectedCourse.attendanceHistory.length === 0) ? (
+                          <div className="py-4 flex flex-col items-center justify-center opacity-30">
+                            <Clock className="w-6 h-6 mb-2" />
+                            <p className="text-[10px] italic font-bold">Aucune séance</p>
                           </div>
-                          <div className="text-right">
-                            <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg ${session.status === 'ABSENT' ? 'text-rose-400 bg-rose-500/10' :
-                                session.status === 'LATE' ? 'text-amber-400 bg-amber-500/10' :
-                                  'text-emerald-400 bg-emerald-500/10'
-                              }`}>
-                              {session.status === 'ABSENT' ? 'Absent' : session.status === 'LATE' ? 'Retard' : 'Présent'}
+                        ) : selectedCourse.attendanceHistory.slice(0, 3).map((session: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 group/row">
+                            <div className="flex items-center gap-4">
+                              <div className={`w-2 h-2 rounded-full ${session.status === 'ABSENT' ? 'bg-rose-500' : 'bg-emerald-400'}`} />
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-white uppercase tracking-tight">
+                                  {new Date(session.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                </span>
+                              </div>
+                            </div>
+                            <span className={`text-[9px] font-black uppercase tracking-widest ${session.status === 'ABSENT' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                              {session.status === 'ABSENT' ? 'Absent' : 'Présent'}
                             </span>
-                            {session.time && (
-                              <p className="text-[8px] font-bold text-white/20 mt-1 uppercase mt-1 tracking-tighter italic">
-                                Scanné à {new Date(session.time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                            )}
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-white/5 rounded-2xl p-4 border border-white/10 mt-2">
+                      <p className="text-[11px] font-bold italic text-white/80 leading-relaxed text-center">
+                        Cliquez pour voir l'historique complet
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rules Widget */}
+              <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-12 -mt-12"></div>
+
+                <div className="relative">
+                  <h3 className="text-gray-900 font-black mb-6 flex items-center gap-3">
+                    <div className="p-2 bg-amber-50 rounded-xl">
+                      <AlertCircle className="w-5 h-5 text-amber-500" />
+                    </div>
+                    Règles & Infos
+                  </h3>
+
+                  <div className="space-y-6">
+                    <div className="flex gap-4 group/item">
+                      <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0 group-hover/item:scale-150 transition-transform" />
+                      <p className="text-gray-500 text-xs font-bold leading-relaxed italic">
+                        La présence aux TP est <span className="text-gray-900 not-italic">obligatoire</span> pour valider l'unité d'enseignement.
+                      </p>
+                    </div>
+                    <div className="flex gap-4 group/item">
+                      <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0 group-hover/item:scale-150 transition-transform" />
+                      <p className="text-gray-500 text-xs font-bold leading-relaxed italic">
+                        Toute absence doit être justifiée dans les <span className="text-gray-900 not-italic">48h</span> auprès du secrétariat.
+                      </p>
                     </div>
                   </div>
 
-                  <div className="bg-white/5 rounded-2xl p-4 border border-white/10 mt-2">
-                    <p className="text-[11px] font-bold italic text-white/80 leading-relaxed text-center">
-                      {selectedCourse.attendance >= 80
-                        ? "🚀 Excellent ! Continuez ainsi pour valider votre semestre."
-                        : selectedCourse.attendance >= 50
-                          ? "⚖️ Attention, restez régulier pour ne pas chuter."
-                          : "⚠️ Alerte : Votre taux de présence est critique."}
-                    </p>
+                  <div className="mt-8 pt-8 border-t border-gray-50">
+                    <button className="w-full py-4 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">
+                      Voir le règlement complet
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </motion.div>
 
-            {/* Rules Widget */}
-            <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-12 -mt-12"></div>
-
-              <div className="relative">
-                <h3 className="text-gray-900 font-black mb-6 flex items-center gap-3">
-                  <div className="p-2 bg-amber-50 rounded-xl">
-                    <AlertCircle className="w-5 h-5 text-amber-500" />
+        {showFullAttendance && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowFullAttendance(false)}
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden relative z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Header */}
+              <div className="p-8 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-50 rounded-2xl">
+                    <CheckCircle2 className="w-6 h-6 text-blue-600" />
                   </div>
-                  Règles & Infos
-                </h3>
-
-                <div className="space-y-6">
-                  <div className="flex gap-4 group/item">
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0 group-hover/item:scale-150 transition-transform" />
-                    <p className="text-gray-500 text-xs font-bold leading-relaxed italic">
-                      La présence aux TP est <span className="text-gray-900 not-italic">obligatoire</span> pour valider l'unité d'enseignement.
-                    </p>
-                  </div>
-                  <div className="flex gap-4 group/item">
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0 group-hover/item:scale-150 transition-transform" />
-                    <p className="text-gray-500 text-xs font-bold leading-relaxed italic">
-                      Toute absence doit être justifiée dans les <span className="text-gray-900 not-italic">48h</span> auprès du secrétariat.
-                    </p>
+                  <div>
+                    <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Historique d'assiduité</h3>
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{selectedCourse.name}</p>
                   </div>
                 </div>
+                <button
+                  onClick={() => setShowFullAttendance(false)}
+                  className="p-3 hover:bg-gray-100 rounded-2xl transition-colors text-gray-400 hover:text-gray-900"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+              </div>
 
-                <div className="mt-8 pt-8 border-t border-gray-50">
-                  <button className="w-full py-4 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">
-                    Voir le règlement complet
+              {/* Content Grouped by Month */}
+              <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                {(() => {
+                  const history = selectedCourse.attendanceHistory || [];
+                  const groups: { [key: string]: any[] } = {};
+
+                  history.forEach((session: any) => {
+                    const date = new Date(session.date);
+                    const monthKey = date.toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
+                    if (!groups[monthKey]) groups[monthKey] = [];
+                    groups[monthKey].push(session);
+                  });
+
+                  const sortedMonths = Object.keys(groups).sort((a, b) => {
+                    // Sort by actual date of the first item in each group
+                    return new Date(groups[b][0].date).getTime() - new Date(groups[a][0].date).getTime();
+                  });
+
+                  if (sortedMonths.length === 0) {
+                    return (
+                      <div className="py-20 text-center space-y-4">
+                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
+                          <Clock className="w-10 h-10 text-gray-300" />
+                        </div>
+                        <p className="text-gray-400 font-bold italic">Aucune donnée de présence enregistrée.</p>
+                      </div>
+                    )
+                  }
+
+                  return sortedMonths.map(month => (
+                    <div key={month} className="mb-10 last:mb-0">
+                      <h4 className="text-[11px] font-black text-blue-600 uppercase tracking-[0.3em] mb-4 border-l-4 border-blue-600 pl-4 py-1 bg-blue-50/50 rounded-r-lg">
+                        {month}
+                      </h4>
+                      <div className="space-y-3">
+                        {groups[month].map((session: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-3xl border border-transparent hover:border-gray-200 hover:bg-white transition-all group">
+                            <div className="flex items-center gap-5">
+                              <div className={`w-3 h-3 rounded-full ${session.status === 'ABSENT' ? 'bg-rose-500 ring-4 ring-rose-500/10' :
+                                session.status === 'LATE' ? 'bg-amber-400 ring-4 ring-amber-400/10' :
+                                  'bg-emerald-400 ring-4 ring-emerald-400/10'
+                                }`} />
+                              <div className="flex flex-col">
+                                <span className="text-sm font-black text-gray-900 uppercase">
+                                  {new Date(session.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                                </span>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                  Séance n°{session.sessionNumber || idx + 1}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right space-y-1">
+                              <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-xl ${session.status === 'ABSENT' ? 'text-rose-600 bg-rose-50' :
+                                session.status === 'LATE' ? 'text-amber-600 bg-amber-50' :
+                                  'text-emerald-600 bg-emerald-50'
+                                }`}>
+                                {session.status === 'ABSENT' ? 'Absent' : session.status === 'LATE' ? 'Retard' : 'Présent'}
+                              </span>
+                              {session.time && (
+                                <p className="text-[9px] font-bold text-gray-400 italic">
+                                  Scanné à {new Date(session.time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+
+              {/* Footer Summary */}
+              <div className="p-8 bg-gray-50 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <div className="text-center px-4">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Présences</p>
+                      <p className="text-xl font-black text-emerald-600">{selectedCourse.attendedSessions || 0}</p>
+                    </div>
+                    <div className="w-px h-8 bg-gray-200" />
+                    <div className="text-center px-4">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Total</p>
+                      <p className="text-xl font-black text-gray-900">{selectedCourse.totalSessions || 0}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowFullAttendance(false)}
+                    className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all"
+                  >
+                    Fermer
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      </motion.div>
+        )}
+      </>
     );
   }
 
