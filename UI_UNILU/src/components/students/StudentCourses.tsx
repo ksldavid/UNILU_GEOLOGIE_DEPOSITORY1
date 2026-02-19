@@ -477,53 +477,83 @@ export function StudentCourses() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full -mr-16 -mt-16 group-hover:bg-white/20 transition-all duration-500"></div>
 
               <div className="relative">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
-                    <CheckCircle2 className="w-6 h-6 text-white" />
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col">
+                    <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md w-fit mb-2">
+                      <CheckCircle2 className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                      {selectedCourse.attendedSessions || 0} / {selectedCourse.totalSessions || 0} Séances
+                    </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-4xl font-black">{selectedCourse.attendance}%</div>
-                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Assiduité</div>
+                    <div className="text-5xl font-black italic tracking-tighter">{selectedCourse.attendance}%</div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Assiduité Réelle</div>
                   </div>
                 </div>
 
                 <div className="space-y-6">
-                  <div className="h-2.5 bg-white/20 rounded-full overflow-hidden p-0.5">
+                  <div className="h-3 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${selectedCourse.attendance}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
-                      className="h-full bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)]"
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                      className="h-full bg-gradient-to-r from-emerald-400 to-white rounded-full shadow-[0_0_20px_rgba(52,211,153,0.4)]"
                     />
                   </div>
 
-                  {/* Attendance History Mini-List */}
-                  <div className="pt-4 space-y-3 border-t border-white/10">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-2">Dernières séances</p>
-                    {(!selectedCourse.attendanceHistory || selectedCourse.attendanceHistory.length === 0) ? (
-                      <p className="text-[10px] italic font-bold text-white/40">Aucune séance enregistrée</p>
-                    ) : selectedCourse.attendanceHistory.slice(0, 5).map((session: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between group/row">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-1.5 h-1.5 rounded-full ${session.status === 'ABSENT' ? 'bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.5)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]'}`} />
-                          <span className="text-[10px] font-bold text-white/70 uppercase tracking-tighter italic">
-                            {new Date(session.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                          </span>
+                  {/* Attendance History List */}
+                  <div className="pt-6 space-y-4 border-t border-white/10">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Historique complet</p>
+                      <span className="text-[10px] font-bold text-white/30 italic">Défilez pour voir plus</span>
+                    </div>
+                    <div className="max-h-[280px] overflow-y-auto pr-2 custom-scrollbar space-y-2.5">
+                      {(!selectedCourse.attendanceHistory || selectedCourse.attendanceHistory.length === 0) ? (
+                        <div className="py-8 flex flex-col items-center justify-center opacity-30">
+                          <Clock className="w-8 h-8 mb-2" />
+                          <p className="text-[10px] italic font-bold">Aucune séance enregistrée</p>
                         </div>
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${session.status === 'ABSENT' ? 'text-rose-400' : 'text-emerald-400'}`}>
-                          {session.status === 'ABSENT' ? 'Absent' : 'Présent'}
-                        </span>
-                      </div>
-                    ))}
+                      ) : selectedCourse.attendanceHistory.map((session: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors group/row">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-2.5 h-2.5 rounded-full ${session.status === 'ABSENT' ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.6)]' : 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.6)]'}`} />
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-black text-white group-hover/row:text-emerald-300 transition-colors uppercase tracking-tight">
+                                {new Date(session.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                              </span>
+                              <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">
+                                Séance n°{session.sessionNumber || idx + 1}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg ${session.status === 'ABSENT' ? 'text-rose-400 bg-rose-500/10' :
+                                session.status === 'LATE' ? 'text-amber-400 bg-amber-500/10' :
+                                  'text-emerald-400 bg-emerald-500/10'
+                              }`}>
+                              {session.status === 'ABSENT' ? 'Absent' : session.status === 'LATE' ? 'Retard' : 'Présent'}
+                            </span>
+                            {session.time && (
+                              <p className="text-[8px] font-bold text-white/20 mt-1 uppercase mt-1 tracking-tighter italic">
+                                Scanné à {new Date(session.time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <p className="text-[10px] font-bold italic opacity-80 leading-relaxed text-center pt-2">
-                    {selectedCourse.attendance >= 80
-                      ? "Excellent ! Continuez ainsi pour valider votre semestre."
-                      : selectedCourse.attendance >= 50
-                        ? "Attention, restez régulier pour ne pas chuter."
-                        : "Alerte : Votre taux de présence est critique."}
-                  </p>
+                  <div className="bg-white/5 rounded-2xl p-4 border border-white/10 mt-2">
+                    <p className="text-[11px] font-bold italic text-white/80 leading-relaxed text-center">
+                      {selectedCourse.attendance >= 80
+                        ? "🚀 Excellent ! Continuez ainsi pour valider votre semestre."
+                        : selectedCourse.attendance >= 50
+                          ? "⚖️ Attention, restez régulier pour ne pas chuter."
+                          : "⚠️ Alerte : Votre taux de présence est critique."}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

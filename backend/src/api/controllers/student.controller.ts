@@ -57,7 +57,7 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
                 const presentCount = records.filter(r => r.status === 'PRESENT').length
                 const lateCount = records.filter(r => r.status === 'LATE').length
                 const attendedCount = presentCount + (lateCount * 0.5)
-                const percentage = totalCount > 0 ? Math.round((attendedCount / totalCount) * 100) : 100
+                const percentage = totalCount > 0 ? Math.round((attendedCount / totalCount) * 100) : 0
 
                 // Assign colors based on percentage
                 let color = '#10b981' // green
@@ -220,6 +220,8 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
             },
             stats: {
                 attendance: overallAttendance,
+                totalSessions,
+                totalAttendedSessions: Math.round(totalAttended),
                 courseCount: courseStats.length,
                 courses: courseStats,
                 pendingAssignmentsCount: pendingAssignments.length
@@ -409,7 +411,11 @@ export const getStudentCourseDetails = async (req: AuthRequest, res: Response) =
         // 2. Attendance Stats for this course
         const sessions = await prisma.attendanceSession.findMany({
             where: { courseCode },
-            select: { id: true }
+            select: {
+                id: true,
+                date: true,
+                sessionNumber: true
+            }
         });
         const sessionIds = sessions.map(s => s.id);
 
@@ -422,7 +428,7 @@ export const getStudentCourseDetails = async (req: AuthRequest, res: Response) =
 
         const totalSessions = sessions.length;
         const presentCount = attendanceRecords.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length;
-        const attendanceRate = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : 100;
+        const attendanceRate = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : 0;
 
         // NEW: Get the color for this course (consistent with the list)
         const allEnrollments = await prisma.studentCourseEnrollment.findMany({
@@ -456,10 +462,18 @@ export const getStudentCourseDetails = async (req: AuthRequest, res: Response) =
                 return {
                     id: record ? record.id : `abs-${s.id}`,
                     date: s.date,
+                    sessionNumber: s.sessionNumber || 1,
                     status: record ? record.status : 'ABSENT',
                     time: record ? record.createdAt : null
                 };
-            }).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+            }).sort((a: any, b: any) => {
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                if (dateA !== dateB) return dateB - dateA;
+                return b.sessionNumber - a.sessionNumber;
+            }),
+            totalSessions,
+            attendedSessions: presentCount,
             colorFrom: colorPalette.from,
             colorTo: colorPalette.to,
             resources: course.resources.map((r: any) => ({

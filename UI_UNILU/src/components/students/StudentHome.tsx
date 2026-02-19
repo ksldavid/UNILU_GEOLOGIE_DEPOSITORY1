@@ -198,7 +198,7 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
   const announcements = data?.announcements || [];
 
   const stats = [
-    { label: 'Assiduité', value: data?.stats?.attendance || '-', sub: '%', icon: CheckCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Assiduité', value: data?.stats?.attendance || '0', sub: `% (${data?.stats?.totalAttendedSessions || 0}/${data?.stats?.totalSessions || 0})`, icon: CheckCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Matières en cours', value: data?.stats?.courseCount || '-', sub: 'Cours', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'Devoirs à rendre', value: data?.stats?.pendingAssignmentsCount || '0', sub: 'À faire', icon: Send, color: 'text-orange-600', bg: 'bg-orange-50' },
   ];
@@ -748,7 +748,9 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
                   <div className="text-right">
                     <div className="text-[10px] font-black text-blue-800 uppercase tracking-widest">Taux d'assiduité</div>
                     <div className="text-lg font-black text-blue-600">
-                      {Math.round((data.recentAttendance.filter((r: any) => r.courseName === selectedCourseFilter && r.status !== 'ABSENT').length / data.recentAttendance.filter((r: any) => r.courseName === selectedCourseFilter).length) * 100)}%
+                      {data.recentAttendance.filter((r: any) => r.courseName === selectedCourseFilter).length > 0
+                        ? Math.round((data.recentAttendance.filter((r: any) => r.courseName === selectedCourseFilter && r.status !== 'ABSENT').length / data.recentAttendance.filter((r: any) => r.courseName === selectedCourseFilter).length) * 100)
+                        : 0}%
                     </div>
                   </div>
                 </div>
