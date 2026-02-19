@@ -426,3 +426,25 @@ export const updateUserAcademicLevel = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to update academic level' })
     }
 }
+
+// Mettre à jour le nom de l'utilisateur
+export const updateUserName = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params as { id: string }
+        const { name } = req.body
+
+        if (!name || name.trim().length < 3) {
+            return res.status(400).json({ error: 'Le nom est trop court ou invalide.' })
+        }
+
+        await prisma.user.update({
+            where: { id },
+            data: { name: name.trim() }
+        })
+
+        res.json({ message: 'Nom de l\'utilisateur mis à jour avec succès' })
+    } catch (error) {
+        console.error('Error updating user name:', error)
+        res.status(500).json({ error: 'Failed to update user name' })
+    }
+}

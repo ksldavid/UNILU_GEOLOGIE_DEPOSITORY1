@@ -19,6 +19,7 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
     const [inspectedUser, setInspectedUser] = useState<any>(null);
     const [editingPasswordUser, setEditingPasswordUser] = useState<any>(null);
     const [editingLevelUser, setEditingLevelUser] = useState<any>(null);
+    const [editingNameUser, setEditingNameUser] = useState<any>(null);
     const [isExporting, setIsExporting] = useState(false);
 
     // Pagination states
@@ -138,6 +139,9 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
             setInspectedUser(null);
         } else if (action === 'Changer Niveau') {
             setEditingLevelUser(user);
+            setInspectedUser(null);
+        } else if (action === 'Changer Nom') {
+            setEditingNameUser(user);
             setInspectedUser(null);
         } else if (action === 'Bloquer' || action === 'Débloquer' || action.includes('accès')) {
             handleToggleStatus(user);
@@ -407,6 +411,14 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
                     onSuccess={fetchUsers}
                 />
             )}
+
+            {editingNameUser && (
+                <NameEditModal
+                    user={editingNameUser}
+                    onClose={() => setEditingNameUser(null)}
+                    onSuccess={fetchUsers}
+                />
+            )}
         </div>
     );
 }
@@ -626,6 +638,93 @@ function PasswordEditModal({ user, onClose, onSuccess }: { user: any, onClose: (
     );
 }
 
+function NameEditModal({ user, onClose, onSuccess }: { user: any, onClose: () => void, onSuccess: () => void }) {
+    const [newName, setNewName] = useState(user.name);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSave = async () => {
+        if (!newName || newName.trim().length < 3) {
+            return alert("Le nom doit comporter au moins 3 caractères.");
+        }
+        setIsSaving(true);
+        try {
+            const token = sessionStorage.getItem('token');
+            const res = await fetch(`${API_URL}/admin/users/${user.id}/name`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: newName.trim() })
+            });
+
+            if (res.ok) {
+                alert(`Succès : Nom mis à jour pour ${user.id}`);
+                onSuccess();
+                onClose();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Erreur lors de la mise à jour.");
+            }
+        } catch (error) {
+            console.error("Erreur update name:", error);
+            alert("Erreur de connexion.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0B0F19]/90 backdrop-blur-2xl p-4 animate-in fade-in duration-300">
+            <div className="bg-[#111827] w-full max-w-md rounded-[32px] border border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.2)] overflow-hidden">
+                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent">
+                    <div className="flex gap-4 items-center">
+                        <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center border border-blue-500/20">
+                            <UserIcon className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-white uppercase tracking-tighter">Modifier l'Identité</h3>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase">{user.id}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-white transition-colors">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+                <div className="p-8 space-y-6">
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nouveau Nom Complet</label>
+                        <div className="relative">
+                            <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500" />
+                            <input
+                                type="text"
+                                className="w-full bg-[#0B0F19] border border-slate-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold outline-none focus:border-blue-500/50 transition-all shadow-inner"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                placeholder="Entrez le nom complet..."
+                            />
+                        </div>
+                        <p className="text-[9px] text-slate-500 italic mt-2">Le nom doit être identique aux documents officiels de l'UNILU.</p>
+                    </div>
+                    <div className="pt-4 flex gap-4">
+                        <button onClick={onClose} className="flex-1 py-4 bg-slate-900 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-800 hover:bg-slate-800 transition-all">
+                            Annuler
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="flex-[1.5] py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 active:scale-95 disabled:opacity-50 transition-all"
+                        >
+                            {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                            Sauvegarder
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function UserInspectionModal({ user, onClose, onAction, onModifyPassword }: { user: any, onClose: () => void, onAction: (a: string, u: any) => void, onModifyPassword: () => void }) {
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0B0F19]/90 backdrop-blur-xl p-4 animate-in fade-in duration-300">
@@ -737,7 +836,10 @@ function UserInspectionModal({ user, onClose, onAction, onModifyPassword }: { us
                     </div>
                 </div>
 
-                <div className="p-6 bg-[#0B0F19]/50 border-t border-white/5 flex gap-3">
+                <div className="p-6 bg-[#0B0F19]/50 border-t border-white/5 flex gap-3 text-center">
+                    <button onClick={() => onAction('Changer Nom', user)} className="flex-1 py-3 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">
+                        Modifier Nom
+                    </button>
                     {user.role === 'Étudiant' && (
                         <button onClick={() => onAction('Changer Niveau', user)} className="flex-1 py-3 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">
                             Changer Niveau
