@@ -71,3 +71,71 @@ export const getAcademicLevels = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Erreur serveur' })
     }
 }
+
+export const createCourse = async (req: Request, res: Response) => {
+    try {
+        const { code, name, academicLevelIds, academicYear = "2025-2026" } = req.body
+
+        if (!code || !name || !academicLevelIds || !Array.isArray(academicLevelIds)) {
+            return res.status(400).json({ message: 'Données manquantes : code, name ou academicLevelIds sont requis' })
+        }
+
+        // 1. Créer le cours
+        const course = await prisma.course.create({
+            data: {
+                code,
+                name,
+                academicLevels: {
+                    connect: academicLevelIds.map((id: number) => ({ id }))
+                }
+            }
+        })
+
+        // 2. Inscription automatique des étudiants
+        // Récupérer tous les étudiants inscrits à ces niveaux académiques pour CETTE année
+        const students = await prisma.studentEnrollment.findMany({
+            where: {
+                academicLevelId: { in: academicLevelIds },
+                academicYear: academicYear
+            }
+        })
+
+        if (students.length > 0) {
+            await prisma.studentCourseEnrollment.createMany({
+                data: students.map(s => ({
+                    userId: s.userId,
+                    courseCode: code,
+                    academicYear: academicYear,
+                    isActive: true
+                })),
+                skipDuplicates: true
+            })
+        }
+
+        res.status(201).json(course)
+    } catch (error: any) {
+        console.error('Erreur lors de la création du cours:', error)
+        res.status(500).json({ message: 'Erreur serveur', error: error.message })
+    }
+}
+
+export const updateCourse = async (req: Request, res: Response) => {
+    try {
+        const code = req.params.code as string
+        const { name } = req.body
+
+        if (!name) {
+            return res.status(400).json({ message: 'Le nom du cours est requis pour la mise à jour' })
+        }
+
+        const updatedCourse = await prisma.course.update({
+            where: { code },
+            data: { name }
+        })
+
+        res.json(updatedCourse)
+    } catch (error: any) {
+        console.error('Erreur lors de la mise à jour du cours:', error)
+        res.status(500).json({ message: 'Erreur serveur', error: error.message })
+    }
+}

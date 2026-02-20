@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, GraduationCap, School, BookOpen, UserCheck, Plus, Loader2, Trash2, X, Users, ArrowRight, Save, AlertCircle } from 'lucide-react';
+import { Search, School, BookOpen, UserCheck, Plus, Loader2, X, Users, ArrowRight, Save, AlertCircle } from 'lucide-react';
 import { staffService } from '../../../../services/staff';
 import { courseService } from '../../../../services/course';
 
@@ -20,18 +20,18 @@ interface Course {
     id: string;
     code: string;
     name: string;
-    academicLevels: { displayName: string }[];
+    academicLevels: { id: number, displayName: string }[];
 }
 
 export function StaffAssignmentManager() {
     const [assignments, setAssignments] = useState<StaffAssignment[]>([]);
     const [courses, setCourses] = useState<Course[]>([]);
-    const [levels, setLevels] = useState<any[]>([]); // New: Levels for filter
+    const [levels, setLevels] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedLevelId, setSelectedLevelId] = useState<string>('all'); // New: Level filter
+    const [selectedLevelId, setSelectedLevelId] = useState<string>('all');
     const [filterYear, setFilterYear] = useState<string>('2025-2026');
-    const [selectedCourse, setSelectedCourse] = useState<Course | null>(null); // Changed: Focus on course
+    const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
     const [availableStaff, setAvailableStaff] = useState<any[]>([]);
     const [editMode, setEditMode] = useState<'none' | 'action_select' | 'replace_prof' | 'add_assistant'>('none');
     const [targetStaffId, setTargetStaffId] = useState('');
@@ -42,9 +42,20 @@ export function StaffAssignmentManager() {
     const [newAssignmentData, setNewAssignmentData] = useState({
         courseCode: '',
         staffId: '',
-        role: 'PROFESSOR',
+        role: 'PROFESSOR' as 'PROFESSOR' | 'ASSISTANT',
         academicYear: '2025-2026'
     });
+
+    // Course management state
+    const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
+    const [isCreatingCourse, setIsCreatingCourse] = useState(false);
+    const [newCourseData, setNewCourseData] = useState({
+        code: '',
+        name: '',
+        academicLevelIds: [] as number[]
+    });
+    const [isEditingCourseName, setIsEditingCourseName] = useState(false);
+    const [courseNameEdit, setCourseNameEdit] = useState('');
 
     useEffect(() => {
         fetchAssignments();
@@ -85,8 +96,6 @@ export function StaffAssignmentManager() {
         try {
             setLoading(true);
             const data = await staffService.getAssignments();
-            console.log("Assignments fetched:", data);
-
             if (!Array.isArray(data)) {
                 setAssignments([]);
                 return;
@@ -94,7 +103,6 @@ export function StaffAssignmentManager() {
 
             const processed: StaffAssignment[] = data.map((enr: any) => {
                 const level = enr.course?.academicLevels?.[0]?.displayName || 'Non défini';
-
                 return {
                     id: `${enr.userId}-${enr.courseCode}-${enr.academicYear}`,
                     profId: enr.userId,
@@ -108,7 +116,6 @@ export function StaffAssignmentManager() {
                     status: 'active'
                 };
             });
-
             setAssignments(processed);
         } catch (error) {
             console.error("Erreur lors du chargement des affectations:", error);
@@ -119,7 +126,6 @@ export function StaffAssignmentManager() {
 
     const filteredCourses = (courses || [])
         .filter(c => {
-            // Filter by level
             if (selectedLevelId !== 'all') {
                 return c.academicLevels?.some((l: any) => l.id?.toString() === selectedLevelId);
             }
@@ -129,7 +135,7 @@ export function StaffAssignmentManager() {
             (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (c.code || '').toLowerCase().includes(searchTerm.toLowerCase())
         )
-        .sort((a, b) => (a.name || '').localeCompare(b.name || '')); // Sort alphabetically
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     const getCourseStaff = (courseCode: string) => {
         return assignments.filter(a => a.courseCode === courseCode && a.academicYear === filterYear);
@@ -137,10 +143,8 @@ export function StaffAssignmentManager() {
 
     const handleDeleteAssignment = async (userId: string, courseCode: string, academicYear: string) => {
         if (!confirm(`Voulez-vous vraiment retirer cette personne du cours ?`)) return;
-
         try {
             await staffService.removeStaff({ userId, courseCode, academicYear });
-            // Refresh list
             fetchAssignments();
         } catch (error) {
             alert("Erreur lors de la suppression");
@@ -148,10 +152,7 @@ export function StaffAssignmentManager() {
     };
 
     const handleAssignStaff = async () => {
-        // Logic for EDIT mode
         if (!selectedCourse || !targetStaffId) return;
-
-        // Check limits
         const existingStaff = getCourseStaff(selectedCourse.code);
         const role = editMode === 'replace_prof' ? 'PROFESSOR' : 'ASSISTANT';
 
@@ -172,7 +173,6 @@ export function StaffAssignmentManager() {
                 role: role,
                 academicYear: filterYear
             });
-
             setEditMode('none');
             setTargetStaffId('');
             fetchAssignments();
@@ -184,11 +184,47 @@ export function StaffAssignmentManager() {
         }
     };
 
-    const handleNewAssignmentSubmit = async () => {
-        // Logic for NEW Assignment mode
-        if (!newAssignmentData.courseCode || !newAssignmentData.staffId || !newAssignmentData.role) return;
+    const handleCreateCourse = async () => {
+        if (!newCourseData.code || !newCourseData.name || newCourseData.academicLevelIds.length === 0) {
+            alert("Veuillez remplir tous les champs obligatoires.");
+            return;
+        }
+        setIsCreatingCourse(true);
+        try {
+            await courseService.createCourse({
+                code: newCourseData.code,
+                name: newCourseData.name,
+                academicLevelIds: newCourseData.academicLevelIds
+            });
+            setShowCreateCourseModal(false);
+            setNewCourseData({ code: '', name: '', academicLevelIds: [] });
+            fetchCourses();
+            alert("Cours créé avec succès ! Les étudiants ont été inscrits automatiquement.");
+        } catch (error: any) {
+            alert(error.message || "Erreur lors de la création du cours");
+        } finally {
+            setIsCreatingCourse(false);
+        }
+    };
 
-        // Check limits before submitting
+    const handleUpdateCourseName = async () => {
+        if (!selectedCourse || !courseNameEdit.trim()) return;
+        setIsProcessing(true);
+        try {
+            await courseService.updateCourse(selectedCourse.code, { name: courseNameEdit });
+            setCourses(courses.map(c => c.code === selectedCourse.code ? { ...c, name: courseNameEdit } : c));
+            setSelectedCourse({ ...selectedCourse, name: courseNameEdit });
+            setIsEditingCourseName(false);
+            fetchAssignments();
+        } catch (error: any) {
+            alert(error.message || "Erreur lors de la modification");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleNewAssignmentSubmit = async () => {
+        if (!newAssignmentData.courseCode || !newAssignmentData.staffId || !newAssignmentData.role) return;
         const existingStaff = getCourseStaff(newAssignmentData.courseCode);
         if (newAssignmentData.role === 'PROFESSOR' && existingStaff.filter(s => s.role === 'PROFESSOR').length >= 5) {
             alert("Limite atteinte : maximum 5 titulaires autorisé pour ce cours.");
@@ -207,7 +243,6 @@ export function StaffAssignmentManager() {
                 role: newAssignmentData.role,
                 academicYear: newAssignmentData.academicYear
             });
-
             setShowNewAssignmentModal(false);
             setNewAssignmentData({
                 courseCode: '',
@@ -224,13 +259,6 @@ export function StaffAssignmentManager() {
         }
     };
 
-    // Helper check if course already has a professor
-    const selectedCourseHasProfessor = () => {
-        if (!newAssignmentData.courseCode) return false;
-        const staff = getCourseStaff(newAssignmentData.courseCode);
-        return staff.some(s => s.role === 'PROFESSOR');
-    };
-
     return (
         <div className="flex flex-col h-full space-y-6 relative">
             <div className="flex items-center justify-between">
@@ -238,16 +266,24 @@ export function StaffAssignmentManager() {
                     <h2 className="text-2xl font-bold text-[#1B4332]">Charge Horaire & Personnel</h2>
                     <p className="text-sm text-[#52796F]">Gestion des affectations Professeurs - Cours</p>
                 </div>
-                <button
-                    onClick={() => setShowNewAssignmentModal(true)}
-                    className="flex items-center gap-2 bg-[#1B4332] text-white px-6 py-2.5 rounded-[16px] font-bold hover:shadow-lg transition-all active:scale-95"
-                >
-                    <Plus className="w-5 h-5" />
-                    Nouvelle Affectation
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setShowCreateCourseModal(true)}
+                        className="flex items-center gap-2 bg-purple-600 text-white px-6 py-2.5 rounded-[16px] font-bold hover:shadow-lg transition-all active:scale-95"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Créer un Cours
+                    </button>
+                    <button
+                        onClick={() => setShowNewAssignmentModal(true)}
+                        className="flex items-center gap-2 bg-[#1B4332] text-white px-6 py-2.5 rounded-[16px] font-bold hover:shadow-lg transition-all active:scale-95"
+                    >
+                        <UserCheck className="w-5 h-5" />
+                        Affecter Personnel
+                    </button>
+                </div>
             </div>
 
-            {/* Filters Bar */}
             <div className="bg-white/80 backdrop-blur-sm p-4 rounded-[24px] border border-[#1B4332]/10 flex flex-wrap gap-4 items-center">
                 <div className="flex-1 min-w-[300px] flex items-center gap-3 bg-[#F1F8F4] px-4 py-2 rounded-xl border border-[#1B4332]/5">
                     <Search className="w-5 h-5 text-[#52796F]" />
@@ -280,7 +316,6 @@ export function StaffAssignmentManager() {
                 </select>
             </div>
 
-            {/* Table View */}
             <div className="flex-1 bg-white/80 backdrop-blur-sm rounded-[24px] border border-[#1B4332]/10 overflow-hidden flex flex-col">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -365,14 +400,13 @@ export function StaffAssignmentManager() {
                 )}
             </div>
 
-            {/* Modal Nouvelle Affectation */}
             {showNewAssignmentModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
                     <div className="bg-white rounded-[24px] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="bg-[#1B4332] p-6 text-white flex justify-between items-center">
                             <h3 className="text-xl font-bold flex items-center gap-2">
                                 <Plus className="w-5 h-5" />
-                                Nouvelle Affectation
+                                Affecter Personnel
                             </h3>
                             <button
                                 onClick={() => setShowNewAssignmentModal(false)}
@@ -383,7 +417,6 @@ export function StaffAssignmentManager() {
                         </div>
 
                         <div className="p-6 space-y-4">
-                            {/* Course Selection */}
                             <div>
                                 <label className="block text-sm font-bold text-[#1B4332] mb-1">Cours</label>
                                 <select
@@ -400,7 +433,6 @@ export function StaffAssignmentManager() {
                                 </select>
                             </div>
 
-                            {/* Staff Selection */}
                             <div>
                                 <label className="block text-sm font-bold text-[#1B4332] mb-1">Membre du personnel</label>
                                 <select
@@ -417,7 +449,6 @@ export function StaffAssignmentManager() {
                                 </select>
                             </div>
 
-                            {/* Role Selection */}
                             <div>
                                 <label className="block text-sm font-bold text-[#1B4332] mb-1">Rôle</label>
                                 <div className="flex gap-4">
@@ -450,24 +481,6 @@ export function StaffAssignmentManager() {
                                 </div>
                             </div>
 
-                            {/* Warning if limits reached */}
-                            {newAssignmentData.courseCode && (
-                                <>
-                                    {newAssignmentData.role === 'PROFESSOR' && getCourseStaff(newAssignmentData.courseCode).filter(s => s.role === 'PROFESSOR').length >= 5 && (
-                                        <div className="p-3 bg-red-50 text-red-600 rounded-[12px] text-xs flex items-start gap-2 border border-red-100">
-                                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                            <p>Limite atteinte : Ce cours a déjà 5 titulaires. Vous ne pouvez pas en ajouter d'autres.</p>
-                                        </div>
-                                    )}
-                                    {newAssignmentData.role === 'ASSISTANT' && getCourseStaff(newAssignmentData.courseCode).filter(s => s.role === 'ASSISTANT').length >= 10 && (
-                                        <div className="p-3 bg-red-50 text-red-600 rounded-[12px] text-xs flex items-start gap-2 border border-red-100">
-                                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                            <p>Limite atteinte : Ce cours a déjà 10 assistants.</p>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-
                             <div className="pt-4 flex gap-3">
                                 <button
                                     onClick={() => setShowNewAssignmentModal(false)}
@@ -476,13 +489,7 @@ export function StaffAssignmentManager() {
                                     Annuler
                                 </button>
                                 <button
-                                    disabled={
-                                        isProcessing ||
-                                        !newAssignmentData.courseCode ||
-                                        !newAssignmentData.staffId ||
-                                        (newAssignmentData.role === 'PROFESSOR' && getCourseStaff(newAssignmentData.courseCode).filter(s => s.role === 'PROFESSOR').length >= 5) ||
-                                        (newAssignmentData.role === 'ASSISTANT' && getCourseStaff(newAssignmentData.courseCode).filter(s => s.role === 'ASSISTANT').length >= 10)
-                                    }
+                                    disabled={isProcessing || !newAssignmentData.courseCode || !newAssignmentData.staffId}
                                     onClick={handleNewAssignmentSubmit}
                                     className="flex-1 py-3 px-4 bg-[#1B4332] text-white font-bold rounded-[16px] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
@@ -495,7 +502,6 @@ export function StaffAssignmentManager() {
                 </div>
             )}
 
-            {/* Modal Détails Cours (Updated from selectedAssignment to selectedCourse) */}
             {selectedCourse && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
                     <div className="bg-white rounded-[24px] w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -504,12 +510,48 @@ export function StaffAssignmentManager() {
                                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
                                     <School className="w-6 h-6 text-white" />
                                 </div>
-                                <div>
-                                    <h3 className="text-xl font-bold">{selectedCourse.name}</h3>
+                                <div className="flex-1">
+                                    {isEditingCourseName ? (
+                                        <div className="flex items-center gap-2 pt-1">
+                                            <input
+                                                type="text"
+                                                className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-white outline-none focus:border-white/40 w-full"
+                                                value={courseNameEdit}
+                                                onChange={(e) => setCourseNameEdit(e.target.value)}
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={handleUpdateCourseName}
+                                                disabled={isProcessing}
+                                                className="p-1 bg-white/20 rounded-lg hover:bg-white/30 text-white"
+                                            >
+                                                <Save className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => setIsEditingCourseName(false)}
+                                                className="p-1 bg-white/10 rounded-lg hover:bg-white/20 text-white"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-xl font-bold">{selectedCourse.name}</h3>
+                                            <button
+                                                onClick={() => {
+                                                    setCourseNameEdit(selectedCourse.name);
+                                                    setIsEditingCourseName(true);
+                                                }}
+                                                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors opacity-60 hover:opacity-100"
+                                            >
+                                                <BookOpen className="w-4 h-4 text-white" />
+                                            </button>
+                                        </div>
+                                    )}
                                     <p className="text-white/70 flex items-center gap-2 mt-1">
                                         <span className="font-mono bg-white/10 px-2 rounded">{selectedCourse.code}</span>
                                         <span>•</span>
-                                        <span className="flex gap-1">
+                                        <span className="flex gap-1 text-xs">
                                             {selectedCourse.academicLevels?.map((l: any, i: number) => (
                                                 <span key={i}>{l.displayName}{i < selectedCourse.academicLevels.length - 1 ? ',' : ''}</span>
                                             ))}
@@ -518,7 +560,7 @@ export function StaffAssignmentManager() {
                                 </div>
                             </div>
                             <button
-                                onClick={() => setSelectedCourse(null)}
+                                onClick={() => { setSelectedCourse(null); setIsEditingCourseName(false); }}
                                 className="p-2 hover:bg-white/10 rounded-full transition-colors"
                             >
                                 <X className="w-6 h-6" />
@@ -530,169 +572,161 @@ export function StaffAssignmentManager() {
                                 <>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
                                         <div className="flex flex-col h-full p-5 bg-[#F1F8F4] rounded-[32px] border border-[#1B4332]/10 shadow-sm">
-                                            <div className="flex items-center justify-between mb-5 px-1">
-                                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#1B4332]/60 flex items-center gap-2">
-                                                    <UserCheck className="w-4 h-4 text-[#1B4332]" />
-                                                    Titulaires ({getCourseStaff(selectedCourse.code).filter(s => s.role === 'PROFESSOR').length}/5)
-                                                </h4>
-                                            </div>
-                                            <div className="space-y-3 flex-1 scrollbar-hide overflow-y-auto max-h-[220px]">
+                                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#1B4332]/60 flex items-center gap-2 mb-4">
+                                                <UserCheck className="w-4 h-4 text-[#1B4332]" />
+                                                Titulaires ({getCourseStaff(selectedCourse.code).filter(s => s.role === 'PROFESSOR').length}/5)
+                                            </h4>
+                                            <div className="space-y-3 overflow-y-auto max-h-[220px]">
                                                 {getCourseStaff(selectedCourse.code).filter(s => s.role === 'PROFESSOR').map(prof => (
-                                                    <div key={prof.profId} className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-[#1B4332]/5 group animate-in fade-in slide-in-from-bottom-2">
-                                                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 text-white rounded-xl flex items-center justify-center font-black text-sm shadow-md">
+                                                    <div key={prof.profId} className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-[#1B4332]/5">
+                                                        <div className="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center font-black text-sm">
                                                             {prof.profName.charAt(0)}
                                                         </div>
                                                         <div className="flex-1">
-                                                            <p className="text-sm font-black text-[#1B4332] leading-tight">{prof.profName}</p>
-                                                            <p className="text-[10px] font-bold text-[#52796F] uppercase tracking-wider mt-0.5">{prof.profTitle}</p>
+                                                            <p className="text-sm font-black text-[#1B4332]">{prof.profName}</p>
+                                                            <p className="text-[10px] font-bold text-[#52796F] uppercase">{prof.profTitle}</p>
                                                         </div>
                                                         <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDeleteAssignment(prof.profId, prof.courseCode, prof.academicYear); }}
-                                                            className="p-2 bg-red-50 text-red-400 hover:text-red-700 hover:bg-red-100 rounded-xl transition-all active:scale-90"
-                                                            title="Retirer ce titulaire"
+                                                            onClick={() => handleDeleteAssignment(prof.profId, prof.courseCode, prof.academicYear)}
+                                                            className="p-2 text-red-400 hover:text-red-700 hover:bg-red-50 rounded-xl"
                                                         >
                                                             <X className="w-4 h-4" />
                                                         </button>
                                                     </div>
                                                 ))}
-                                                {getCourseStaff(selectedCourse.code).filter(s => s.role === 'PROFESSOR').length === 0 && (
-                                                    <div className="flex-1 flex flex-col items-center justify-center py-6 text-center opacity-40">
-                                                        <AlertCircle className="w-8 h-8 mb-2" />
-                                                        <p className="text-xs font-bold italic">Aucun titulaire</p>
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
 
                                         <div className="flex flex-col h-full p-5 bg-[#F1F8F4] rounded-[32px] border border-[#1B4332]/10 shadow-sm">
-                                            <div className="flex items-center justify-between mb-5 px-1">
-                                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#1B4332]/60 flex items-center gap-2">
-                                                    <Users className="w-4 h-4 text-[#1B4332]" />
-                                                    Assistants ({getCourseStaff(selectedCourse.code).filter(s => s.role === 'ASSISTANT').length}/10)
-                                                </h4>
-                                            </div>
-                                            <div className="space-y-3 flex-1 scrollbar-hide overflow-y-auto max-h-[220px]">
+                                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#1B4332]/60 flex items-center gap-2 mb-4">
+                                                <Users className="w-4 h-4 text-[#1B4332]" />
+                                                Assistants ({getCourseStaff(selectedCourse.code).filter(s => s.role === 'ASSISTANT').length}/10)
+                                            </h4>
+                                            <div className="space-y-3 overflow-y-auto max-h-[220px]">
                                                 {getCourseStaff(selectedCourse.code).filter(s => s.role === 'ASSISTANT').map(assist => (
-                                                    <div key={assist.profId} className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-[#1B4332]/5 group animate-in fade-in slide-in-from-bottom-2">
-                                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-xl flex items-center justify-center font-black text-sm shadow-md">
+                                                    <div key={assist.profId} className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-[#1B4332]/5">
+                                                        <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center font-black text-sm">
                                                             {assist.profName.charAt(0)}
                                                         </div>
                                                         <div className="flex-1">
-                                                            <p className="text-sm font-black text-[#1B4332] leading-tight">{assist.profName}</p>
-                                                            <p className="text-[10px] font-bold text-[#52796F] uppercase tracking-wider mt-0.5">{assist.profTitle}</p>
+                                                            <p className="text-sm font-black text-[#1B4332]">{assist.profName}</p>
+                                                            <p className="text-[10px] font-bold text-[#52796F] uppercase">{assist.profTitle}</p>
                                                         </div>
                                                         <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDeleteAssignment(assist.profId, assist.courseCode, assist.academicYear); }}
-                                                            className="p-2 bg-red-50 text-red-400 hover:text-red-700 hover:bg-red-100 rounded-xl transition-all active:scale-90"
-                                                            title="Retirer cet assistant"
+                                                            onClick={() => handleDeleteAssignment(assist.profId, assist.courseCode, assist.academicYear)}
+                                                            className="p-2 text-red-400 hover:text-red-700 hover:bg-red-50 rounded-xl"
                                                         >
                                                             <X className="w-4 h-4" />
                                                         </button>
                                                     </div>
                                                 ))}
-                                                {getCourseStaff(selectedCourse.code).filter(s => s.role === 'ASSISTANT').length === 0 && (
-                                                    <div className="flex-1 flex flex-col items-center justify-center py-6 text-center opacity-40">
-                                                        <Users className="w-8 h-8 mb-2" />
-                                                        <p className="text-xs font-bold italic">Aucun assistant</p>
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="border-t border-[#1B4332]/10 pt-8 mt-4">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1B4332]/40 mb-6 text-center">Actions de Management</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <button
-                                                disabled={getCourseStaff(selectedCourse.code).filter(s => s.role === 'PROFESSOR').length >= 5}
-                                                className="p-5 bg-white border-2 border-[#1B4332]/10 text-[#1B4332] font-black rounded-[28px] hover:border-[#1B4332]/30 hover:bg-[#F1F8F4] transition-all flex items-center gap-4 group shadow-sm active:scale-95 disabled:opacity-50"
-                                                onClick={() => setEditMode('replace_prof')}
-                                            >
-                                                <div className="w-12 h-12 bg-[#1B4332]/5 rounded-2xl flex items-center justify-center group-hover:bg-[#1B4332]/10 transition-colors shadow-inner">
-                                                    <UserCheck className="w-6 h-6" />
-                                                </div>
-                                                <div className="text-left">
-                                                    <span className="block text-sm uppercase tracking-tight">Ajouter Titulaire</span>
-                                                    <span className="block text-[10px] text-[#52796F] font-bold uppercase opacity-60">Max 5 par cours</span>
-                                                </div>
-                                            </button>
-
-                                            <button
-                                                disabled={getCourseStaff(selectedCourse.code).filter(s => s.role === 'ASSISTANT').length >= 10}
-                                                className="p-5 bg-white border-2 border-[#1B4332]/10 text-[#1B4332] font-black rounded-[28px] hover:border-[#1B4332]/30 hover:bg-[#F1F8F4] transition-all flex items-center gap-4 group shadow-sm active:scale-95 disabled:opacity-50"
-                                                onClick={() => setEditMode('add_assistant')}
-                                            >
-                                                <div className="w-12 h-12 bg-[#1B4332]/5 rounded-2xl flex items-center justify-center group-hover:bg-[#1B4332]/10 transition-colors shadow-inner">
-                                                    <Plus className="w-6 h-6 border-2 border-[#1B4332] rounded-lg" />
-                                                </div>
-                                                <div className="text-left">
-                                                    <span className="block text-sm uppercase tracking-tight">Nouvel Assistant</span>
-                                                    <span className="block text-[10px] text-[#52796F] font-bold uppercase opacity-60">Max 10 par cours</span>
-                                                </div>
-                                            </button>
-                                        </div>
+                                    <div className="border-t border-[#1B4332]/10 pt-8 flex gap-4">
+                                        <button
+                                            disabled={getCourseStaff(selectedCourse.code).filter(s => s.role === 'PROFESSOR').length >= 5}
+                                            className="flex-1 p-5 bg-white border-2 border-[#1B4332]/10 text-[#1B4332] font-black rounded-[28px] hover:bg-[#F1F8F4] flex items-center gap-4 disabled:opacity-50"
+                                            onClick={() => setEditMode('replace_prof')}
+                                        >
+                                            <UserCheck className="w-6 h-6" />
+                                            <div className="text-left">
+                                                <span className="block text-sm">Ajouter Titulaire</span>
+                                                <span className="block text-[10px] text-[#52796F] font-bold uppercase">Max 5</span>
+                                            </div>
+                                        </button>
+                                        <button
+                                            disabled={getCourseStaff(selectedCourse.code).filter(s => s.role === 'ASSISTANT').length >= 10}
+                                            className="flex-1 p-5 bg-white border-2 border-[#1B4332]/10 text-[#1B4332] font-black rounded-[28px] hover:bg-[#F1F8F4] flex items-center gap-4 disabled:opacity-50"
+                                            onClick={() => setEditMode('add_assistant')}
+                                        >
+                                            <Users className="w-6 h-6" />
+                                            <div className="text-left">
+                                                <span className="block text-sm">Nouvel Assistant</span>
+                                                <span className="block text-[10px] text-[#52796F] font-bold uppercase">Max 10</span>
+                                            </div>
+                                        </button>
                                     </div>
                                 </>
                             ) : (
-                                <div className="animate-in slide-in-from-right-4 fade-in duration-300">
-                                    <div className="flex items-center gap-2 mb-6 text-[#52796F]">
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-2 text-[#52796F]">
                                         <button onClick={() => { setEditMode('none'); setTargetStaffId(''); }} className="hover:text-[#1B4332] flex items-center gap-1 text-sm font-medium">
-                                            <ArrowRight className="w-4 h-4 rotate-180" />
-                                            Retour
+                                            <ArrowRight className="w-4 h-4 rotate-180" /> Retour
                                         </button>
-                                        <span className="text-[#1B4332]/20">|</span>
-                                        <span className="text-[#1B4332] font-bold">
-                                            {editMode === 'replace_prof' ? 'Ajouter un Titulaire' : 'Ajouter un Assistant'}
+                                        <span className="text-[#1B4332] font-bold ml-4">
+                                            {editMode === 'replace_prof' ? 'Ajouter Titulaire' : 'Ajouter Assistant'}
                                         </span>
                                     </div>
-
                                     <div className="bg-[#F1F8F4] p-6 rounded-[24px] border border-[#1B4332]/10">
-                                        <label className="block text-sm font-bold text-[#1B4332] mb-3">
-                                            Sélectionnez la personne à ajouter :
-                                        </label>
-
-                                        <div className="relative mb-6">
-                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#52796F]" />
-                                            <select
-                                                className="w-full h-12 pl-12 pr-4 bg-white border border-[#1B4332]/10 rounded-[16px] outline-none focus:border-[#1B4332] transition-colors appearance-none cursor-pointer"
-                                                value={targetStaffId}
-                                                onChange={(e) => setTargetStaffId(e.target.value)}
-                                            >
-                                                <option value="">-- Choisir une personne --</option>
-                                                {availableStaff
-                                                    .filter(s => {
-                                                        // Exclure ceux qui sont déjà dans ce cours
-                                                        const inCourse = getCourseStaff(selectedCourse.code);
-                                                        const alreadyInCourse = inCourse.some(ic => ic.profId === s.id);
-                                                        return !alreadyInCourse;
-                                                    })
-                                                    .map(staff => (
-                                                        <option key={staff.id} value={staff.id}>
-                                                            {staff.name} {staff.professorProfile?.title ? `(${staff.professorProfile.title})` : ''}
-                                                        </option>
-                                                    ))}
-                                            </select>
-                                        </div>
-
+                                        <select
+                                            className="w-full h-12 px-4 bg-white border border-[#1B4332]/10 rounded-[16px] mb-6"
+                                            value={targetStaffId}
+                                            onChange={(e) => setTargetStaffId(e.target.value)}
+                                        >
+                                            <option value="">-- Choisir une personne --</option>
+                                            {availableStaff
+                                                .filter(s => !getCourseStaff(selectedCourse.code).some(ic => ic.profId === s.id))
+                                                .map(staff => (
+                                                    <option key={staff.id} value={staff.id}>
+                                                        {staff.name} {staff.professorProfile?.title ? `(${staff.professorProfile.title})` : ''}
+                                                    </option>
+                                                ))}
+                                        </select>
                                         <div className="flex gap-3">
-                                            <button
-                                                onClick={() => { setEditMode('none'); setTargetStaffId(''); }}
-                                                className="flex-1 py-3 px-4 bg-white border border-[#1B4332]/10 text-[#52796F] font-bold rounded-[16px] hover:bg-[#1B4332]/5"
-                                            >
-                                                Annuler
-                                            </button>
-                                            <button
-                                                disabled={!targetStaffId || isProcessing}
-                                                onClick={handleAssignStaff}
-                                                className="flex-1 py-3 px-4 bg-[#1B4332] text-white font-bold rounded-[16px] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                            >
-                                                {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                                Confirmer
+                                            <button onClick={() => { setEditMode('none'); setTargetStaffId(''); }} className="flex-1 py-3 bg-white border border-[#1B4332]/10 rounded-[16px] font-bold">Annuler</button>
+                                            <button disabled={!targetStaffId || isProcessing} onClick={handleAssignStaff} className="flex-1 py-3 bg-[#1B4332] text-white rounded-[16px] font-bold flex items-center justify-center gap-2">
+                                                {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />} Confirmer
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showCreateCourseModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
+                    <div className="bg-white rounded-[24px] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-purple-600 p-6 text-white flex justify-between items-center">
+                            <h3 className="text-xl font-bold flex items-center gap-2"><Plus className="w-5 h-5" /> Créer un Cours</h3>
+                            <button onClick={() => setShowCreateCourseModal(false)} className="p-2 hover:bg-white/10 rounded-full"><X className="w-6 h-6" /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-1">
+                                    <label className="block text-sm font-bold text-[#1B4332] mb-1">Code</label>
+                                    <input type="text" placeholder="GEOL..." className="w-full h-12 px-4 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[16px] font-mono uppercase" value={newCourseData.code} onChange={(e) => setNewCourseData({ ...newCourseData, code: e.target.value.toUpperCase() })} />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-sm font-bold text-[#1B4332] mb-1">Nom du cours</label>
+                                    <input type="text" placeholder="Ex: Minéralogie..." className="w-full h-12 px-4 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[16px]" value={newCourseData.name} onChange={(e) => setNewCourseData({ ...newCourseData, name: e.target.value })} />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-[#1B4332] mb-2">Classe(s) rattachée(s)</label>
+                                <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto p-2 bg-[#F1F8F4] rounded-[16px] border border-[#1B4332]/10">
+                                    {levels.map(l => (
+                                        <label key={l.id} className="flex items-center gap-2 p-2 hover:bg-white rounded-lg cursor-pointer">
+                                            <input type="checkbox" checked={newCourseData.academicLevelIds.includes(l.id)} onChange={(e) => {
+                                                const ids = e.target.checked ? [...newCourseData.academicLevelIds, l.id] : newCourseData.academicLevelIds.filter(id => id !== l.id);
+                                                setNewCourseData({ ...newCourseData, academicLevelIds: ids });
+                                            }} />
+                                            <span className="text-xs font-bold text-[#1B4332]">{l.displayName}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="text-[10px] text-[#52796F] mt-2 italic">* Inscription automatique des étudiants.</p>
+                            </div>
+                            <div className="pt-4 flex gap-3">
+                                <button onClick={() => setShowCreateCourseModal(false)} className="flex-1 py-3 bg-white border border-[#1B4332]/10 rounded-[16px] font-bold">Annuler</button>
+                                <button disabled={isCreatingCourse || !newCourseData.code || !newCourseData.name || newCourseData.academicLevelIds.length === 0} onClick={handleCreateCourse} className="flex-1 py-3 bg-purple-600 text-white rounded-[16px] font-bold flex items-center justify-center gap-2">
+                                    {isCreatingCourse ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />} Créer
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
