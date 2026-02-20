@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Save } from "lucide-react";
 import LoginPage, { LoginResult } from './components/LoginPage';
 import { AdminLoginPage } from './components/admin/AdminLoginPage';
@@ -78,78 +79,63 @@ export default function App() {
   const [hasUnreadSupportNotifications, setHasUnreadSupportNotifications] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   // Check for Support notifications (Professor)
-  useEffect(() => {
-    if (userData?.role === 'USER' && isLoggedIn) {
-      const checkSupport = async () => {
-        try {
-          const res = await fetch(`${API_URL}/support/notifications`, {
-            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
-          });
-          if (res.ok) {
-            const notifs = await res.json();
-            const hasUnread = notifs.some((n: any) => !n.isRead);
-            setHasUnreadSupportNotifications(hasUnread);
-          }
-        } catch (err) {
-          console.error("Erreur check support notifications:", err);
-        }
-      };
+  const { data: supportNotifs = [] } = useQuery({
+    queryKey: ['support-notifications'],
+    queryFn: async () => {
+      const res = await fetch(`${API_URL}/support/notifications`, {
+        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    },
+    enabled: userData?.role === 'USER' && isLoggedIn,
+    refetchInterval: 5 * 60 * 1000, // 5 minutes instead of 30 seconds
+  });
 
-      checkSupport();
-      const interval = setInterval(checkSupport, 30000);
-      return () => clearInterval(interval);
+  useEffect(() => {
+    if (supportNotifs && supportNotifs.length >= 0) {
+      setHasUnreadSupportNotifications(supportNotifs.some((n: any) => !n.isRead));
     }
-  }, [userData, isLoggedIn]);
+  }, [supportNotifs]);
+
   const [showNavigationConfirm, setShowNavigationConfirm] = useState(false);
   const [pendingPage, setPendingPage] = useState<Page | null>(null);
   const [saveTrigger, setSaveTrigger] = useState<number>(0);
 
   // Vérifier les nouvelles annonces pour le point rouge et la cloche (Étudiant)
-  useEffect(() => {
-    if (userData?.role === 'STUDENT' && isLoggedIn) {
-      const checkAnnouncements = async () => {
-        try {
-          const announcements = await studentService.getAnnouncements();
-          const hasUnread = announcements.some((ann: any) => !ann.isRead);
-          setHasUnreadAnnouncements(hasUnread);
-        } catch (err) {
-          console.error("Erreur check annonces étudiant:", err);
-        }
-      };
+  const { data: stdAnnouncements = [] } = useQuery({
+    queryKey: ['student-announcements'],
+    queryFn: async () => studentService.getAnnouncements(),
+    enabled: userData?.role === 'STUDENT' && isLoggedIn,
+    refetchInterval: 5 * 60 * 1000, // 5 minutes au lieu de 30 secondes
+  });
 
-      checkAnnouncements();
-      const interval = setInterval(checkAnnouncements, 30000); // Check every 30s
-      return () => clearInterval(interval);
+  useEffect(() => {
+    if (stdAnnouncements && stdAnnouncements.length >= 0) {
+      setHasUnreadAnnouncements(stdAnnouncements.some((ann: any) => !ann.isRead));
     }
-  }, [userData, isLoggedIn, studentCurrentPage]); // Trigger check on page change too
+  }, [stdAnnouncements]);
 
   // Vérifier les nouvelles annonces pour le point rouge et la cloche (Professeur)
+  const { data: profDashboardData } = useQuery({
+    queryKey: ['prof-dashboard'],
+    queryFn: async () => professorService.getDashboard(),
+    enabled: userData?.role === 'USER' && isLoggedIn,
+    refetchInterval: 5 * 60 * 1000, // 5 minutes au lieu de 60 secondes
+  });
+
   useEffect(() => {
-    if (userData?.role === 'USER' && isLoggedIn) {
-      const checkProfAnnouncements = async () => {
-        try {
-          const data = await professorService.getDashboard();
-          const readIds = JSON.parse(localStorage.getItem('readProfAnnouncements') || '[]');
-          const hasUnread = data.announcements?.some((ann: any) => !readIds.includes(ann.id));
-          setHasUnreadProfAnnouncements(hasUnread);
-        } catch (err) {
-          console.error("Erreur check annonces prof:", err);
-        }
-      };
+    const updateProfAnnouncements = () => {
+      if (profDashboardData) {
+        const readIds = JSON.parse(localStorage.getItem('readProfAnnouncements') || '[]');
+        setHasUnreadProfAnnouncements(profDashboardData.announcements?.some((ann: any) => !readIds.includes(ann.id)));
+      }
+    };
 
-      checkProfAnnouncements();
-      const interval = setInterval(checkProfAnnouncements, 60000);
-
-      // Listen for local changes to mark as read immediately
-      const handleStorageChange = () => checkProfAnnouncements();
-      window.addEventListener('storage', handleStorageChange);
-
-      return () => {
-        clearInterval(interval);
-        window.removeEventListener('storage', handleStorageChange);
-      };
-    }
-  }, [userData, isLoggedIn]);
+    updateProfAnnouncements();
+    window.addEventListener('storage', updateProfAnnouncements);
+    return () => window.removeEventListener('storage', updateProfAnnouncements);
+  }, [profDashboardData]);
 
   // On retire l'effet automatique qui marquait tout comme lu au chargement du dashboard
   // pour permettre le marquage individuel par clic comme demandé.
