@@ -218,7 +218,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                     : 'text-gray-400 hover:text-gray-600'
                                     }`}
                             >
-                                Corps académique
+                                Corps académique et scientifique
                             </button>
                         </div>
 
@@ -303,7 +303,7 @@ export default function LoginPage({ onLogin, onAdminAccess }: LoginPageProps) {
                                             className="text-red-500 text-xs font-bold mt-2 ml-1 leading-relaxed"
                                         >
                                             ❌ Cet identifiant n'appartient pas à cet onglet.
-                                            Veuillez sélectionner l'onglet "{activeTab === 'student' ? 'Corps Académique' : 'Étudiant'}" pour vous connecter.
+                                            Veuillez sélectionner l'onglet "{activeTab === 'student' ? 'Corps académique et scientifique' : 'Étudiant'}" pour vous connecter.
                                         </motion.p>
                                     )}
                                 </AnimatePresence>
