@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
     LayoutDashboard, Users, ClipboardCheck, FileText, Calendar,
     GraduationCap, Bell, ChevronDown, LogOut,
-    FileCheck, X, Check, Clock, AlertCircle, Megaphone, Send, Wrench, AlertTriangle, CheckCircle, ChevronLeft, PieChart, Search, MessageSquare
+    FileCheck, X, Check, Clock, AlertCircle, Megaphone, Send, Wrench, AlertTriangle, CheckCircle, ChevronLeft, PieChart, Search, MessageSquare, BarChart2
 } from "lucide-react";
 import { InscriptionsManager } from "./components/InscriptionsManager";
 import { AttendanceManager } from "./components/AttendanceManager";
@@ -12,6 +12,7 @@ import { StaffAssignmentManager } from "./components/StaffAssignmentManager";
 import { TechnicalSupport } from "./components/TechnicalSupport";
 import { ActivityHistory } from "./components/ActivityHistory";
 import { SupportTicketsAdmin } from "../administrateur-technique/components/SupportTicketsAdmin";
+import { CourseProgressMonitor } from "./components/CourseProgressMonitor";
 import { StudentDemographics } from "./components/StudentDemographics";
 import { userService } from "../../../services/user";
 import { supportService } from "../../../services/support";
@@ -24,6 +25,7 @@ const navItems = [
     { id: "supervision", label: "Supervision", icon: LayoutDashboard },
     { id: "inscriptions", label: "Effectifs", icon: Users },
     { id: "charge", label: "Charge Horaire", icon: GraduationCap },
+    { id: "course_progress", label: "Progression Cours", icon: BarChart2 },
     { id: "assiduite", label: "Assiduité & Rectif.", icon: ClipboardCheck },
     { id: "notes", label: "Notes & PV", icon: FileText },
     { id: "planning", label: "Planning", icon: Calendar },
@@ -763,6 +765,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                         />
                     )}
 
+                    {activeSection === "course_progress" && <CourseProgressMonitor />}
                     {activeSection === "stats_demog" && <StudentDemographics />}
                     {activeSection === "tickets_profs" && <SupportTicketsAdmin categoryRestrict="SUPPORT_ACADEMIQUE" />}
                 </main>

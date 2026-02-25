@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, School, BookOpen, UserCheck, Plus, Loader2, X, Users, ArrowRight, Save, AlertCircle } from 'lucide-react';
+import { Search, School, BookOpen, UserCheck, Plus, Loader2, X, Users, ArrowRight, Save } from 'lucide-react';
 import { staffService } from '../../../../services/staff';
 import { courseService } from '../../../../services/course';
 
