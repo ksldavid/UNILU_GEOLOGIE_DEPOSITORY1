@@ -228,7 +228,7 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             // On vérifie si l'étudiant est proche d'AU MOINS UN des points de la faculté
             const isNearAnyPoint = FACULTY_LOCATIONS.some(loc => {
                 const distance = calculateDistance(loc.lat, loc.lng, studentLat, studentLng);
-                return distance <= 400; // Rayon de 400m
+                return distance <= 1000; // Rayon de 1000m (augmenté pour pallier l'imprécision du GPS en intérieur)
             });
 
             if (!isNearAnyPoint) {
