@@ -718,7 +718,15 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
             }
         });
 
-        // 2. Pour chaque cours, calculer les statistiques de présence/séances
+        // 2. Récupérer tout l'horaire pour savoir quels cours sont programmés
+        const academicYear = "2025-2026";
+        const allSchedules = await prisma.schedule.findMany({
+            where: { academicYear }
+        });
+
+        const scheduledCourseCodes = new Set(allSchedules.map(s => s.courseCode));
+
+        // 3. Pour chaque cours, calculer les statistiques de présence/séances
         const progressResults = await Promise.all(courses.map(async (course) => {
             const sessions = await prisma.attendanceSession.findMany({
                 where: { courseCode: course.code },
@@ -728,9 +736,15 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
                 }
             });
 
-            // On assume 2h par séance et 45h au total pour l'instant (approche sans modif DB)
+            // On assume 2h par séance et 45h au total pour l'instant
             const consumedHours = sessions.length * 2;
             const totalHours = 45;
+
+            // Récupérer les jours de cours dans l'horaire
+            const courseSchedules = allSchedules.filter(s => s.courseCode === course.code);
+            const scheduleText = courseSchedules.length > 0
+                ? courseSchedules.map(s => `${s.day} ${s.startTime}-${s.endTime}`).join(', ')
+                : 'Non programmé';
 
             const formattedSessions = sessions.map(s => {
                 const presentCount = s.records.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length;
@@ -741,7 +755,7 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
                     attendanceTaken: true,
                     hours: 2,
                     presentCount,
-                    totalCount: 40, // Valeur indicative
+                    totalCount: 40,
                     attendanceRate: 40 > 0 ? Math.round((presentCount / 40) * 100) : 0
                 };
             });
@@ -755,9 +769,10 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
                 levelColor: '#1B4332',
                 totalHours,
                 consumedHours,
-                schedule: 'Horaire variable', // Sera lié au module Planning plus tard
-                room: 'Local Campus',
+                schedule: scheduleText,
+                room: courseSchedules[0]?.room || 'Campus',
                 totalStudents: 40,
+                isScheduled: scheduledCourseCodes.has(course.code),
                 sessions: formattedSessions
             };
         }));

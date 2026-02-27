@@ -32,6 +32,7 @@ interface CourseProgress {
     room: string;
     sessions: SessionDay[];
     totalStudents: number;
+    isScheduled: boolean;
 }
 
 
@@ -419,6 +420,9 @@ export function CourseProgressMonitor() {
             return a.level.localeCompare(b.level);
         });
 
+    const scheduled = filtered.filter(c => c.isScheduled);
+    const notScheduled = filtered.filter(c => !c.isScheduled);
+
     // Stats globales
     const totalHoursAll = courses.reduce((a, c) => a + c.totalHours, 0);
     const consumedHoursAll = courses.reduce((a, c) => a + c.consumedHours, 0);
@@ -602,22 +606,45 @@ export function CourseProgressMonitor() {
                 </div>
             </div>
 
-            {/* Grille des cours */}
-            {filtered.length === 0 ? (
+            {/* Grille des cours Programmés */}
+            {scheduled.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 bg-white/60 rounded-[28px] border border-dashed border-[#1B4332]/20">
-                    <BookOpen className="w-10 h-10 text-[#1B4332]/20 mb-3" />
-                    <p className="text-[#52796F] font-medium">Aucun cours trouvé</p>
-                    <p className="text-xs text-[#52796F]/60 mt-1">Essayez un autre filtre ou terme de recherche</p>
+                    <Calendar className="w-10 h-10 text-[#1B4332]/20 mb-3" />
+                    <p className="text-[#52796F] font-medium">Aucun cours programmé dans l'horaire</p>
+                    <p className="text-xs text-[#52796F]/60 mt-1">Vérifiez les filtres ou le planning officiel</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {filtered.map(course => (
+                    {scheduled.map((course: CourseProgress) => (
                         <CourseCard
                             key={course.code}
                             course={course}
                             onClick={() => setSelectedCourse(course)}
                         />
                     ))}
+                </div>
+            )}
+
+            {/* Section : Plus de cours non programmés */}
+            {notScheduled.length > 0 && (
+                <div className="mt-12 space-y-6">
+                    <div className="flex items-center gap-4">
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#1B4332]/10 to-transparent" />
+                        <h3 className="text-xs font-black text-[#52796F] uppercase tracking-widest bg-[#F1F8F4] px-4 py-1.5 rounded-full border border-[#1B4332]/5">
+                            Plus de cours non programmés ({notScheduled.length})
+                        </h3>
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#1B4332]/10 to-transparent" />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 opacity-70 grayscale-[0.5] hover:grayscale-0 transition-all">
+                        {notScheduled.map((course: CourseProgress) => (
+                            <CourseCard
+                                key={course.code}
+                                course={course}
+                                onClick={() => setSelectedCourse(course)}
+                            />
+                        ))}
+                    </div>
                 </div>
             )}
 
