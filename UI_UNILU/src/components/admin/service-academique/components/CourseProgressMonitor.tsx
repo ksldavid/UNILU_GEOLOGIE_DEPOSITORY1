@@ -543,12 +543,12 @@ export function CourseProgressMonitor() {
                 {/* Filtres par Statut (Nouveau) */}
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-[#1B4332]/5">
                     {[
-                        { id: 'all', label: 'Tous', count: courses.length, color: 'text-gray-600', bg: 'bg-gray-100', active: 'bg-gray-900 text-white' },
-                        { id: 'À surveiller', label: 'À surveiller', count: courses.filter(c => (c.consumedHours / c.totalHours * 100) < 21).length, color: 'text-red-600', bg: 'bg-red-50', active: 'bg-red-600 text-white' },
-                        { id: 'En cours', label: 'En cours', count: courses.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 21 && p <= 50; }).length, color: 'text-amber-600', bg: 'bg-amber-50', active: 'bg-amber-600 text-white' },
-                        { id: 'Avancé', label: 'Avancé', count: courses.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 51 && p <= 85; }).length, color: 'text-blue-600', bg: 'bg-blue-50', active: 'bg-blue-600 text-white' },
-                        { id: 'Finalisation', label: 'Finalisation', count: courses.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 86 && p <= 99; }).length, color: 'text-teal-600', bg: 'bg-teal-50', active: 'bg-teal-600 text-white' },
-                        { id: 'Terminé', label: 'Terminé', count: courses.filter(c => (c.consumedHours / c.totalHours * 100) >= 100).length, color: 'text-emerald-600', bg: 'bg-emerald-50', active: 'bg-emerald-600 text-white' },
+                        { id: 'all', label: 'Tous', count: courses.filter(c => c.isScheduled).length, color: 'text-gray-600', bg: 'bg-gray-100', active: 'bg-gray-900 text-white' },
+                        { id: 'À surveiller', label: 'À surveiller', count: courses.filter(c => c.isScheduled && (c.consumedHours / c.totalHours * 100) < 21).length, color: 'text-red-600', bg: 'bg-red-50', active: 'bg-red-600 text-white' },
+                        { id: 'En cours', label: 'En cours', count: courses.filter(c => { if (!c.isScheduled) return false; const p = c.consumedHours / c.totalHours * 100; return p >= 21 && p <= 50; }).length, color: 'text-amber-600', bg: 'bg-amber-50', active: 'bg-amber-600 text-white' },
+                        { id: 'Avancé', label: 'Avancé', count: courses.filter(c => { if (!c.isScheduled) return false; const p = c.consumedHours / c.totalHours * 100; return p >= 51 && p <= 85; }).length, color: 'text-blue-600', bg: 'bg-blue-50', active: 'bg-blue-600 text-white' },
+                        { id: 'Finalisation', label: 'Finalisation', count: courses.filter(c => { if (!c.isScheduled) return false; const p = c.consumedHours / c.totalHours * 100; return p >= 86 && p <= 99; }).length, color: 'text-teal-600', bg: 'bg-teal-50', active: 'bg-teal-600 text-white' },
+                        { id: 'Terminé', label: 'Terminé', count: courses.filter(c => c.isScheduled && (c.consumedHours / c.totalHours * 100) >= 100).length, color: 'text-emerald-600', bg: 'bg-emerald-50', active: 'bg-emerald-600 text-white' },
                     ].map(status => (
                         <button
                             key={status.id}
