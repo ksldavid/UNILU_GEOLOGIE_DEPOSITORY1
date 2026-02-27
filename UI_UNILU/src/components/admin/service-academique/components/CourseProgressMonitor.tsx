@@ -507,15 +507,28 @@ export function CourseProgressMonitor() {
     const [selectedLevel, setSelectedLevel] = useState('Tous');
     const [selectedCourse, setSelectedCourse] = useState<CourseProgress | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
     const [sortBy, setSortBy] = useState<'progress' | 'name' | 'level'>('progress');
 
     const filtered = MOCK_COURSES
-        .filter(c => selectedLevel === 'Tous' || c.level === selectedLevel)
-        .filter(c =>
-            c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.professor.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        .filter(c => {
+            const matchesLevel = selectedLevel === 'Tous' || c.level === selectedLevel;
+            const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.professor.toLowerCase().includes(searchTerm.toLowerCase());
+
+            let matchesStatus = true;
+            if (statusFilter !== 'all') {
+                const pct = (c.consumedHours / c.totalHours) * 100;
+                if (statusFilter === 'À surveiller') matchesStatus = pct < 21;
+                else if (statusFilter === 'En cours') matchesStatus = pct >= 21 && pct <= 50;
+                else if (statusFilter === 'Avancé') matchesStatus = pct >= 51 && pct <= 85;
+                else if (statusFilter === 'Finalisation') matchesStatus = pct >= 86 && pct <= 99;
+                else if (statusFilter === 'Terminé') matchesStatus = pct >= 100;
+            }
+
+            return matchesLevel && matchesSearch && matchesStatus;
+        })
         .sort((a, b) => {
             if (sortBy === 'progress') {
                 const pctA = a.consumedHours / a.totalHours;
@@ -584,48 +597,76 @@ export function CourseProgressMonitor() {
                 </div>
             </div>
 
-            {/* Filtres */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-[24px] border border-[#1B4332]/10 p-4 flex flex-wrap items-center gap-3">
-                {/* Recherche */}
-                <div className="flex-1 min-w-[220px] flex items-center gap-2 bg-[#F1F8F4] rounded-[14px] px-3 py-2.5 border border-[#1B4332]/5">
-                    <BookOpen className="w-4 h-4 text-[#52796F]" />
-                    <input
-                        type="text"
-                        placeholder="Rechercher cours, code, prof..."
-                        className="bg-transparent text-sm outline-none w-full text-[#1B4332] placeholder:text-[#52796F]/60"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
+            {/* Filtres Principaux */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-[24px] border border-[#1B4332]/10 p-4 space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Recherche */}
+                    <div className="flex-1 min-w-[220px] flex items-center gap-2 bg-[#F1F8F4] rounded-[14px] px-3 py-2.5 border border-[#1B4332]/5">
+                        <BookOpen className="w-4 h-4 text-[#52796F]" />
+                        <input
+                            type="text"
+                            placeholder="Rechercher cours, code, prof..."
+                            className="bg-transparent text-sm outline-none w-full text-[#1B4332] placeholder:text-[#52796F]/60"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Filtre niveau */}
+                    <div className="flex items-center gap-1 bg-[#F1F8F4] rounded-[14px] p-1 border border-[#1B4332]/5">
+                        {LEVELS.map(level => (
+                            <button
+                                key={level}
+                                onClick={() => setSelectedLevel(level)}
+                                className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all ${selectedLevel === level
+                                    ? 'bg-[#1B4332] text-white shadow-sm'
+                                    : 'text-[#52796F] hover:text-[#1B4332]'
+                                    }`}
+                            >
+                                {level}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Tri */}
+                    <div className="flex items-center gap-2">
+                        <Filter className="w-4 h-4 text-[#52796F]" />
+                        <select
+                            value={sortBy}
+                            onChange={e => setSortBy(e.target.value as any)}
+                            className="bg-[#F1F8F4] border border-[#1B4332]/5 rounded-[12px] px-3 py-2 text-xs text-[#1B4332] outline-none font-bold"
+                        >
+                            <option value="progress">Trier : Avancement ↓</option>
+                            <option value="name">Trier : Nom A–Z</option>
+                            <option value="level">Trier : Niveau</option>
+                        </select>
+                    </div>
                 </div>
 
-                {/* Filtre niveau */}
-                <div className="flex items-center gap-1 bg-[#F1F8F4] rounded-[14px] p-1 border border-[#1B4332]/5">
-                    {LEVELS.map(level => (
+                {/* Filtres par Statut (Nouveau) */}
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-[#1B4332]/5">
+                    {[
+                        { id: 'all', label: 'Tous', count: MOCK_COURSES.length, color: 'text-gray-600', bg: 'bg-gray-100', active: 'bg-gray-900 text-white' },
+                        { id: 'À surveiller', label: 'À surveiller', count: MOCK_COURSES.filter(c => (c.consumedHours / c.totalHours * 100) < 21).length, color: 'text-red-600', bg: 'bg-red-50', active: 'bg-red-600 text-white' },
+                        { id: 'En cours', label: 'En cours', count: MOCK_COURSES.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 21 && p <= 50; }).length, color: 'text-amber-600', bg: 'bg-amber-50', active: 'bg-amber-600 text-white' },
+                        { id: 'Avancé', label: 'Avancé', count: MOCK_COURSES.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 51 && p <= 85; }).length, color: 'text-blue-600', bg: 'bg-blue-50', active: 'bg-blue-600 text-white' },
+                        { id: 'Finalisation', label: 'Finalisation', count: MOCK_COURSES.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 86 && p <= 99; }).length, color: 'text-teal-600', bg: 'bg-teal-50', active: 'bg-teal-600 text-white' },
+                        { id: 'Terminé', label: 'Terminé', count: MOCK_COURSES.filter(c => (c.consumedHours / c.totalHours * 100) >= 100).length, color: 'text-emerald-600', bg: 'bg-emerald-50', active: 'bg-emerald-600 text-white' },
+                    ].map(status => (
                         <button
-                            key={level}
-                            onClick={() => setSelectedLevel(level)}
-                            className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all ${selectedLevel === level
-                                ? 'bg-[#1B4332] text-white shadow-sm'
-                                : 'text-[#52796F] hover:text-[#1B4332]'
+                            key={status.id}
+                            onClick={() => setStatusFilter(status.id)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all border border-transparent hover:scale-[1.02] active:scale-[0.98] ${statusFilter === status.id
+                                ? status.active
+                                : `${status.bg} ${status.color} hover:border-current/20`
                                 }`}
                         >
-                            {level}
+                            <span>{status.label}</span>
+                            <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${statusFilter === status.id ? 'bg-white/20' : 'bg-white'}`}>
+                                {status.count}
+                            </span>
                         </button>
                     ))}
-                </div>
-
-                {/* Tri */}
-                <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-[#52796F]" />
-                    <select
-                        value={sortBy}
-                        onChange={e => setSortBy(e.target.value as any)}
-                        className="bg-[#F1F8F4] border border-[#1B4332]/5 rounded-[12px] px-3 py-2 text-xs text-[#1B4332] outline-none font-bold"
-                    >
-                        <option value="progress">Trier : Avancement ↓</option>
-                        <option value="name">Trier : Nom A–Z</option>
-                        <option value="level">Trier : Niveau</option>
-                    </select>
                 </div>
             </div>
 
