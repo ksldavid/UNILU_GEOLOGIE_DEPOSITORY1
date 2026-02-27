@@ -420,7 +420,7 @@ export function CourseProgressMonitor() {
             return a.level.localeCompare(b.level);
         });
 
-    const scheduled = filtered.filter(c => c.isScheduled);
+    const activeCourses = filtered.filter(c => c.isScheduled);
     const notScheduled = filtered.filter(c => !c.isScheduled);
 
     // Stats globales
@@ -572,7 +572,9 @@ export function CourseProgressMonitor() {
                 {academicLevels.map(lvl => {
                     const lvlCode = lvl.code.toUpperCase();
                     const lvlCourses = courses.filter(c => c.level === lvlCode);
+                    const activeInLvl = lvlCourses.filter(c => c.isScheduled);
                     if (lvlCourses.length === 0) return null;
+
                     const lvlPct = Math.round(lvlCourses.reduce((a, c) => a + c.consumedHours / c.totalHours, 0) / (lvlCourses.length || 1) * 100);
                     return (
                         <button
@@ -588,7 +590,10 @@ export function CourseProgressMonitor() {
                                 <div className="h-full bg-gradient-to-r from-[#52B788] to-[#74C69D] rounded-full"
                                     style={{ width: `${lvlPct}%` }} />
                             </div>
-                            <p className="text-[9px] text-[#52796F] font-bold mt-1.5 uppercase tracking-tighter">{lvlCourses.length} cours actifs</p>
+                            <div className="flex items-center justify-between mt-1.5 ">
+                                <p className="text-[9px] text-[#52796F] font-bold uppercase tracking-tighter">{activeInLvl.length} Actifs</p>
+                                <p className="text-[8px] text-[#52796F]/50 uppercase">{lvlCourses.length} Total</p>
+                            </div>
                         </button>
                     );
                 })}
@@ -597,7 +602,7 @@ export function CourseProgressMonitor() {
             {/* Header liste */}
             <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-[#52796F]">
-                    {filtered.length} cours programmé{filtered.length > 1 ? 's' : ''}
+                    {activeCourses.length} Cours Actifs (sur Planning)
                     {selectedLevel !== 'Tous' && <span className="ml-2 text-[#1B4332]">— {selectedLevel}</span>}
                 </h3>
                 <div className="flex items-center gap-2 text-[10px] text-[#52796F]">
@@ -606,16 +611,16 @@ export function CourseProgressMonitor() {
                 </div>
             </div>
 
-            {/* Grille des cours Programmés */}
-            {scheduled.length === 0 ? (
+            {/* Grille des cours Actifs */}
+            {activeCourses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 bg-white/60 rounded-[28px] border border-dashed border-[#1B4332]/20">
                     <Calendar className="w-10 h-10 text-[#1B4332]/20 mb-3" />
-                    <p className="text-[#52796F] font-medium">Aucun cours programmé dans l'horaire</p>
-                    <p className="text-xs text-[#52796F]/60 mt-1">Vérifiez les filtres ou le planning officiel</p>
+                    <p className="text-[#52796F] font-medium">Aucun cours actif détecté dans l'horaire</p>
+                    <p className="text-xs text-[#52796F]/60 mt-1">Seuls les cours présents dans le module Planning sont affichés ici.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {scheduled.map((course: CourseProgress) => (
+                    {activeCourses.map((course: CourseProgress) => (
                         <CourseCard
                             key={course.code}
                             course={course}
