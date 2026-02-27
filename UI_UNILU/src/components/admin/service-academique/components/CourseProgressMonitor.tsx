@@ -181,15 +181,18 @@ const LEVELS = ['Tous', 'B1', 'B2', 'B3', 'M1 Hydro.'];
 
 // ─── HELPERS ───────────────────────────────────────────────────────────────────
 function getProgressColor(pct: number) {
-    if (pct >= 80) return { bar: 'from-red-500 to-orange-400', text: 'text-red-600', bg: 'bg-red-50' };
-    if (pct >= 50) return { bar: 'from-amber-400 to-yellow-300', text: 'text-amber-600', bg: 'bg-amber-50' };
-    return { bar: 'from-[#52B788] to-[#74C69D]', text: 'text-[#1B4332]', bg: 'bg-[#D8F3DC]' };
+    if (pct >= 85) return { bar: 'from-emerald-500 to-teal-400', text: 'text-emerald-700', bg: 'bg-emerald-50' };
+    if (pct >= 50) return { bar: 'from-blue-500 to-indigo-400', text: 'text-blue-700', bg: 'bg-blue-50' };
+    if (pct >= 20) return { bar: 'from-amber-400 to-yellow-300', text: 'text-amber-600', bg: 'bg-amber-50' };
+    return { bar: 'from-red-500 to-orange-400', text: 'text-red-600', bg: 'bg-red-50' };
 }
 
 function getStatusBadge(pct: number) {
-    if (pct >= 80) return { label: 'Critique', color: 'bg-red-100 text-red-700 border-red-200' };
-    if (pct >= 50) return { label: 'En cours', color: 'bg-amber-100 text-amber-700 border-amber-200' };
-    return { label: 'Normal', color: 'bg-[#D8F3DC] text-[#1B4332] border-[#95D5B2]' };
+    if (pct >= 100) return { label: 'Terminé', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    if (pct >= 85) return { label: 'Finalisation', color: 'bg-teal-100 text-teal-700 border-teal-200' };
+    if (pct >= 50) return { label: 'Avancé', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+    if (pct >= 20) return { label: 'En cours', color: 'bg-amber-100 text-amber-700 border-amber-200' };
+    return { label: 'À surveiller', color: 'bg-red-100 text-red-700 border-red-200' };
 }
 
 // ─── COMPOSANT DÉTAIL D'UNE SÉANCE ─────────────────────────────────────────────
