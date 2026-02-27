@@ -34,152 +34,7 @@ interface CourseProgress {
     totalStudents: number;
 }
 
-// ─── DONNÉES FICTIVES ───────────────────────────────────────────────────────────
-const MOCK_COURSES: CourseProgress[] = [
-    {
-        code: 'GEOL101A',
-        name: 'Introduction à la Pétrologie',
-        professor: 'Prof. Jean-Baptiste Mukendi',
-        professeurTitle: 'Docteur en Sciences Géologiques',
-        level: 'B1',
-        levelColor: '#2D6A4F',
-        totalHours: 30,
-        consumedHours: 18,
-        schedule: 'Lundi 08h00 – 10h00',
-        room: 'Salle A-04',
-        totalStudents: 42,
-        sessions: [
-            { date: '2025-10-06', label: 'Lundi 06 Oct.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 40, totalCount: 42, attendanceRate: 95 },
-            { date: '2025-10-13', label: 'Lundi 13 Oct.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 37, totalCount: 42, attendanceRate: 88 },
-            { date: '2025-10-20', label: 'Lundi 20 Oct.', wasScheduled: true, attendanceTaken: false, hours: 2, presentCount: 0, totalCount: 42, attendanceRate: 0 },
-            { date: '2025-10-27', label: 'Lundi 27 Oct.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 39, totalCount: 42, attendanceRate: 93 },
-            { date: '2025-11-03', label: 'Lundi 03 Nov.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 41, totalCount: 42, attendanceRate: 98 },
-            { date: '2025-11-10', label: 'Lundi 10 Nov.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 35, totalCount: 42, attendanceRate: 83 },
-            { date: '2025-11-17', label: 'Lundi 17 Nov.', wasScheduled: true, attendanceTaken: false, hours: 2, presentCount: 0, totalCount: 42, attendanceRate: 0 },
-            { date: '2025-11-24', label: 'Lundi 24 Nov.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 40, totalCount: 42, attendanceRate: 95 },
-            { date: '2025-12-01', label: 'Lundi 01 Déc.', wasScheduled: true, attendanceTaken: false, hours: 2, presentCount: 0, totalCount: 42, attendanceRate: 0 },
-        ],
-    },
-    {
-        code: 'GEOL102A',
-        name: 'Minéralogie descriptive',
-        professor: 'Prof. Marie-Claire Kabila',
-        professeurTitle: 'Maître de Conférences',
-        level: 'B1',
-        levelColor: '#2D6A4F',
-        totalHours: 45,
-        consumedHours: 36,
-        schedule: 'Mercredi 10h00 – 13h00',
-        room: 'Amphi B',
-        totalStudents: 42,
-        sessions: [
-            { date: '2025-10-08', label: 'Mer. 08 Oct.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 42, totalCount: 42, attendanceRate: 100 },
-            { date: '2025-10-15', label: 'Mer. 15 Oct.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 40, totalCount: 42, attendanceRate: 95 },
-            { date: '2025-10-22', label: 'Mer. 22 Oct.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 39, totalCount: 42, attendanceRate: 93 },
-            { date: '2025-10-29', label: 'Mer. 29 Oct.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 41, totalCount: 42, attendanceRate: 98 },
-            { date: '2025-11-05', label: 'Mer. 05 Nov.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 38, totalCount: 42, attendanceRate: 90 },
-            { date: '2025-11-12', label: 'Mer. 12 Nov.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 40, totalCount: 42, attendanceRate: 95 },
-            { date: '2025-11-19', label: 'Mer. 19 Nov.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 42, totalCount: 42, attendanceRate: 100 },
-            { date: '2025-11-26', label: 'Mer. 26 Nov.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 37, totalCount: 42, attendanceRate: 88 },
-            { date: '2025-12-03', label: 'Mer. 03 Déc.', wasScheduled: true, attendanceTaken: false, hours: 3, presentCount: 0, totalCount: 42, attendanceRate: 0 },
-        ],
-    },
-    {
-        code: 'GEOL103B',
-        name: 'Paléontologie',
-        professor: 'Prof. Augustin Ilunga',
-        professeurTitle: 'Professeur Ordinaire',
-        level: 'B1',
-        levelColor: '#2D6A4F',
-        totalHours: 30,
-        consumedHours: 6,
-        schedule: 'Vendredi 14h00 – 16h00',
-        room: 'Salle C-12',
-        totalStudents: 42,
-        sessions: [
-            { date: '2025-10-10', label: 'Ven. 10 Oct.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 38, totalCount: 42, attendanceRate: 90 },
-            { date: '2025-10-17', label: 'Ven. 17 Oct.', wasScheduled: true, attendanceTaken: false, hours: 2, presentCount: 0, totalCount: 42, attendanceRate: 0 },
-            { date: '2025-10-24', label: 'Ven. 24 Oct.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 35, totalCount: 42, attendanceRate: 83 },
-            { date: '2025-10-31', label: 'Ven. 31 Oct.', wasScheduled: true, attendanceTaken: false, hours: 2, presentCount: 0, totalCount: 42, attendanceRate: 0 },
-            { date: '2025-11-07', label: 'Ven. 07 Nov.', wasScheduled: true, attendanceTaken: false, hours: 2, presentCount: 0, totalCount: 42, attendanceRate: 0 },
-            { date: '2025-11-14', label: 'Ven. 14 Nov.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 36, totalCount: 42, attendanceRate: 86 },
-        ],
-    },
-    {
-        code: 'GEOL201A',
-        name: 'Géologie Structurale',
-        professor: 'Prof. Emmanuel Kasongo',
-        professeurTitle: 'Chef de Département',
-        level: 'B2',
-        levelColor: '#52B788',
-        totalHours: 45,
-        consumedHours: 27,
-        schedule: 'Mardi 08h00 – 11h00',
-        room: 'Amphi Principal',
-        totalStudents: 38,
-        sessions: [
-            { date: '2025-10-07', label: 'Mar. 07 Oct.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 36, totalCount: 38, attendanceRate: 95 },
-            { date: '2025-10-14', label: 'Mar. 14 Oct.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 35, totalCount: 38, attendanceRate: 92 },
-            { date: '2025-10-21', label: 'Mar. 21 Oct.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 38, totalCount: 38, attendanceRate: 100 },
-            { date: '2025-10-28', label: 'Mar. 28 Oct.', wasScheduled: true, attendanceTaken: false, hours: 3, presentCount: 0, totalCount: 38, attendanceRate: 0 },
-            { date: '2025-11-04', label: 'Mar. 04 Nov.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 34, totalCount: 38, attendanceRate: 89 },
-            { date: '2025-11-11', label: 'Mar. 11 Nov.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 37, totalCount: 38, attendanceRate: 97 },
-            { date: '2025-11-18', label: 'Mar. 18 Nov.', wasScheduled: true, attendanceTaken: true, hours: 3, presentCount: 33, totalCount: 38, attendanceRate: 87 },
-            { date: '2025-11-25', label: 'Mar. 25 Nov.', wasScheduled: true, attendanceTaken: false, hours: 3, presentCount: 0, totalCount: 38, attendanceRate: 0 },
-        ],
-    },
-    {
-        code: 'GEOL301A',
-        name: 'Géochimie',
-        professor: 'Prof. Véronique Mwamba',
-        professeurTitle: 'Docteur en Géochimie Minière',
-        level: 'B3',
-        levelColor: '#95D5B2',
-        totalHours: 30,
-        consumedHours: 24,
-        schedule: 'Jeudi 10h00 – 12h00',
-        room: 'Labo Géochimie',
-        totalStudents: 29,
-        sessions: [
-            { date: '2025-10-09', label: 'Jeu. 09 Oct.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 28, totalCount: 29, attendanceRate: 97 },
-            { date: '2025-10-16', label: 'Jeu. 16 Oct.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 27, totalCount: 29, attendanceRate: 93 },
-            { date: '2025-10-23', label: 'Jeu. 23 Oct.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 29, totalCount: 29, attendanceRate: 100 },
-            { date: '2025-10-30', label: 'Jeu. 30 Oct.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 26, totalCount: 29, attendanceRate: 90 },
-            { date: '2025-11-06', label: 'Jeu. 06 Nov.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 28, totalCount: 29, attendanceRate: 97 },
-            { date: '2025-11-13', label: 'Jeu. 13 Nov.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 25, totalCount: 29, attendanceRate: 86 },
-            { date: '2025-11-20', label: 'Jeu. 20 Nov.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 29, totalCount: 29, attendanceRate: 100 },
-            { date: '2025-11-27', label: 'Jeu. 27 Nov.', wasScheduled: true, attendanceTaken: true, hours: 2, presentCount: 27, totalCount: 29, attendanceRate: 93 },
-            { date: '2025-12-04', label: 'Jeu. 04 Déc.', wasScheduled: true, attendanceTaken: false, hours: 2, presentCount: 0, totalCount: 29, attendanceRate: 0 },
-        ],
-    },
-    {
-        code: 'M1HYDRO01',
-        name: 'Hydrogéologie Appliquée',
-        professor: 'Prof. Pierre Nkulu',
-        professeurTitle: 'Professeur Associé - PhD',
-        level: 'M1 Hydro.',
-        levelColor: '#1B4332',
-        totalHours: 60,
-        consumedHours: 40,
-        schedule: 'Samedi 08h00 – 12h00',
-        room: 'Salle Masters',
-        totalStudents: 18,
-        sessions: [
-            { date: '2025-10-04', label: 'Sam. 04 Oct.', wasScheduled: true, attendanceTaken: true, hours: 4, presentCount: 18, totalCount: 18, attendanceRate: 100 },
-            { date: '2025-10-11', label: 'Sam. 11 Oct.', wasScheduled: true, attendanceTaken: true, hours: 4, presentCount: 17, totalCount: 18, attendanceRate: 94 },
-            { date: '2025-10-18', label: 'Sam. 18 Oct.', wasScheduled: true, attendanceTaken: true, hours: 4, presentCount: 16, totalCount: 18, attendanceRate: 89 },
-            { date: '2025-10-25', label: 'Sam. 25 Oct.', wasScheduled: true, attendanceTaken: false, hours: 4, presentCount: 0, totalCount: 18, attendanceRate: 0 },
-            { date: '2025-11-01', label: 'Sam. 01 Nov.', wasScheduled: true, attendanceTaken: true, hours: 4, presentCount: 18, totalCount: 18, attendanceRate: 100 },
-            { date: '2025-11-08', label: 'Sam. 08 Nov.', wasScheduled: true, attendanceTaken: true, hours: 4, presentCount: 15, totalCount: 18, attendanceRate: 83 },
-            { date: '2025-11-15', label: 'Sam. 15 Nov.', wasScheduled: true, attendanceTaken: true, hours: 4, presentCount: 18, totalCount: 18, attendanceRate: 100 },
-            { date: '2025-11-22', label: 'Sam. 22 Nov.', wasScheduled: true, attendanceTaken: true, hours: 4, presentCount: 17, totalCount: 18, attendanceRate: 94 },
-            { date: '2025-11-29', label: 'Sam. 29 Nov.', wasScheduled: true, attendanceTaken: false, hours: 4, presentCount: 0, totalCount: 18, attendanceRate: 0 },
-            { date: '2025-12-06', label: 'Sam. 06 Déc.', wasScheduled: true, attendanceTaken: false, hours: 4, presentCount: 0, totalCount: 18, attendanceRate: 0 },
-        ],
-    },
-];
 
-const LEVELS = ['Tous', 'B1', 'B2', 'B3', 'M1 Hydro.'];
 
 // ─── HELPERS ───────────────────────────────────────────────────────────────────
 function getProgressColor(pct: number) {
@@ -640,28 +495,30 @@ export function CourseProgressMonitor() {
                     </div>
 
                     {/* Filtre niveau */}
-                    <div className="flex items-center gap-1 bg-[#F1F8F4] rounded-[14px] p-1 border border-[#1B4332]/5">
-                        <button
-                            onClick={() => setSelectedLevel('Tous')}
-                            className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all ${selectedLevel === 'Tous'
-                                ? 'bg-[#1B4332] text-white'
-                                : 'text-[#52796F]'
-                                }`}
-                        >
-                            Tous
-                        </button>
-                        {academicLevels.map(level => (
+                    <div className="flex-1 overflow-x-auto scrollbar-hide">
+                        <div className="flex items-center gap-1 bg-[#F1F8F4] rounded-[14px] p-1 border border-[#1B4332]/5 w-max min-w-full">
                             <button
-                                key={level.id}
-                                onClick={() => setSelectedLevel(level.code.toUpperCase())}
-                                className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all ${selectedLevel === level.code.toUpperCase()
-                                    ? 'bg-[#1B4332] text-white shadow-sm'
-                                    : 'text-[#52796F] hover:text-[#1B4332]'
+                                onClick={() => setSelectedLevel('Tous')}
+                                className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all whitespace-nowrap ${selectedLevel === 'Tous'
+                                    ? 'bg-[#1B4332] text-white'
+                                    : 'text-[#52796F]'
                                     }`}
                             >
-                                {level.code.toUpperCase()}
+                                Tous
                             </button>
-                        ))}
+                            {academicLevels.map(level => (
+                                <button
+                                    key={level.id}
+                                    onClick={() => setSelectedLevel(level.code.toUpperCase())}
+                                    className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all whitespace-nowrap ${selectedLevel === level.code.toUpperCase()
+                                        ? 'bg-[#1B4332] text-white shadow-sm'
+                                        : 'text-[#52796F] hover:text-[#1B4332]'
+                                        }`}
+                                >
+                                    {level.code.toUpperCase()}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Tri */}
@@ -706,27 +563,28 @@ export function CourseProgressMonitor() {
                 </div>
             </div>
 
-            {/* Résumé par niveau */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {['B1', 'B2', 'B3', 'M1 Hydro.'].map(lvl => {
-                    const lvlCourses = MOCK_COURSES.filter(c => c.level === lvl);
+            {/* Résumé par niveau dynamique */}
+            <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide">
+                {academicLevels.map(lvl => {
+                    const lvlCode = lvl.code.toUpperCase();
+                    const lvlCourses = courses.filter(c => c.level === lvlCode);
                     if (lvlCourses.length === 0) return null;
-                    const lvlPct = Math.round(lvlCourses.reduce((a, c) => a + c.consumedHours / c.totalHours, 0) / lvlCourses.length * 100);
+                    const lvlPct = Math.round(lvlCourses.reduce((a, c) => a + c.consumedHours / c.totalHours, 0) / (lvlCourses.length || 1) * 100);
                     return (
                         <button
-                            key={lvl}
-                            onClick={() => setSelectedLevel(selectedLevel === lvl ? 'Tous' : lvl)}
-                            className={`bg-white/80 rounded-[20px] p-4 border text-left transition-all hover:shadow-md ${selectedLevel === lvl ? 'border-[#1B4332]/40 shadow-md' : 'border-[#1B4332]/10'}`}
+                            key={lvlCode}
+                            onClick={() => setSelectedLevel(selectedLevel === lvlCode ? 'Tous' : lvlCode)}
+                            className={`min-w-[160px] flex-shrink-0 bg-white/80 rounded-[20px] p-4 border text-left transition-all hover:shadow-md ${selectedLevel === lvlCode ? 'border-[#1B4332]/40 shadow-md' : 'border-[#1B4332]/10'}`}
                         >
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-black text-[#1B4332] uppercase">{lvl}</span>
+                                <span className="text-[10px] font-black text-[#1B4332] uppercase tracking-wider">{lvlCode}</span>
                                 <span className="text-sm font-black text-[#1B4332]">{lvlPct}%</span>
                             </div>
                             <div className="w-full bg-[#F1F8F4] rounded-full h-1.5 overflow-hidden">
                                 <div className="h-full bg-gradient-to-r from-[#52B788] to-[#74C69D] rounded-full"
                                     style={{ width: `${lvlPct}%` }} />
                             </div>
-                            <p className="text-[10px] text-[#52796F] mt-1.5">{lvlCourses.length} cours · clic pour filtrer</p>
+                            <p className="text-[9px] text-[#52796F] font-bold mt-1.5 uppercase tracking-tighter">{lvlCourses.length} cours actifs</p>
                         </button>
                     );
                 })}
