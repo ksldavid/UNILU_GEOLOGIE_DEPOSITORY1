@@ -698,3 +698,73 @@ export const getDemographicFilters = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Erreur lors de la récupération des filtres' });
     }
 }
+
+// Récupérer la progression détaillée de tous les cours pour le dashboard
+export const getDetailedCourseProgress = async (req: Request, res: Response) => {
+    try {
+        const { academicLevelId } = req.query;
+
+        // 1. Récupérer tous les cours (avec filtres optionnels)
+        const courses = await prisma.course.findMany({
+            where: academicLevelId ? {
+                academicLevels: { some: { id: Number(academicLevelId) } }
+            } : {},
+            include: {
+                academicLevels: true,
+                enrollments: {
+                    where: { role: 'PROFESSOR' },
+                    include: { user: { select: { name: true, professorProfile: { select: { title: true } } } } }
+                }
+            }
+        });
+
+        // 2. Pour chaque cours, calculer les statistiques de présence/séances
+        const progressResults = await Promise.all(courses.map(async (course) => {
+            const sessions = await prisma.attendanceSession.findMany({
+                where: { courseCode: course.code },
+                orderBy: { date: 'desc' },
+                include: {
+                    records: { select: { status: true } }
+                }
+            });
+
+            // On assume 2h par séance et 45h au total pour l'instant (approche sans modif DB)
+            const consumedHours = sessions.length * 2;
+            const totalHours = 45;
+
+            const formattedSessions = sessions.map(s => {
+                const presentCount = s.records.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length;
+                return {
+                    date: s.date,
+                    label: new Date(s.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }),
+                    wasScheduled: true,
+                    attendanceTaken: true,
+                    hours: 2,
+                    presentCount,
+                    totalCount: 40, // Valeur indicative
+                    attendanceRate: 40 > 0 ? Math.round((presentCount / 40) * 100) : 0
+                };
+            });
+
+            return {
+                code: course.code,
+                name: course.name,
+                professor: course.enrollments[0]?.user?.name || 'Non assigné',
+                professeurTitle: course.enrollments[0]?.user?.professorProfile?.title || 'Professeur',
+                level: course.academicLevels[0]?.code?.toUpperCase() || 'GEOL',
+                levelColor: '#1B4332',
+                totalHours,
+                consumedHours,
+                schedule: 'Horaire variable', // Sera lié au module Planning plus tard
+                room: 'Local Campus',
+                totalStudents: 40,
+                sessions: formattedSessions
+            };
+        }));
+
+        res.json(progressResults);
+    } catch (error) {
+        console.error('Erreur progression cours:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}

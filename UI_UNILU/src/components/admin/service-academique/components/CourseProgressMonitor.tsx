@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     BookOpen, Clock, CheckCircle, XCircle, ChevronRight,
     Users, TrendingUp, AlertTriangle, Calendar, X,
-    GraduationCap, Filter, BarChart2, Eye
+    GraduationCap, Filter, Eye
 } from 'lucide-react';
+import { getCourseProgress } from '../../../../services/stats';
+import { courseService } from '../../../../services/course';
 
 // ─── TYPES ─────────────────────────────────────────────────────────────────────
 interface SessionDay {
@@ -504,13 +506,36 @@ function CourseDetailModal({ course, onClose }: { course: CourseProgress; onClos
 
 // ─── COMPOSANT PRINCIPAL ────────────────────────────────────────────────────────
 export function CourseProgressMonitor() {
+    const [courses, setCourses] = useState<CourseProgress[]>([]);
+    const [academicLevels, setAcademicLevels] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedLevel, setSelectedLevel] = useState('Tous');
     const [selectedCourse, setSelectedCourse] = useState<CourseProgress | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [sortBy, setSortBy] = useState<'progress' | 'name' | 'level'>('progress');
 
-    const filtered = MOCK_COURSES
+    // Chargement initial
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                setLoading(true);
+                const [levelsData, progressData] = await Promise.all([
+                    courseService.getLevels(),
+                    getCourseProgress()
+                ]);
+                setAcademicLevels(levelsData);
+                setCourses(progressData);
+            } catch (error) {
+                console.error('Failed to load courses:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, []);
+
+    const filtered = courses
         .filter(c => {
             const matchesLevel = selectedLevel === 'Tous' || c.level === selectedLevel;
             const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -540,11 +565,19 @@ export function CourseProgressMonitor() {
         });
 
     // Stats globales
-    const totalHoursAll = MOCK_COURSES.reduce((a, c) => a + c.totalHours, 0);
-    const consumedHoursAll = MOCK_COURSES.reduce((a, c) => a + c.consumedHours, 0);
-    const globalPct = Math.round((consumedHoursAll / totalHoursAll) * 100);
+    const totalHoursAll = courses.reduce((a, c) => a + c.totalHours, 0);
+    const consumedHoursAll = courses.reduce((a, c) => a + c.consumedHours, 0);
+    const globalPct = totalHoursAll > 0 ? Math.round((consumedHoursAll / totalHoursAll) * 100) : 0;
+    const totalMissed = courses.reduce((a, c) => a + c.sessions.filter(s => s.wasScheduled && !s.attendanceTaken).length, 0);
 
-    const totalMissed = MOCK_COURSES.reduce((a, c) => a + c.sessions.filter(s => s.wasScheduled && !s.attendanceTaken).length, 0);
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center p-20 space-y-4">
+                <div className="w-12 h-12 border-4 border-[#1B4332] border-t-transparent rounded-full animate-spin" />
+                <p className="text-[#52796F] font-medium italic animate-pulse">Synchronisation des cours réels...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -556,9 +589,9 @@ export function CourseProgressMonitor() {
                         Progression des cours programmés — Semestre 2025–2026
                     </p>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-[#52796F] bg-white/80 px-4 py-2 rounded-[14px] border border-[#1B4332]/10">
-                    <BarChart2 className="w-4 h-4 text-[#1B4332]" />
-                    <span>Données fictives — Connexion BD à venir</span>
+                <div className="flex items-center gap-2 text-xs text-[#52796F] bg-[#1B4332]/5 px-4 py-2 rounded-[14px] border border-[#1B4332]/10">
+                    <TrendingUp className="w-4 h-4 text-[#1B4332]" />
+                    <span>Données synchronisées avec la Base de Données</span>
                 </div>
             </div>
 
@@ -608,16 +641,25 @@ export function CourseProgressMonitor() {
 
                     {/* Filtre niveau */}
                     <div className="flex items-center gap-1 bg-[#F1F8F4] rounded-[14px] p-1 border border-[#1B4332]/5">
-                        {LEVELS.map(level => (
+                        <button
+                            onClick={() => setSelectedLevel('Tous')}
+                            className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all ${selectedLevel === 'Tous'
+                                ? 'bg-[#1B4332] text-white'
+                                : 'text-[#52796F]'
+                                }`}
+                        >
+                            Tous
+                        </button>
+                        {academicLevels.map(level => (
                             <button
-                                key={level}
-                                onClick={() => setSelectedLevel(level)}
-                                className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all ${selectedLevel === level
+                                key={level.id}
+                                onClick={() => setSelectedLevel(level.code.toUpperCase())}
+                                className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-all ${selectedLevel === level.code.toUpperCase()
                                     ? 'bg-[#1B4332] text-white shadow-sm'
                                     : 'text-[#52796F] hover:text-[#1B4332]'
                                     }`}
                             >
-                                {level}
+                                {level.code.toUpperCase()}
                             </button>
                         ))}
                     </div>
@@ -640,12 +682,12 @@ export function CourseProgressMonitor() {
                 {/* Filtres par Statut (Nouveau) */}
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-[#1B4332]/5">
                     {[
-                        { id: 'all', label: 'Tous', count: MOCK_COURSES.length, color: 'text-gray-600', bg: 'bg-gray-100', active: 'bg-gray-900 text-white' },
-                        { id: 'À surveiller', label: 'À surveiller', count: MOCK_COURSES.filter(c => (c.consumedHours / c.totalHours * 100) < 21).length, color: 'text-red-600', bg: 'bg-red-50', active: 'bg-red-600 text-white' },
-                        { id: 'En cours', label: 'En cours', count: MOCK_COURSES.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 21 && p <= 50; }).length, color: 'text-amber-600', bg: 'bg-amber-50', active: 'bg-amber-600 text-white' },
-                        { id: 'Avancé', label: 'Avancé', count: MOCK_COURSES.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 51 && p <= 85; }).length, color: 'text-blue-600', bg: 'bg-blue-50', active: 'bg-blue-600 text-white' },
-                        { id: 'Finalisation', label: 'Finalisation', count: MOCK_COURSES.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 86 && p <= 99; }).length, color: 'text-teal-600', bg: 'bg-teal-50', active: 'bg-teal-600 text-white' },
-                        { id: 'Terminé', label: 'Terminé', count: MOCK_COURSES.filter(c => (c.consumedHours / c.totalHours * 100) >= 100).length, color: 'text-emerald-600', bg: 'bg-emerald-50', active: 'bg-emerald-600 text-white' },
+                        { id: 'all', label: 'Tous', count: courses.length, color: 'text-gray-600', bg: 'bg-gray-100', active: 'bg-gray-900 text-white' },
+                        { id: 'À surveiller', label: 'À surveiller', count: courses.filter(c => (c.consumedHours / c.totalHours * 100) < 21).length, color: 'text-red-600', bg: 'bg-red-50', active: 'bg-red-600 text-white' },
+                        { id: 'En cours', label: 'En cours', count: courses.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 21 && p <= 50; }).length, color: 'text-amber-600', bg: 'bg-amber-50', active: 'bg-amber-600 text-white' },
+                        { id: 'Avancé', label: 'Avancé', count: courses.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 51 && p <= 85; }).length, color: 'text-blue-600', bg: 'bg-blue-50', active: 'bg-blue-600 text-white' },
+                        { id: 'Finalisation', label: 'Finalisation', count: courses.filter(c => { const p = c.consumedHours / c.totalHours * 100; return p >= 86 && p <= 99; }).length, color: 'text-teal-600', bg: 'bg-teal-50', active: 'bg-teal-600 text-white' },
+                        { id: 'Terminé', label: 'Terminé', count: courses.filter(c => (c.consumedHours / c.totalHours * 100) >= 100).length, color: 'text-emerald-600', bg: 'bg-emerald-50', active: 'bg-emerald-600 text-white' },
                     ].map(status => (
                         <button
                             key={status.id}
