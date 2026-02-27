@@ -543,7 +543,7 @@ export function CourseProgressMonitor() {
     const totalHoursAll = MOCK_COURSES.reduce((a, c) => a + c.totalHours, 0);
     const consumedHoursAll = MOCK_COURSES.reduce((a, c) => a + c.consumedHours, 0);
     const globalPct = Math.round((consumedHoursAll / totalHoursAll) * 100);
-    const criticalCourses = MOCK_COURSES.filter(c => (c.consumedHours / c.totalHours) >= 0.8).length;
+
     const totalMissed = MOCK_COURSES.reduce((a, c) => a + c.sessions.filter(s => s.wasScheduled && !s.attendanceTaken).length, 0);
 
     return (
@@ -581,13 +581,7 @@ export function CourseProgressMonitor() {
                     <p className="text-3xl font-black text-[#1B4332]">{consumedHoursAll}h</p>
                     <p className="text-xs text-[#52796F] mt-1">Heures données / {totalHoursAll}h total</p>
                 </div>
-                <div className="bg-white/80 backdrop-blur-sm rounded-[24px] p-5 border border-[#1B4332]/10">
-                    <div className="w-10 h-10 bg-red-50 rounded-[12px] flex items-center justify-center mb-3">
-                        <AlertTriangle className="w-5 h-5 text-red-500" />
-                    </div>
-                    <p className="text-3xl font-black text-red-500">{criticalCourses}</p>
-                    <p className="text-xs text-[#52796F] mt-1">Cours à {'>'}80% d'avancement</p>
-                </div>
+
                 <div className="bg-white/80 backdrop-blur-sm rounded-[24px] p-5 border border-[#1B4332]/10">
                     <div className="w-10 h-10 bg-orange-50 rounded-[12px] flex items-center justify-center mb-3">
                         <XCircle className="w-5 h-5 text-orange-500" />
