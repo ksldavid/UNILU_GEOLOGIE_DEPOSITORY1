@@ -421,13 +421,17 @@ export function CourseProgressMonitor() {
         });
 
     const activeCourses = filtered.filter(c => c.isScheduled);
-    const notScheduled = filtered.filter(c => !c.isScheduled);
+    // On n'affiche les cours non programmés que si on ne filtre pas par statut de progression
+    const notScheduled = statusFilter === 'all'
+        ? filtered.filter(c => !c.isScheduled)
+        : [];
 
-    // Stats globales
-    const totalHoursAll = courses.reduce((a, c) => a + c.totalHours, 0);
-    const consumedHoursAll = courses.reduce((a, c) => a + c.consumedHours, 0);
+    // Stats globales (uniquement basées sur les cours actifs/programmés)
+    const activeStats = courses.filter(c => c.isScheduled);
+    const totalHoursAll = activeStats.reduce((a, c) => a + c.totalHours, 0);
+    const consumedHoursAll = activeStats.reduce((a, c) => a + c.consumedHours, 0);
     const globalPct = totalHoursAll > 0 ? Math.round((consumedHoursAll / totalHoursAll) * 100) : 0;
-    const totalMissed = courses.reduce((a, c) => a + c.sessions.filter(s => s.wasScheduled && !s.attendanceTaken).length, 0);
+    const totalMissed = activeStats.reduce((a, c) => a + c.sessions.filter(s => s.wasScheduled && !s.attendanceTaken).length, 0);
 
     if (loading) {
         return (
