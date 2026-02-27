@@ -57,6 +57,7 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
     const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
     const [pendingSchedule, setPendingSchedule] = useState<{ course: Course; day: string } | null>(null);
     const [timeForm, setTimeForm] = useState({ startTime: '08:00', endTime: '10:00', room: '' });
+    const [selectedEvent, setSelectedEvent] = useState<ScheduledCourse | null>(null);
 
     const toMinutes = (time: string) => {
         const [h, m] = time.split(':').map(Number);
@@ -404,7 +405,8 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                                                             return (
                                                                 <div
                                                                     key={`${course.id}-${course.startTime}`}
-                                                                    className="absolute inset-[1px] p-2 rounded-xl text-white shadow-lg animate-in zoom-in-95 duration-500 z-10 group/course flex flex-col"
+                                                                    onClick={(e) => { e.stopPropagation(); setSelectedEvent(course); }}
+                                                                    className="absolute inset-[1px] p-2 rounded-xl text-white shadow-lg animate-in zoom-in-95 duration-500 z-10 group/course flex flex-col cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
                                                                     style={{
                                                                         backgroundColor: course.color,
                                                                         height: `${durationSlots * 40 + (durationSlots - 1) * 8 - 2}px`,
@@ -556,6 +558,57 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                                     Plus tard
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Detail Modal */}
+            {selectedEvent && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#1B4332]/40 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={() => setSelectedEvent(null)}>
+                    <div className="bg-white rounded-[32px] w-full max-w-lg shadow-2xl overflow-hidden border border-[#1B4332]/10 animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+                        <div className="bg-[#1B4332] p-8 text-white relative">
+                            <button
+                                onClick={() => setSelectedEvent(null)}
+                                className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                            <span className="text-[11px] font-black bg-white/20 px-3 py-1 rounded-full uppercase tracking-widest">{selectedEvent.code}</span>
+                            <h3 className="text-3xl font-black mt-4 leading-tight">{selectedEvent.name}</h3>
+                        </div>
+
+                        <div className="p-8 space-y-6">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-[#52796F] uppercase tracking-widest">Enseignant / Responsable</p>
+                                    <p className="font-bold text-[#1B4332] flex items-center gap-2">
+                                        <Layout className="w-4 h-4" />
+                                        {selectedEvent.professor}
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-[#52796F] uppercase tracking-widest">Localisation</p>
+                                    <p className="font-bold text-[#1B4332] flex items-center gap-2">
+                                        <School className="w-4 h-4" />
+                                        {selectedEvent.room}
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-[#52796F] uppercase tracking-widest">Jour & Horaire</p>
+                                    <p className="font-bold text-[#1B4332] flex items-center gap-2">
+                                        <Clock className="w-4 h-4" />
+                                        {selectedEvent.day}, {selectedEvent.startTime} - {selectedEvent.endTime}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setSelectedEvent(null)}
+                                className="w-full py-4 bg-[#F1F8F4] text-[#1B4332] font-black rounded-2xl hover:bg-[#D8F3DC] transition-all"
+                            >
+                                Revenir au Planning
+                            </button>
                         </div>
                     </div>
                 </div>
