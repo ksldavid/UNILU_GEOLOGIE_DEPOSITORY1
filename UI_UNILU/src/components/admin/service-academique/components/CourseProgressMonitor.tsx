@@ -563,7 +563,7 @@ export function CourseProgressMonitor() {
             </div>
 
             {/* Cartes Statistiques Globales */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white/80 backdrop-blur-sm rounded-[24px] p-5 border border-[#1B4332]/10">
                     <div className="w-10 h-10 bg-[#D8F3DC] rounded-[12px] flex items-center justify-center mb-3">
                         <TrendingUp className="w-5 h-5 text-[#1B4332]" />
