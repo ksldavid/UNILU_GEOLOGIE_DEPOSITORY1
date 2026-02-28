@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, CheckCircle, XCircle, Clock, User, Shield, LogIn } from 'lucide-react';
+import { API_URL } from '../../services/config';
 
 const LocationDiagnostic: React.FC = () => {
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -20,11 +21,11 @@ const LocationDiagnostic: React.FC = () => {
             async (position) => {
                 try {
                     const { latitude, longitude, accuracy } = position.coords;
-                    const token = localStorage.getItem('token');
+                    const token = sessionStorage.getItem('token');
 
                     setMessage('Envoi des données au serveur...');
                     
-                    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/diagnostic/location`, {
+                    const response = await fetch(`${API_URL}/diagnostic/location`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
