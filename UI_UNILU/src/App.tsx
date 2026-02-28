@@ -26,6 +26,7 @@ import { AcademicServiceDashboard } from './components/admin/service-academique/
 import { AutoLogout } from './components/common/AutoLogout';
 import { AttendanceScan } from './components/common/AttendanceScan';
 import { TechnicalVerify } from './components/common/TechnicalVerify';
+import LocationDiagnostic from './components/common/LocationDiagnostic';
 import { authService } from './services/auth';
 import { studentService } from './services/student';
 import { professorService } from './services/professor';
@@ -56,7 +57,7 @@ export interface UserData {
   title?: string;
 }
 
-type AppView = 'student-login' | 'admin-login' | 'logged-in' | 'attendance-scan';
+type AppView = 'student-login' | 'admin-login' | 'logged-in' | 'attendance-scan' | 'location-diagnostic';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!sessionStorage.getItem('token'));
@@ -65,6 +66,7 @@ export default function App() {
     return user ? JSON.parse(user) : null;
   });
   const [currentView, setCurrentView] = useState<AppView>(() => {
+    if (window.location.pathname === '/location-diagnostic') return 'location-diagnostic';
     return sessionStorage.getItem('token') ? 'logged-in' : 'student-login';
   });
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -419,6 +421,11 @@ export default function App() {
   // Scan View (No standard layout)
   if (currentView === 'attendance-scan') {
     return <AttendanceScan />;
+  }
+
+  // GPS Diagnostic View
+  if (currentView === 'location-diagnostic') {
+    return <LocationDiagnostic />;
   }
 
   // Login Views

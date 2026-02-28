@@ -22,6 +22,7 @@ import professorRoutes from './api/routes/professor.routes'
 import announcementRoutes from './api/routes/announcement.routes'
 import attendanceRoutes from './api/routes/attendance.routes'
 import advertisementRoutes from './api/routes/advertisement.routes'
+import diagnosticRoutes from './api/routes/diagnostic.routes'
 
 import { captureLog } from './api/controllers/stats.controller'
 
@@ -135,6 +136,7 @@ app.use('/api/professor', professorRoutes)
 app.use('/api/announcements', announcementRoutes)
 app.use('/api/attendance', attendanceRoutes)
 app.use('/api/ads', advertisementRoutes)
+app.use('/api/diagnostic', diagnosticRoutes)
 
 // Route de diagnostic (santé du serveur)
 app.get('/api/health', (req: Request, res: Response) => {

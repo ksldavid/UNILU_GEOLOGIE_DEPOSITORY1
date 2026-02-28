@@ -16,6 +16,7 @@ import { CommunicationManager } from './components/CommunicationManager';
 import { AdsManager } from './components/AdsManager';
 import { InvitationLetterManager } from './components/InvitationLetterManager';
 import { AttendanceManager } from '../service-academique/components/AttendanceManager';
+import LocationDiagnosticPanel from './components/LocationDiagnosticPanel';
 import { QRCodeCanvas } from 'qrcode.react';
 import { API_URL } from '../../../services/config';
 import { Mail } from 'lucide-react';
@@ -100,6 +101,7 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
         { id: 'Invitations', icon: Mail, label: 'Générer une lettre' },
         { id: 'Attendance', icon: Users, label: 'Rectifier Présences' },
         { id: 'SupportQR', icon: Smartphone, label: 'QR Verification' },
+        { id: 'Diagnostic', icon: MapPin, label: 'Diagnostic GPS' },
         { id: 'Config', icon: Settings, label: 'Configuration' },
     ];
 
@@ -125,6 +127,8 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                 return <InvitationLetterManager />;
             case 'Attendance':
                 return <AttendanceManager />;
+            case 'Diagnostic':
+                return <LocationDiagnosticPanel />;
             case 'Config':
                 return <ConfigManager />;
             case 'SupportQR':
@@ -140,9 +144,24 @@ export function TechnicalDashboard({ onLogout }: { onLogout: () => void }) {
                                 />
                             </div>
                             <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-4">Verification Étudiant</h2>
-                            <p className="text-slate-400 font-bold max-w-sm mx-auto leading-relaxed italic">
+                            <p className="text-slate-400 font-bold max-w-sm mx-auto leading-relaxed italic mb-10">
                                 Scannez ce QR Code sur le téléphone de l'étudiant pour vérifier son identité locale et forcer sa déconnexion si nécessaire.
                             </p>
+
+                            <div className="border-t border-white/10 pt-10">
+                                <div className="bg-white p-6 rounded-3xl mb-8 inline-block shadow-[0_0_50px_rgba(255,255,255,0.1)]">
+                                    <QRCodeCanvas
+                                        value={`${window.location.protocol}//${window.location.host}/location-diagnostic`}
+                                        size={256}
+                                        level="H"
+                                        includeMargin={true}
+                                    />
+                                </div>
+                                <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-4 text-indigo-400">Diagnostic GPS Temps Réel</h2>
+                                <p className="text-slate-400 font-bold max-w-sm mx-auto leading-relaxed italic">
+                                    Scannez ce QR Code pour tester la localisation et le token de l'étudiant. Les données apparaîtront dans l'onglet "Diagnostic GPS".
+                                </p>
+                            </div>
                         </div>
                     </div>
                 );
