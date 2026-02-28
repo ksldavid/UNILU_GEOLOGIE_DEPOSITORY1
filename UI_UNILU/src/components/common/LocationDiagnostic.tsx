@@ -8,14 +8,14 @@ const LocationDiagnostic: React.FC = () => {
     const [details, setDetails] = useState<any>(null);
 
     useEffect(() => {
-        const token = sessionStorage.getItem('token');
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
         if (!token) {
             setStatus('not-logged');
         }
     }, []);
 
     const runDiagnostic = () => {
-        const token = sessionStorage.getItem('token');
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
         if (!token) {
             setStatus('not-logged');
             return;

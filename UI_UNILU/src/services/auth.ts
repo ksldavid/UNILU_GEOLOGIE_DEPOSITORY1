@@ -32,18 +32,22 @@ export const authService = {
             throw new Error(data.message || 'Échec de la connexion');
         }
 
-        // Stocker le token dans sessionStorage au lieu de sessionStorage
-        // sessionStorage est effacé quand l'onglet/navigateur est fermé
+        // Stocker le token dans localStorage
+        // localStorage persiste même quand l'onglet/navigateur est fermé (utile pour QR scans)
         if (data.token) {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            // Garder aussi dans sessionStorage pour la compatibilité immédiate
             sessionStorage.setItem('token', data.token);
             sessionStorage.setItem('user', JSON.stringify(data.user));
-            // On peut garder 'readProfAnnouncements' dans sessionStorage car c'est une préférence utilisateur non sensible
         }
 
         return data;
     },
 
     logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('user');
         // Rediriger vers la racine pour s'assurer que l'utilisateur voit la page de login
@@ -51,13 +55,13 @@ export const authService = {
     },
 
     getCurrentUser() {
-        const userStr = sessionStorage.getItem('user');
+        const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
         if (userStr) return JSON.parse(userStr);
         return null;
     },
 
     getToken() {
-        return sessionStorage.getItem('token');
+        return localStorage.getItem('token') || sessionStorage.getItem('token');
     },
 
     isAuthenticated() {

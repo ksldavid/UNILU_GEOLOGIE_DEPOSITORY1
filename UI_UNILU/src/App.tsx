@@ -60,19 +60,20 @@ export interface UserData {
 type AppView = 'student-login' | 'admin-login' | 'logged-in' | 'attendance-scan' | 'location-diagnostic';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!sessionStorage.getItem('token'));
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!(sessionStorage.getItem('token') || localStorage.getItem('token')));
   const [userData, setUserData] = useState<UserData | null>(() => {
-    const user = sessionStorage.getItem('user');
+    const user = sessionStorage.getItem('user') || localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   });
   const [currentView, setCurrentView] = useState<AppView>(() => {
     if (window.location.pathname === '/location-diagnostic') return 'location-diagnostic';
-    return sessionStorage.getItem('token') ? 'logged-in' : 'student-login';
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    return token ? 'logged-in' : 'student-login';
   });
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [studentCurrentPage, setStudentCurrentPage] = useState<StudentPage>('dashboard');
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(() => {
-    const saved = sessionStorage.getItem('selectedCourse');
+    const saved = sessionStorage.getItem('selectedCourse') || localStorage.getItem('selectedCourse');
     return saved ? JSON.parse(saved) : null;
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
