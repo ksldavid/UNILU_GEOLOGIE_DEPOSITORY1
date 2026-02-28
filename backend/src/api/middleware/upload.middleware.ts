@@ -47,10 +47,10 @@ const EXPECTED_MIME_TYPES: Record<string, string[]> = {
 
 // Tailles maximales par type (en bytes)
 const MAX_FILE_SIZES: Record<string, number> = {
-    'document': 4.5 * 1024 * 1024,  // 4.5MB limite Vercel
-    'image': 4.5 * 1024 * 1024,      // 4.5MB limite Vercel
-    'archive': 4.5 * 1024 * 1024,    // 4.5MB limite Vercel
-    'default': 4.5 * 1024 * 1024     // 4.5MB limite Vercel
+    'document': 15 * 1024 * 1024,   // 15MB limite Vercel Pro
+    'image': 15 * 1024 * 1024,      // 15MB limite Vercel Pro
+    'archive': 15 * 1024 * 1024,    // 15MB limite Vercel Pro
+    'default': 15 * 1024 * 1024     // 15MB limite Vercel Pro
 };
 
 const getFileType = (mimetype: string): string => {
@@ -62,7 +62,7 @@ const getFileType = (mimetype: string): string => {
 export const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limite absolue
+        fileSize: 15 * 1024 * 1024, // 15MB limite Vercel Pro
         files: 1, // Maximum 1 fichier par requête
     },
     fileFilter: (req: Request, file, cb) => {
@@ -109,7 +109,7 @@ export const upload = multer({
 export const uploadImage = multer({
     storage: storage,
     limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB max pour les images
+        fileSize: 15 * 1024 * 1024, // 15MB limite Vercel Pro
         files: 1,
     },
     fileFilter: (req: Request, file, cb) => {

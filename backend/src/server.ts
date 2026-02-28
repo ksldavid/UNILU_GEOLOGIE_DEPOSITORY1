@@ -103,9 +103,9 @@ const corsOptions = {
 }
 app.use(cors(corsOptions))
 
-// 5. Limite de taille des requêtes JSON (10MB max)
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+// 5. Limite de taille des requêtes (15MB max pour Vercel Pro)
+app.use(express.json({ limit: '15mb' }))
+app.use(express.urlencoded({ extended: true, limit: '15mb' }))
 
 // 6. Logging Middleware pour le dashboard technique
 app.use(captureLog)
