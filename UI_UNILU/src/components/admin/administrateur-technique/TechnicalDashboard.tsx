@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
     Activity, ShieldCheck, Database, Server,
     Terminal, Settings, LogOut, Bell, Megaphone,
-    Clock, Cpu, Shield, LayoutDashboard, Globe, Menu, X, MessageSquare, Smartphone, Users
+    Clock, Cpu, Shield, LayoutDashboard, Globe, Menu, X, MessageSquare, Smartphone, Users, MapPin
 } from 'lucide-react';
 import { SystemStatus } from './components/SystemStatus';
 import { AccessManagement } from './components/AccessManagement';
