@@ -243,8 +243,7 @@ model ProfessorProfile {
   userId String  @unique
   title  String? // Academic title: PhD, Assistant, etc.
 
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseEnrollments CourseEnrollment[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -313,10 +312,8 @@ model CourseEnrollment {
   joinedAt     DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
-  user               User              @relation(fields: [userId], references: [id])
-  course             Course            @relation(fields: [courseCode], references: [code])
-  professorProfile   ProfessorProfile? @relation(fields: [professorProfileId], references: [id])
-  professorProfileId String?
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseCode], references: [code])
 
   @@unique([userId, courseCode, academicYear])
   @@index([userId])
