@@ -7,7 +7,7 @@ const LocationDiagnostic: React.FC = () => {
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'not-logged' | 'logging-in'>('idle');
     const [message, setMessage] = useState('');
     const [details, setDetails] = useState<any>(null);
-    
+
     // Login form state
     const [loginId, setLoginId] = useState('');
     const [password, setPassword] = useState('');
@@ -15,7 +15,7 @@ const LocationDiagnostic: React.FC = () => {
     const [loginError, setLoginError] = useState('');
 
     useEffect(() => {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         if (!token) {
             setStatus('not-logged');
         }
@@ -40,7 +40,7 @@ const LocationDiagnostic: React.FC = () => {
     };
 
     const runDiagnostic = () => {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         if (!token) {
             setStatus('not-logged');
             return;
@@ -59,10 +59,10 @@ const LocationDiagnostic: React.FC = () => {
             async (position) => {
                 try {
                     const { latitude, longitude, accuracy } = position.coords;
-                    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+                    const token = sessionStorage.getItem('token');
 
                     setMessage('Envoi des données au serveur...');
-                    
+
                     const response = await fetch(`${API_URL}/diagnostic/location`, {
                         method: 'POST',
                         headers: {
@@ -204,7 +204,7 @@ const LocationDiagnostic: React.FC = () => {
                                     )}
                                 </button>
                             </form>
-                            
+
                             <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed px-4">
                                 Une fois connecté, le diagnostic GPS se lancera automatiquement sans que vous ayez à re-scanner.
                             </p>
@@ -256,12 +256,12 @@ const LocationDiagnostic: React.FC = () => {
                             {details && (
                                 <div className="space-y-6 bg-slate-50 p-8 rounded-[40px] border border-slate-100 shadow-inner relative overflow-hidden">
                                     <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
-                                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><User size={14}/> Étudiant</span>
+                                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><User size={14} /> Étudiant</span>
                                         <span className="font-black text-slate-900 italic text-sm">{details.studentName}</span>
                                     </div>
-                                    
+
                                     <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
-                                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Clock size={14}/> Session Token</span>
+                                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Clock size={14} /> Session Token</span>
                                         <span className={`font-black italic px-4 py-1.5 rounded-full text-[10px] border ${details.tokenExpired ? 'bg-red-50 text-red-600 border-red-100' : 'bg-green-50 text-green-600 border-green-100'}`}>
                                             {details.tokenExpired ? 'EXPIRÉ' : 'VALIDE'}
                                         </span>
@@ -303,7 +303,7 @@ const LocationDiagnostic: React.FC = () => {
                                 <h3 className="text-2xl font-black text-slate-900 italic uppercase italic tracking-tight">Rapport d'échec</h3>
                                 <p className="text-slate-500 font-bold mt-3 text-lg">{message}</p>
                             </div>
-                            
+
                             <button
                                 onClick={runDiagnostic}
                                 className="w-full bg-slate-900 hover:bg-black text-white font-black py-5 rounded-[24px] shadow-2xl shadow-slate-200 transition-all active:scale-95 italic uppercase tracking-[0.2em]"

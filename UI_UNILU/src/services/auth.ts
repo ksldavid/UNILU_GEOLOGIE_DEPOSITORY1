@@ -32,12 +32,9 @@ export const authService = {
             throw new Error(data.message || 'Échec de la connexion');
         }
 
-        // Stocker le token dans localStorage
-        // localStorage persiste même quand l'onglet/navigateur est fermé (utile pour QR scans)
+        // Stocker le token dans sessionStorage UNIQUEMENT
+        // sessionStorage est isolé par onglet : chaque onglet a sa propre session
         if (data.token) {
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            // Garder aussi dans sessionStorage pour la compatibilité immédiate
             sessionStorage.setItem('token', data.token);
             sessionStorage.setItem('user', JSON.stringify(data.user));
         }
@@ -46,8 +43,6 @@ export const authService = {
     },
 
     logout() {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('user');
         // Rediriger vers la racine pour s'assurer que l'utilisateur voit la page de login
@@ -55,13 +50,13 @@ export const authService = {
     },
 
     getCurrentUser() {
-        const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+        const userStr = sessionStorage.getItem('user');
         if (userStr) return JSON.parse(userStr);
         return null;
     },
 
     getToken() {
-        return localStorage.getItem('token') || sessionStorage.getItem('token');
+        return sessionStorage.getItem('token');
     },
 
     isAuthenticated() {

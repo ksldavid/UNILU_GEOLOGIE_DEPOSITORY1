@@ -8,7 +8,7 @@ export const authDebug = {
      * Vérifie si un token JWT est présent dans localStorage
      */
     hasToken(): boolean {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         return token !== null && token !== '';
     },
 
@@ -16,10 +16,10 @@ export const authDebug = {
      * Récupère le token et affiche des infos de debug
      */
     getTokenInfo() {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
 
         if (!token) {
-            console.error('❌ Aucun token trouvé dans localStorage');
+            console.error('❌ Aucun token trouvé dans sessionStorage');
             return null;
         }
 
@@ -64,8 +64,8 @@ export const authDebug = {
      * Efface le token et les données utilisateur
      */
     clearAuth() {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
         console.log('🗑️ Token et données utilisateur effacés');
     },
 
@@ -73,10 +73,10 @@ export const authDebug = {
      * Test rapide d'une requête API
      */
     async testAPICall(endpoint: string) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
 
         if (!token) {
-            console.error('❌ Impossible de tester: aucun token trouvé');
+            console.error('❌ Impossible de tester: aucun token trouvé dans sessionStorage');
             return;
         }
 
