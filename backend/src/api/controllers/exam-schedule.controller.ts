@@ -1,10 +1,11 @@
 import { Request, Response } from 'express'
-import prisma from '../../../prisma/client'
+import prisma from '../../lib/prisma'
+import { AuthRequest } from '../middleware/auth.middleware'
 
-export const createExamSchedule = async (req: Request, res: Response) => {
+export const createExamSchedule = async (req: AuthRequest, res: Response) => {
     try {
         const { courseCode, academicLevelId, type, date, month, year, academicYear } = req.body;
-        const creatorId = req.user?.id; // Assumes auth middleware populates req.user
+        const creatorId = req.user?.userId; // Correct: use userId from AuthRequest
 
         if (!creatorId) {
             return res.status(401).json({ error: 'Non autorisé' });
@@ -45,7 +46,7 @@ export const createExamSchedule = async (req: Request, res: Response) => {
     }
 };
 
-export const getExamSchedules = async (req: Request, res: Response) => {
+export const getExamSchedules = async (req: AuthRequest, res: Response) => {
     try {
         const { academicLevelId, month, year, courseCode } = req.query;
 
@@ -60,7 +61,10 @@ export const getExamSchedules = async (req: Request, res: Response) => {
             where: whereClause,
             include: {
                 course: {
-                    select: { name: true, professor: true, colorFrom: true, colorTo: true }
+                    select: { name: true }
+                },
+                academicLevel: {
+                    select: { name: true, displayName: true }
                 }
             },
             orderBy: { date: 'asc' }
@@ -73,7 +77,7 @@ export const getExamSchedules = async (req: Request, res: Response) => {
     }
 };
 
-export const deleteExamSchedule = async (req: Request, res: Response) => {
+export const deleteExamSchedule = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
 
