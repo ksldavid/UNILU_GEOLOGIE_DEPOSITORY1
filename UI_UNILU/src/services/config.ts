@@ -16,10 +16,13 @@ const API_URLS = {
 // URL active
 export const API_URL = isDevelopment ? API_URLS.development : API_URLS.production;
 
-// Log en dev uniquement
-if (isDevelopment) {
-    console.log(`[API Config] Mode: DEVELOPMENT`);
-    console.log(`[API Config] API URL: ${API_URL}`);
-}
+// Helper pour les headers d'authentification
+export const getAuthHeaders = () => {
+    const token = sessionStorage.getItem('token');
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+};
 
 export default API_URL;

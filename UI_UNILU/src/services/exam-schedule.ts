@@ -20,7 +20,7 @@ export interface ExamScheduleData {
 
 export const examScheduleService = {
     async create(data: ExamScheduleData): Promise<ExamScheduleData> {
-        const response = await fetch(`${API_URL}/api/exam-schedules`, {
+        const response = await fetch(`${API_URL}/exam-schedules`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(data)
@@ -41,7 +41,7 @@ export const examScheduleService = {
         if (params?.year) queryParams.append('year', params.year.toString());
         if (params?.courseCode) queryParams.append('courseCode', params.courseCode);
 
-        const url = `${API_URL}/api/exam-schedules${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+        const url = `${API_URL}/exam-schedules${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
         
         const response = await fetch(url, {
             headers: getAuthHeaders()
@@ -52,7 +52,7 @@ export const examScheduleService = {
     },
 
     async delete(id: number): Promise<void> {
-        const response = await fetch(`${API_URL}/api/exam-schedules/${id}`, {
+        const response = await fetch(`${API_URL}/exam-schedules/${id}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
         });
