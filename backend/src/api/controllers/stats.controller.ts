@@ -31,6 +31,8 @@ export const captureLog = (req: Request, res: Response, next: any) => {
 }
 
 // Statistiques pour le dashboard du service académique
+export const getAcademicStats = async (req: Request, res: Response) => {
+    try {
         const academicYear = "2025-2026"
         // 1. Nombre total d'étudiants inscrits cette année
         const studentCount = await prisma.studentEnrollment.count({
