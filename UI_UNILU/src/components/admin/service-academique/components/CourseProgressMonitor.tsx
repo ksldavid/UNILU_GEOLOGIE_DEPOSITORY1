@@ -243,7 +243,7 @@ function CourseCard({ course, onClick }: { course: CourseProgress; onClick: () =
 }
 
 // ─── COMPOSANT DÉTAIL MODAL ─────────────────────────────────────────────────────
-function CourseDetailModal({ course, onClose }: { course: CourseProgress; onClose: () => void }) {
+function CourseDetailModal({ course, onClose, onToggleStatus }: { course: CourseProgress; onClose: () => void; onToggleStatus?: (type: 'isActive' | 'isCompleted') => void }) {
     const pct = Math.round((course.consumedHours / course.totalHours) * 100);
     const remaining = course.totalHours - course.consumedHours;
     const prog = getProgressColor(pct);
@@ -274,6 +274,22 @@ function CourseDetailModal({ course, onClose }: { course: CourseProgress; onClos
                                     {course.hasNoSchedule && <span className="text-[8px] font-black uppercase bg-blue-500 text-white px-2 py-0.5 rounded-full">Non planifié</span>}
                                     {course.isCompleted && <span className="text-[8px] font-black uppercase bg-emerald-500 text-white px-2 py-0.5 rounded-full">Terminé</span>}
                                 </div>
+                                {onToggleStatus && (
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        <button 
+                                            onClick={() => onToggleStatus('isActive')}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all ${course.isActive ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'}`}
+                                        >
+                                            {course.isActive ? '✓ Suivi Actif' : 'Activer le Suivi'}
+                                        </button>
+                                        <button 
+                                            onClick={() => onToggleStatus('isCompleted')}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all ${course.isCompleted ? 'bg-emerald-600 border-emerald-400 text-white shadow-lg' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'}`}
+                                        >
+                                            {course.isCompleted ? '✓ Semestre Fini' : 'Marquer comme Fini'}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <button
@@ -407,6 +423,28 @@ export function CourseProgressMonitor() {
         };
         loadData();
     }, []);
+
+    const handleToggleStatus = async (type: 'isActive' | 'isCompleted') => {
+        if (!selectedCourse) return;
+        const newValue = !selectedCourse[type];
+        
+        // Optimistic update
+        const updatedCourse = { ...selectedCourse, [type]: newValue };
+        if (type === 'isCompleted' && newValue) {
+            updatedCourse.consumedHours = updatedCourse.totalHours; // Force 100%
+        }
+        
+        setSelectedCourse(updatedCourse);
+        setCourses(courses.map(c => c.code === selectedCourse.code ? updatedCourse : c));
+
+        try {
+            await courseService.updateCourse(selectedCourse.code, { [type]: newValue });
+        } catch (error: any) {
+            console.error(error);
+            alert("Erreur lors de la modification du statut");
+            // Revert on error (optional, simple alert is enough for now)
+        }
+    };
 
     const filtered = courses
         .filter(c => {
@@ -679,6 +717,7 @@ export function CourseProgressMonitor() {
                 <CourseDetailModal
                     course={selectedCourse}
                     onClose={() => setSelectedCourse(null)}
+                    onToggleStatus={handleToggleStatus}
                 />
             )}
         </div>
