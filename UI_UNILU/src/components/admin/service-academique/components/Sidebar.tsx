@@ -11,6 +11,7 @@ const navItems = [
   { id: "assiduite", label: "Assiduité & Rectif.", icon: ClipboardCheck },
   { id: "notes", label: "Notes & PV", icon: FileText },
   { id: "planning", label: "Planning", icon: Calendar },
+  { id: "exams", label: "Examen & Interro", icon: GraduationCap },
   { id: "performance", label: "Performance", icon: TrendingUp },
 ];
 

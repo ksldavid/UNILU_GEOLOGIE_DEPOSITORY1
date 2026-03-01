@@ -11,6 +11,7 @@ import { StudentAnnouncements } from './components/students/StudentAnnouncements
 import { StudentSidebar, StudentPage } from './components/students/StudentSidebar';
 import { StudentHeader } from './components/students/StudentHeader';
 import { StudentPath } from './components/students/StudentPath';
+import { StudentExams } from './components/students/StudentExams';
 import { Dashboard } from "./components/corps academic/Dashboard";
 import { CourseList } from "./components/corps academic/CourseList";
 import { CourseManagement } from "./components/corps academic/CourseManagement";
@@ -21,6 +22,7 @@ import { Sidebar } from "./components/corps academic/Sidebar";
 import { Header } from "./components/corps academic/Header";
 import { MyAnnouncements } from "./components/corps academic/MyAnnouncements";
 import { Support } from "./components/corps academic/Support";
+import { ExamInterroScheduler } from "./components/common/ExamInterroScheduler";
 import { TechnicalDashboard } from './components/admin/administrateur-technique/TechnicalDashboard';
 import { AcademicServiceDashboard } from './components/admin/service-academique/AcademicServiceDashboard';
 import { AutoLogout } from './components/common/AutoLogout';
@@ -33,7 +35,7 @@ import { professorService } from './services/professor';
 import { API_URL } from './services/config';
 
 
-export type Page = 'dashboard' | 'courses' | 'planning' | 'students' | 'course-detail' | 'attendance' | 'announcements' | 'support';
+export type Page = 'dashboard' | 'courses' | 'planning' | 'exam-planning' | 'students' | 'course-detail' | 'attendance' | 'announcements' | 'support';
 export type UserRole = 'STUDENT' | 'USER' | 'ADMIN' | 'ACADEMIC_OFFICE';
 
 export interface Course {
@@ -159,8 +161,8 @@ export default function App() {
       return;
     }
 
-    const validProfPages: Page[] = ['dashboard', 'courses', 'planning', 'students', 'course-detail', 'attendance', 'announcements', 'support'];
-    const validStudentPages: StudentPage[] = ['dashboard', 'courses', 'planning', 'grades', 'announcements', 'settings'];
+    const validProfPages: Page[] = ['dashboard', 'courses', 'planning', 'exam-planning', 'students', 'course-detail', 'attendance', 'announcements', 'support'];
+    const validStudentPages: StudentPage[] = ['dashboard', 'courses', 'planning', 'exams', 'grades', 'announcements', 'settings'];
 
     if (userData?.role === 'USER' && validProfPages.includes(path as Page)) {
       setCurrentPage(path as Page);
@@ -475,6 +477,7 @@ export default function App() {
               {studentCurrentPage === 'dashboard' && <StudentDashboard onNavigate={handleStudentNavigate} />}
               {studentCurrentPage === 'courses' && <StudentCourses />}
               {studentCurrentPage === 'planning' && <StudentPlanning />}
+              {studentCurrentPage === 'exams' && <StudentExams />}
               {studentCurrentPage === 'grades' && <StudentGrades />}
               {studentCurrentPage === 'announcements' && <StudentAnnouncements />}
               {studentCurrentPage === 'settings' && <StudentPath />}
@@ -552,6 +555,7 @@ export default function App() {
                 />
               )}
               {currentPage === 'planning' && <Planning />}
+              {currentPage === 'exam-planning' && <ExamInterroScheduler mode="PROFESSOR" />}
               {currentPage === 'students' && <Students />}
               {currentPage === 'announcements' && <MyAnnouncements />}
               {currentPage === 'support' && <Support />}

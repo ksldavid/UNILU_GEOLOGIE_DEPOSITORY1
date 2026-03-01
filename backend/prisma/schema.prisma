@@ -129,6 +129,7 @@ model User {
   // Support Tickets
   supportTickets  SupportTicket[]  @relation("UserTickets")
   supportMessages SupportMessage[] @relation("SenderMessages")
+  createdExamSchedules ExamSchedule[] // Les examens/interros créés par l'utilisateur
 
   @@index([email])
   @@index([systemRole])
@@ -222,6 +223,7 @@ model AcademicLevel {
   studentEnrollments StudentEnrollment[]
   announcements      Announcement[] // Announcements targeting this level
   schedules          Schedule[]
+  examSchedules      ExamSchedule[]
 }
 
 // NEW: Student enrollment in academic levels per year
@@ -302,6 +304,7 @@ model Course {
   announcements            Announcement[]
   retakes                  CourseRetake[]
   schedules                Schedule[]
+  examSchedules            ExamSchedule[]
 }
 
 // The Pivot Table: Links User <-> Course with a specific Role (PROFESSOR, ASSISTANT)
@@ -579,6 +582,30 @@ model Schedule {
   @@index([academicLevelId])
   @@index([courseCode])
   @@index([academicYear])
+}
+
+// --- EXAM SCHEDULE ---
+
+model ExamSchedule {
+  id              Int      @id @default(autoincrement())
+  academicLevelId Int
+  courseCode      String
+  type            AssessmentType // EXAM or INTERROGATION
+  date            DateTime // Date and time of the exam
+  month           Int      // 1-12 for easy filtering
+  year            Int
+  academicYear    String   @default("2025-2026")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  creatorId       String   // ID of the user who scheduled it (Admin or Prof)
+
+  academicLevel AcademicLevel @relation(fields: [academicLevelId], references: [id])
+  course        Course        @relation(fields: [courseCode], references: [code])
+  creator       User          @relation(fields: [creatorId], references: [id])
+
+  @@index([academicLevelId])
+  @@index([courseCode])
+  @@index([month, year])
 }
 
 // --- ADVERTISEMENTS ---

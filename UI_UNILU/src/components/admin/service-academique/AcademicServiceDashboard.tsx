@@ -16,6 +16,7 @@ import { CourseProgressMonitor } from "./components/CourseProgressMonitor";
 import { StudentDemographics } from "./components/StudentDemographics";
 import { userService } from "../../../services/user";
 import { supportService } from "../../../services/support";
+import { ExamInterroScheduler } from "../../common/ExamInterroScheduler";
 
 interface AcademicServiceDashboardProps {
     onLogout: () => void;
@@ -29,6 +30,7 @@ const navItems = [
     { id: "assiduite", label: "Assiduité & Rectif.", icon: ClipboardCheck },
     { id: "notes", label: "Notes & PV", icon: FileText },
     { id: "planning", label: "Planning", icon: Calendar },
+    { id: "exams", label: "Examen & Interro", icon: GraduationCap },
     { id: "stats_demog", label: "Stats. Étudiants", icon: PieChart },
     { id: "history", label: "Historique", icon: Clock },
     { id: "tickets_profs", label: "Tickets Profs", icon: MessageSquare },
@@ -806,6 +808,8 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                             onSaveReady={(saveFn) => setOnPlanningSave(() => saveFn)}
                         />
                     )}
+
+                    {activeSection === "exams" && <ExamInterroScheduler mode="ACADEMIC_OFFICE" />}
 
                     {activeSection === "course_progress" && <CourseProgressMonitor />}
                     {activeSection === "stats_demog" && <StudentDemographics />}

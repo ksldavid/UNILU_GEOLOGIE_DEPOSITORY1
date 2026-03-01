@@ -1,7 +1,7 @@
 import { LayoutDashboard, BookOpen, Calendar, GraduationCap, Megaphone, LogOut, Settings2 } from "lucide-react";
 import uniluLogo from "../../assets/unilu-official-logo.png";
 
-export type StudentPage = 'dashboard' | 'courses' | 'planning' | 'grades' | 'announcements' | 'settings';
+export type StudentPage = 'dashboard' | 'courses' | 'planning' | 'exams' | 'grades' | 'announcements' | 'settings';
 
 interface StudentSidebarProps {
   currentPage: StudentPage;
@@ -17,6 +17,7 @@ export function StudentSidebar({ currentPage, onNavigate, onLogout, isOpen, onCl
     { id: 'dashboard' as const, icon: LayoutDashboard, label: 'Tableau de bord' },
     { id: 'courses' as const, icon: BookOpen, label: 'Mes Cours' },
     { id: 'planning' as const, icon: Calendar, label: 'Emploi du temps' },
+    { id: 'exams' as const, icon: GraduationCap, label: 'Examen & Interro' },
     { id: 'grades' as const, icon: GraduationCap, label: 'Notes & Résultats' },
     { id: 'announcements' as const, icon: Megaphone, label: 'Annonces', badge: hasUnreadAnnouncements },
     { id: 'settings' as const, icon: Settings2, label: 'Mon Parcours' },

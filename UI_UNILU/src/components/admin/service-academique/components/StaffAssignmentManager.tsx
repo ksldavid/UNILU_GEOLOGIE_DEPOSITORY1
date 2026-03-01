@@ -235,6 +235,24 @@ export function StaffAssignmentManager() {
         }
     };
 
+    const handleToggleStatus = async (field: 'isActive' | 'isCompleted') => {
+        if (!selectedCourse) return;
+        setIsProcessing(true);
+        try {
+            const newValue = !selectedCourse[field];
+            await courseService.updateCourse(selectedCourse.code, { [field]: newValue });
+            
+            // Update local state
+            setCourses(courses.map(c => c.code === selectedCourse.code ? { ...c, [field]: newValue } : c));
+            setSelectedCourse({ ...selectedCourse, [field]: newValue });
+            fetchAssignments();
+        } catch (error: any) {
+            alert(error.message || "Erreur de mise à jour");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const handleNewAssignmentSubmit = async () => {
         if (!newAssignmentData.courseCode || !newAssignmentData.staffId || !newAssignmentData.role) return;
         const existingStaff = getCourseStaff(newAssignmentData.courseCode);

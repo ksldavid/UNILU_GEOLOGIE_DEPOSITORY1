@@ -16,6 +16,7 @@ export function Sidebar({ currentPage, onNavigate, onLogout, isOpen, onClose, ha
     { id: 'dashboard' as const, label: "Vue d'ensemble", icon: LayoutGrid },
     { id: 'courses' as const, label: "Mes Cours", icon: GraduationCap },
     { id: 'planning' as const, label: "Planning", icon: Calendar },
+    { id: 'exam-planning' as const, label: "Examen & Interro", icon: GraduationCap },
     { id: 'students' as const, label: "Étudiants", icon: Users },
     { id: 'announcements' as const, label: "Mes Annonces", icon: Megaphone },
     { id: 'support' as const, label: "Aide & Support", icon: LifeBuoy },
