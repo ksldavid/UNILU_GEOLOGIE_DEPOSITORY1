@@ -589,38 +589,37 @@ export function StaffAssignmentManager() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-xl font-bold">{selectedCourse.name}</h3>
-                                                    <button
-                                                        onClick={() => {
-                                                            setCourseNameEdit(selectedCourse.name);
-                                                            setCourseHoursEdit(selectedCourse.totalHours || 45);
-                                                            setIsEditingCourseName(true);
-                                                        }}
-                                                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors opacity-60 hover:opacity-100"
-                                                    >
-                                                        <BookOpen className="w-4 h-4 text-white" />
-                                                    </button>
-                                                </div>
-                                                <p className="text-[10px] text-white/60 font-black uppercase tracking-widest mt-0.5">
-                                                    Volume Horaire : {selectedCourse.totalHours || 45} Heures
-                                                </p>
-                                                <div className="flex gap-2 mt-2">
-                                                    <button 
-                                                        onClick={() => handleToggleStatus('isActive')}
-                                                        className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border transition-all ${selectedCourse.isActive ? 'bg-blue-600 border-blue-400 text-white' : 'bg-white/10 border-white/20 text-white/60 hover:bg-white/20'}`}
-                                                    >
-                                                        {selectedCourse.isActive ? '✓ Course Actif' : 'Activer Suivi'}
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleToggleStatus('isCompleted')}
-                                                        className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border transition-all ${selectedCourse.isCompleted ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-white/10 border-white/20 text-white/60 hover:bg-white/20'}`}
-                                                    >
-                                                        {selectedCourse.isCompleted ? '✓ Semestre Fini' : 'Marquer comme Fini'}
-                                                    </button>
-                                                </div>
+                                        <div className="flex flex-col flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="text-xl font-bold leading-tight">{selectedCourse.name}</h3>
+                                                <button
+                                                    onClick={() => {
+                                                        setCourseNameEdit(selectedCourse.name);
+                                                        setCourseHoursEdit(selectedCourse.totalHours || 45);
+                                                        setIsEditingCourseName(true);
+                                                    }}
+                                                    className="p-1.5 hover:bg-white/10 rounded-lg transition-colors opacity-60 hover:opacity-100 flex-shrink-0"
+                                                    title="Modifier le nom et les heures"
+                                                >
+                                                    <BookOpen className="w-4 h-4 text-white" />
+                                                </button>
+                                            </div>
+                                            <p className="text-[10px] text-white/80 font-black uppercase tracking-widest mt-1">
+                                                Volume Horaire : <span className="bg-white/20 px-2 py-0.5 rounded ml-1">{selectedCourse.totalHours || 45} Heures</span>
+                                            </p>
+                                            <div className="flex flex-wrap gap-2 mt-3">
+                                                <button 
+                                                    onClick={() => handleToggleStatus('isActive')}
+                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${selectedCourse.isActive ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'}`}
+                                                >
+                                                    {selectedCourse.isActive ? '✓ Suivi Actif' : 'Activer le Suivi'}
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleToggleStatus('isCompleted')}
+                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${selectedCourse.isCompleted ? 'bg-emerald-600 border-emerald-400 text-white shadow-lg' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'}`}
+                                                >
+                                                    {selectedCourse.isCompleted ? '✓ Semestre Fini' : 'Marquer comme Fini'}
+                                                </button>
                                             </div>
                                         </div>
                                     )}
