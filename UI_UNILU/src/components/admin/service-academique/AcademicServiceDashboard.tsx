@@ -66,6 +66,7 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
     const [announcementMessage, setAnnouncementMessage] = useState("");
     const [isPublishing, setIsPublishing] = useState(false);
     const [hasNewTickets, setHasNewTickets] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     // Navigation Guard for Planning
     const [isPlanningModified, setIsPlanningModified] = useState(false);
@@ -266,23 +267,33 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
 
     return (
         <div className="flex h-screen bg-[#F1F8F4] overflow-hidden">
-            <aside className="w-64 bg-[#1B4332] text-[#FEFCF3] flex flex-col overflow-hidden">
+            <aside className={`${isSidebarCollapsed ? "w-20" : "w-64"} bg-[#1B4332] text-[#FEFCF3] flex flex-col transition-all duration-300 ease-in-out relative overflow-hidden flex-shrink-0`}>
+                {/* Bouton de rétractation */}
+                <button
+                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    className="absolute -right-0 top-1/2 -translate-y-1/2 w-6 h-12 bg-[#74C69D] text-[#1B4332] rounded-l-xl flex items-center justify-center shadow-lg z-50 hover:w-8 transition-all"
+                >
+                    {isSidebarCollapsed ? <ChevronLeft className="w-4 h-4 rotate-180" /> : <ChevronLeft className="w-4 h-4" />}
+                </button>
+
                 {/* Logo — fixe en haut */}
-                <div className="flex-shrink-0 px-6 pt-6 pb-4">
+                <div className={`flex-shrink-0 pt-6 pb-4 ${isSidebarCollapsed ? "px-4" : "px-6"}`}>
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#74C69D] rounded-[16px] flex items-center justify-center">
+                        <div className="w-10 h-10 bg-[#74C69D] rounded-[16px] flex items-center justify-center flex-shrink-0">
                             <GraduationCap className="w-6 h-6 text-[#1B4332]" />
                         </div>
-                        <div>
-                            <h2 className="text-lg font-bold">UNILU</h2>
-                            <p className="text-xs text-[#FEFCF3]/70 uppercase tracking-wider text-end">Service Académique</p>
-                        </div>
+                        {!isSidebarCollapsed && (
+                            <div className="animate-in fade-in duration-300">
+                                <h2 className="text-lg font-bold">UNILU</h2>
+                                <p className="text-xs text-[#FEFCF3]/70 uppercase tracking-wider">Service Académique</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Nav — scrollable */}
                 <nav
-                    className="flex-1 overflow-y-auto px-6 space-y-2"
+                    className={`flex-1 overflow-y-auto space-y-2 ${isSidebarCollapsed ? "px-3" : "px-6"}`}
                     style={{
                         scrollbarWidth: 'thin',
                         scrollbarColor: 'rgba(116,198,157,0.35) transparent'
@@ -292,11 +303,16 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                         const Icon = item.icon;
                         const isActive = activeSection === item.id;
                         return (
-                            <button key={item.id} onClick={() => handleNavigate(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-[20px] transition-all relative ${isActive ? "bg-[#74C69D] text-[#1B4332] shadow-lg" : "text-[#FEFCF3] hover:bg-[#2D6A4F]"}`}>
-                                <Icon className="w-5 h-5" />
-                                <span className="text-sm font-medium">{item.label}</span>
+                            <button
+                                key={item.id}
+                                onClick={() => handleNavigate(item.id)}
+                                title={isSidebarCollapsed ? item.label : ""}
+                                className={`w-full flex items-center gap-3 py-3 rounded-[20px] transition-all relative ${isSidebarCollapsed ? "justify-center px-0" : "px-4"} ${isActive ? "bg-[#74C69D] text-[#1B4332] shadow-lg" : "text-[#FEFCF3] hover:bg-[#2D6A4F]"}`}
+                            >
+                                <Icon className="w-5 h-5 flex-shrink-0" />
+                                {!isSidebarCollapsed && <span className="text-sm font-medium whitespace-nowrap animate-in slide-in-from-left-2 duration-300">{item.label}</span>}
                                 {item.id === 'tickets_profs' && hasNewTickets && (
-                                    <span className="absolute right-4 w-2 h-2 bg-red-500 rounded-full shadow-sm animate-pulse"></span>
+                                    <span className={`absolute ${isSidebarCollapsed ? "top-2 right-2" : "right-4"} w-2 h-2 bg-red-500 rounded-full shadow-sm animate-pulse`}></span>
                                 )}
                             </button>
                         );
@@ -306,23 +322,36 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                 </nav>
 
                 {/* Accès Sécurisé — épinglé en bas */}
-                <div className="flex-shrink-0 px-6 py-4 bg-[#1B4332]">
-                    <div className="bg-[#2D6A4F]/50 backdrop-blur-sm rounded-[20px] p-4 border border-white/10">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 bg-[#74C69D]/20 rounded-full flex items-center justify-center">
-                                <FileCheck className="w-5 h-5 text-[#74C69D]" />
+                <div className={`flex-shrink-0 py-4 bg-[#1B4332] ${isSidebarCollapsed ? "px-2" : "px-6"}`}>
+                    <div className={`${isSidebarCollapsed ? "bg-transparent border-none p-0" : "bg-[#2D6A4F]/50 backdrop-blur-sm rounded-[20px] p-4 border border-white/10"}`}>
+                        <div className={`flex items-center gap-3 ${isSidebarCollapsed ? "justify-center mb-0" : "mb-3"}`}>
+                            <div className={`w-10 h-10 ${isSidebarCollapsed ? "bg-[#74C69D]/10" : "bg-[#74C69D]/20"} rounded-full flex items-center justify-center flex-shrink-0`}>
+                                <FileCheck className={`${isSidebarCollapsed ? "w-5 h-5" : "w-5 h-5"} text-[#74C69D]`} />
                             </div>
-                            <div>
-                                <p className="text-sm font-medium">Accès Sécurisé</p>
-                                <p className="text-xs text-[#FEFCF3]/70">Connexion cryptée active</p>
-                            </div>
+                            {!isSidebarCollapsed && (
+                                <div className="animate-in fade-in duration-300">
+                                    <p className="text-sm font-medium">Accès Sécurisé</p>
+                                    <p className="text-xs text-[#FEFCF3]/70">Connexion cryptée active</p>
+                                </div>
+                            )}
                         </div>
-                        <button
-                            onClick={() => setShowTechnicalSupport(true)}
-                            className="w-full bg-white/10 hover:bg-white/20 text-[#FEFCF3] py-2 rounded-[16px] text-sm transition-colors font-medium"
-                        >
-                            Contacter la Technique
-                        </button>
+                        {!isSidebarCollapsed && (
+                            <button
+                                onClick={() => setShowTechnicalSupport(true)}
+                                className="w-full bg-white/10 hover:bg-white/20 text-[#FEFCF3] py-2 rounded-[16px] text-sm transition-colors font-medium animate-in slide-in-from-bottom-2 duration-300"
+                            >
+                                Contacter la Technique
+                            </button>
+                        )}
+                        {isSidebarCollapsed && (
+                            <button
+                                onClick={() => setShowTechnicalSupport(true)}
+                                title="Contacter la Technique"
+                                className="w-full h-10 flex items-center justify-center text-[#74C69D] hover:bg-white/5 rounded-full mt-2 transition-colors"
+                            >
+                                <Wrench className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                 </div>
             </aside>

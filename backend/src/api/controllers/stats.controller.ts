@@ -31,13 +31,12 @@ export const captureLog = (req: Request, res: Response, next: any) => {
 }
 
 // Statistiques pour le dashboard du service académique
-export const getAcademicStats = async (req: Request, res: Response) => {
-    try {
-        // 1. Nombre total d'étudiants
-        const studentCount = await prisma.user.count({
+        const academicYear = "2025-2026"
+        // 1. Nombre total d'étudiants inscrits cette année
+        const studentCount = await prisma.studentEnrollment.count({
             where: {
-                systemRole: 'STUDENT',
-                isArchived: false
+                academicYear,
+                user: { isArchived: false }
             }
         })
 
@@ -51,7 +50,7 @@ export const getAcademicStats = async (req: Request, res: Response) => {
             }
         })
 
-        // 3. Nombre total de cours
+        // 3. Nombre total de cours catalogue
         const courseCount = await prisma.course.count()
 
         // 4. Nombre de demandes de changement de notes en attente
@@ -263,7 +262,7 @@ export const getAttendanceStatsByLevel = async (req: Request, res: Response) => 
                     prisma.attendanceRecord.count({
                         where: {
                             ...whereClause,
-                            status: 'PRESENT'
+                            status: { in: ['PRESENT', 'LATE'] }
                         }
                     }),
                     prisma.attendanceRecord.count({
@@ -608,14 +607,13 @@ export const getStudentDemographics = async (req: Request, res: Response) => {
         };
 
         // Filtrage par niveau ou année académique via la relation studentEnrollments
-        if (levelId || year) {
-            where.studentEnrollments = {
-                some: {
-                    ...(levelId && { academicLevelId: parseInt(levelId as string) }),
-                    ...(year && { academicYear: year as string })
-                }
-            };
-        }
+        const academicYear = (year as string) || "2025-2026";
+        where.studentEnrollments = {
+            some: {
+                academicYear,
+                ...(levelId && { academicLevelId: parseInt(levelId as string) })
+            }
+        };
 
         const students = await prisma.user.findMany({
             where,
@@ -703,6 +701,28 @@ export const getDemographicFilters = async (req: Request, res: Response) => {
 export const getDetailedCourseProgress = async (req: Request, res: Response) => {
     try {
         const { academicLevelId } = req.query;
+        const academicYear = "2025-2026";
+        const now = new Date();
+        const semesterStart = new Date('2026-02-01'); // Debut du semestre actuel
+
+        // Helpers internes
+        const getSessionDuration = (schedule: any) => {
+            if (!schedule || !schedule.startTime || !schedule.endTime) return 2;
+            const [h1, m1] = schedule.startTime.split(':').map(Number);
+            const [h2, m2] = schedule.endTime.split(':').map(Number);
+            return Math.max(1, (h2 - h1) + (m2 - m1) / 60);
+        };
+
+        const getLevelColor = (code?: string) => {
+            const c = code?.toLowerCase() || '';
+            if (c.includes('pre')) return '#1B4332';
+            if (c.includes('b1')) return '#2D6A4F';
+            if (c.includes('b2')) return '#52B788';
+            if (c.includes('b3')) return '#95D5B2';
+            return '#1B4332';
+        };
+
+        const dayMap: Record<number, string> = { 0: 'Dimanche', 1: 'Lundi', 2: 'Mardi', 3: 'Mercredi', 4: 'Jeudi', 5: 'Vendredi', 6: 'Samedi' };
 
         // 1. Récupérer tous les cours (avec filtres optionnels)
         const courses = await prisma.course.findMany({
@@ -712,21 +732,20 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
             include: {
                 academicLevels: true,
                 enrollments: {
-                    where: { role: 'PROFESSOR' },
+                    where: { role: 'PROFESSOR', academicYear },
                     include: { user: { select: { name: true, professorProfile: { select: { title: true } } } } }
                 }
             }
         });
 
         // 2. Récupérer tout l'horaire pour savoir quels cours sont programmés
-        const academicYear = "2025-2026";
         const allSchedules = await prisma.schedule.findMany({
             where: { academicYear }
         });
 
         const scheduledCourseCodes = new Set(allSchedules.map(s => s.courseCode));
 
-        // 3. Pour chaque cours, calculer les statistiques de présence/séances
+        // 3. Pour chaque cours, calculer les statistiques réelles
         const progressResults = await Promise.all(courses.map(async (course) => {
             const sessions = await prisma.attendanceSession.findMany({
                 where: { courseCode: course.code },
@@ -736,29 +755,80 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
                 }
             });
 
-            // On assume 2h par séance et 45h au total pour l'instant
-            const consumedHours = sessions.length * 2;
-            const totalHours = 45;
+            // Récupérer le nombre réel d'étudiants inscrits
+            const enrollmentCount = await prisma.studentCourseEnrollment.count({
+                where: { courseCode: course.code, academicYear, isActive: true }
+            });
 
-            // Récupérer les jours de cours dans l'horaire
+            // Fallback sur les inscriptions au niveau si besoin
+            let totalStudents = enrollmentCount;
+            if (totalStudents === 0) {
+                totalStudents = await prisma.studentEnrollment.count({
+                    where: { academicLevelId: course.academicLevels[0]?.id, academicYear }
+                });
+            }
+            const effectiveTotal = totalStudents || 1;
+
             const courseSchedules = allSchedules.filter(s => s.courseCode === course.code);
             const scheduleText = courseSchedules.length > 0
                 ? courseSchedules.map(s => `${s.day} ${s.startTime}-${s.endTime}`).join(', ')
                 : 'Non programmé';
 
-            const formattedSessions = sessions.map(s => {
+            // Identifier les séances réelles faites
+            const realFormattedSessions = sessions.map(s => {
+                const sDate = new Date(s.date);
+                const sch = courseSchedules.find(sch => sch.day === dayMap[sDate.getDay()]);
+                const duration = getSessionDuration(sch);
                 const presentCount = s.records.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length;
+                
                 return {
                     date: s.date,
-                    label: new Date(s.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }),
-                    wasScheduled: true,
+                    label: sDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }),
+                    wasScheduled: !!sch,
                     attendanceTaken: true,
-                    hours: 2,
+                    hours: duration,
                     presentCount,
-                    totalCount: 40,
-                    attendanceRate: 40 > 0 ? Math.round((presentCount / 40) * 100) : 0
+                    totalCount: effectiveTotal,
+                    attendanceRate: Math.min(100, Math.round((presentCount / effectiveTotal) * 100))
                 };
             });
+
+            // Détecter les séances manquées (prévues dans l'horaire mais pas d'appel fait)
+            const missedSessions: any[] = [];
+            let tempDate = new Date(semesterStart);
+            while (tempDate <= now) {
+                const dayName = dayMap[tempDate.getDay()];
+                const daySchedules = courseSchedules.filter(s => s.day === dayName);
+                
+                for (const sch of daySchedules) {
+                    const hasReal = sessions.some(s => new Date(s.date).toDateString() === tempDate.toDateString());
+                    if (!hasReal) {
+                        missedSessions.push({
+                            date: new Date(tempDate),
+                            label: new Date(tempDate).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }),
+                            wasScheduled: true,
+                            attendanceTaken: false,
+                            hours: getSessionDuration(sch)
+                        });
+                    }
+                }
+                tempDate.setDate(tempDate.getDate() + 1);
+            }
+
+            const allCourseSessions = [...realFormattedSessions, ...missedSessions].sort((a, b) => 
+                new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+
+            // Heures consommées basées sur les appels réels
+            let consumedHours = realFormattedSessions.reduce((acc, s) => acc + s.hours, 0);
+            
+            // Total des heures théorique
+            const totalHours = (course as any).totalHours || 45;
+
+            // Si le cours est fini, on force à 100%
+            if (course.isCompleted) {
+                consumedHours = totalHours;
+            }
 
             return {
                 code: course.code,
@@ -766,14 +836,17 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
                 professor: course.enrollments[0]?.user?.name || 'Non assigné',
                 professeurTitle: course.enrollments[0]?.user?.professorProfile?.title || 'Professeur',
                 level: course.academicLevels[0]?.code?.toUpperCase() || 'GEOL',
-                levelColor: '#1B4332',
+                levelColor: getLevelColor(course.academicLevels[0]?.code),
                 totalHours,
-                consumedHours,
+                consumedHours: Math.round(consumedHours * 10) / 10,
                 schedule: scheduleText,
                 room: courseSchedules[0]?.room || 'Campus',
-                totalStudents: 40,
-                isScheduled: scheduledCourseCodes.has(course.code),
-                sessions: formattedSessions
+                totalStudents: effectiveTotal,
+                isActive: course.isActive,
+                isCompleted: course.isCompleted,
+                isScheduled: course.isActive || scheduledCourseCodes.has(course.code),
+                hasNoSchedule: course.isActive && !scheduledCourseCodes.has(course.code),
+                sessions: allCourseSessions
             };
         }));
 

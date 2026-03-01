@@ -32,7 +32,10 @@ interface CourseProgress {
     room: string;
     sessions: SessionDay[];
     totalStudents: number;
+    isActive: boolean;
+    isCompleted: boolean;
     isScheduled: boolean;
+    hasNoSchedule?: boolean;
 }
 
 
@@ -141,6 +144,16 @@ function CourseCard({ course, onClick }: { course: CourseProgress; onClick: () =
                         <h3 className="text-sm font-bold text-[#1B4332] leading-tight line-clamp-2 group-hover:text-[#2D6A4F] transition-colors">
                             {course.name}
                         </h3>
+                        {course.hasNoSchedule && (
+                            <span className="inline-block mt-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[8px] font-black uppercase border border-blue-200">
+                                Actif (Non planifié)
+                            </span>
+                        )}
+                        {course.isCompleted && (
+                            <span className="inline-block mt-1 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[8px] font-black uppercase border border-emerald-200">
+                                Fini
+                            </span>
+                        )}
                     </div>
                 </div>
                 <div className="flex flex-col items-end gap-1.5 flex-shrink-0 ml-2">
@@ -256,7 +269,11 @@ function CourseDetailModal({ course, onClose }: { course: CourseProgress; onClos
                                     {course.code}
                                 </span>
                                 <h2 className="text-lg font-black mt-1 leading-tight">{course.name}</h2>
-                                <p className="text-white/70 text-xs mt-0.5">{course.professor} · {course.level}</p>
+                                <div className="flex gap-2 mt-1">
+                                    <p className="text-white/70 text-xs">{course.professor} · {course.level}</p>
+                                    {course.hasNoSchedule && <span className="text-[8px] font-black uppercase bg-blue-500 text-white px-2 py-0.5 rounded-full">Non planifié</span>}
+                                    {course.isCompleted && <span className="text-[8px] font-black uppercase bg-emerald-500 text-white px-2 py-0.5 rounded-full">Terminé</span>}
+                                </div>
                             </div>
                         </div>
                         <button

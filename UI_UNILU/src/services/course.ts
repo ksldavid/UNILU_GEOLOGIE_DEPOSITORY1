@@ -27,7 +27,7 @@ export const courseService = {
         return response.json();
     },
 
-    async createCourse(data: { code: string; name: string; academicLevelIds: number[] }) {
+    async createCourse(data: { code: string; name: string; academicLevelIds: number[]; totalHours?: number }) {
         const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/courses`, {
             method: 'POST',
@@ -44,7 +44,7 @@ export const courseService = {
         return response.json();
     },
 
-    async updateCourse(code: string, data: { name: string }) {
+    async updateCourse(code: string, data: { name?: string; totalHours?: number; isActive?: boolean; isCompleted?: boolean }) {
         const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/courses/${code}`, {
             method: 'PATCH',

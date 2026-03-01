@@ -289,6 +289,9 @@ model Course {
   code                     String                    @id // Clé primaire : e.g. "GEOL101"
   name                     String
   description              String?
+  totalHours               Int                       @default(45)
+  isActive                 Boolean                   @default(false)
+  isCompleted              Boolean                   @default(false)
   // Relations
   academicLevels           AcademicLevel[] // Many-to-Many implicite
   enrollments              CourseEnrollment[]

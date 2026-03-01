@@ -46,6 +46,9 @@ export const getCourses = async (req: Request, res: Response) => {
             id: c.code, // Utilise le code comme ID pour le planning
             name: c.name,
             code: c.code,
+            totalHours: c.totalHours || 45,
+            isActive: c.isActive,
+            isCompleted: c.isCompleted,
             professor: c.enrollments?.[0]?.user?.name || 'À définir',
             academicLevels: c.academicLevels,
             color: '#1B4332'
@@ -74,7 +77,7 @@ export const getAcademicLevels = async (req: Request, res: Response) => {
 
 export const createCourse = async (req: Request, res: Response) => {
     try {
-        const { code, name, academicLevelIds, academicYear = "2025-2026" } = req.body
+        const { code, name, academicLevelIds, totalHours = 45, isActive = false, academicYear = "2025-2026" } = req.body
 
         if (!code || !name || !academicLevelIds || !Array.isArray(academicLevelIds)) {
             return res.status(400).json({ message: 'Données manquantes : code, name ou academicLevelIds sont requis' })
@@ -85,6 +88,8 @@ export const createCourse = async (req: Request, res: Response) => {
             data: {
                 code,
                 name,
+                totalHours: Number(totalHours),
+                isActive,
                 academicLevels: {
                     connect: academicLevelIds.map((id: number) => ({ id }))
                 }
@@ -122,15 +127,21 @@ export const createCourse = async (req: Request, res: Response) => {
 export const updateCourse = async (req: Request, res: Response) => {
     try {
         const code = req.params.code as string
-        const { name } = req.body
+        const { name, totalHours, isActive, isCompleted } = req.body
 
-        if (!name) {
-            return res.status(400).json({ message: 'Le nom du cours est requis pour la mise à jour' })
+        const updateData: any = {}
+        if (name) updateData.name = name
+        if (totalHours !== undefined) updateData.totalHours = Number(totalHours)
+        if (isActive !== undefined) updateData.isActive = Boolean(isActive)
+        if (isCompleted !== undefined) updateData.isCompleted = Boolean(isCompleted)
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: 'Aucune donnée à mettre à jour' })
         }
 
         const updatedCourse = await prisma.course.update({
             where: { code },
-            data: { name }
+            data: updateData
         })
 
         res.json(updatedCourse)

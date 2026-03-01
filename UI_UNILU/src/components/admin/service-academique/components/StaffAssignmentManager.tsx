@@ -20,6 +20,9 @@ interface Course {
     id: string;
     code: string;
     name: string;
+    totalHours: number;
+    isActive: boolean;
+    isCompleted: boolean;
     academicLevels: { id: number, displayName: string }[];
 }
 
@@ -52,10 +55,12 @@ export function StaffAssignmentManager() {
     const [newCourseData, setNewCourseData] = useState({
         code: '',
         name: '',
+        totalHours: 45,
         academicLevelIds: [] as number[]
     });
     const [isEditingCourseName, setIsEditingCourseName] = useState(false);
     const [courseNameEdit, setCourseNameEdit] = useState('');
+    const [courseHoursEdit, setCourseHoursEdit] = useState(45);
 
     useEffect(() => {
         fetchAssignments();
@@ -110,6 +115,9 @@ export function StaffAssignmentManager() {
                     profTitle: enr.user?.professorProfile?.title || 'Enseignant',
                     courseCode: enr.courseCode,
                     courseName: enr.course?.name || 'Inconnu',
+                    totalHours: enr.course?.totalHours || 45,
+                    isActive: enr.course?.isActive || false,
+                    isCompleted: enr.course?.isCompleted || false,
                     academicLevel: level,
                     role: enr.role,
                     academicYear: enr.academicYear,
@@ -194,10 +202,11 @@ export function StaffAssignmentManager() {
             await courseService.createCourse({
                 code: newCourseData.code,
                 name: newCourseData.name,
+                totalHours: newCourseData.totalHours,
                 academicLevelIds: newCourseData.academicLevelIds
             });
             setShowCreateCourseModal(false);
-            setNewCourseData({ code: '', name: '', academicLevelIds: [] });
+            setNewCourseData({ code: '', name: '', totalHours: 45, academicLevelIds: [] });
             fetchCourses();
             alert("Cours créé avec succès ! Les étudiants ont été inscrits automatiquement.");
         } catch (error: any) {
@@ -211,9 +220,12 @@ export function StaffAssignmentManager() {
         if (!selectedCourse || !courseNameEdit.trim()) return;
         setIsProcessing(true);
         try {
-            await courseService.updateCourse(selectedCourse.code, { name: courseNameEdit });
-            setCourses(courses.map(c => c.code === selectedCourse.code ? { ...c, name: courseNameEdit } : c));
-            setSelectedCourse({ ...selectedCourse, name: courseNameEdit });
+            await courseService.updateCourse(selectedCourse.code, { 
+                name: courseNameEdit,
+                totalHours: Number(courseHoursEdit)
+            });
+            setCourses(courses.map(c => c.code === selectedCourse.code ? { ...c, name: courseNameEdit, totalHours: Number(courseHoursEdit) } : c));
+            setSelectedCourse({ ...selectedCourse, name: courseNameEdit, totalHours: Number(courseHoursEdit) });
             setIsEditingCourseName(false);
             fetchAssignments();
         } catch (error: any) {
@@ -323,6 +335,7 @@ export function StaffAssignmentManager() {
                             <tr className="bg-[#1B4332]/5 border-b border-[#1B4332]/10">
                                 <th className="px-6 py-4 text-xs font-bold text-[#1B4332] uppercase tracking-wider">Code</th>
                                 <th className="px-6 py-4 text-xs font-bold text-[#1B4332] uppercase tracking-wider">Cours</th>
+                                <th className="px-6 py-4 text-xs font-bold text-[#1B4332] uppercase tracking-wider">V.H. (Heures)</th>
                                 <th className="px-6 py-4 text-xs font-bold text-[#1B4332] uppercase tracking-wider">Classe(s)</th>
                                 <th className="px-6 py-4 text-xs font-bold text-[#1B4332] uppercase tracking-wider">Effectif Académique</th>
                             </tr>
@@ -362,6 +375,34 @@ export function StaffAssignmentManager() {
                                                     </div>
                                                     <p className="text-sm font-bold text-[#1B4332]">{course.name}</p>
                                                 </div>
+                                                <div className="flex gap-2 mt-1">
+                                                    {course.isCompleted && (
+                                                        <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[9px] font-black uppercase border border-emerald-200">
+                                                            Terminé
+                                                        </span>
+                                                    )}
+                                                    {course.isActive && (
+                                                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[9px] font-black uppercase border border-blue-200">
+                                                            Actif (Suivi manuel)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedCourse(course);
+                                                        setCourseNameEdit(course.name);
+                                                        setCourseHoursEdit(course.totalHours || 45);
+                                                        setIsEditingCourseName(true);
+                                                    }}
+                                                    className="group/vh flex items-center gap-2 bg-[#1B4332]/5 text-[#1B4332] px-3 py-1.5 rounded-lg text-xs font-mono font-black border border-[#1B4332]/10 hover:bg-[#1B4332] hover:text-white transition-all active:scale-95"
+                                                    title="Modifier le Volume Horaire"
+                                                >
+                                                    {course.totalHours || 45} h
+                                                    <BookOpen className="w-3 h-3 opacity-40 group-hover/vh:opacity-100" />
+                                                </button>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-wrap gap-1">
@@ -515,37 +556,72 @@ export function StaffAssignmentManager() {
                                         <div className="flex items-center gap-2 pt-1">
                                             <input
                                                 type="text"
-                                                className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-white outline-none focus:border-white/40 w-full"
+                                                className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-white outline-none focus:border-white/40 w-full mb-2"
                                                 value={courseNameEdit}
                                                 onChange={(e) => setCourseNameEdit(e.target.value)}
+                                                placeholder="Nom du cours"
                                                 autoFocus
                                             />
-                                            <button
-                                                onClick={handleUpdateCourseName}
-                                                disabled={isProcessing}
-                                                className="p-1 bg-white/20 rounded-lg hover:bg-white/30 text-white"
-                                            >
-                                                <Save className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => setIsEditingCourseName(false)}
-                                                className="p-1 bg-white/10 rounded-lg hover:bg-white/20 text-white"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 flex items-center bg-white/10 rounded-lg px-3 border border-white/20">
+                                                    <span className="text-[10px] text-white/60 mr-2 uppercase font-bold">V.H.</span>
+                                                    <input
+                                                        type="number"
+                                                        className="bg-transparent text-white outline-none w-16 py-1 text-sm font-bold"
+                                                        value={courseHoursEdit}
+                                                        onChange={(e) => setCourseHoursEdit(Number(e.target.value))}
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={handleUpdateCourseName}
+                                                    disabled={isProcessing}
+                                                    className="p-2 bg-white/20 rounded-lg hover:bg-white/30 text-white"
+                                                    title="Sauvegarder"
+                                                >
+                                                    <Save className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => setIsEditingCourseName(false)}
+                                                    className="p-2 bg-white/10 rounded-lg hover:bg-white/20 text-white"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2">
-                                            <h3 className="text-xl font-bold">{selectedCourse.name}</h3>
-                                            <button
-                                                onClick={() => {
-                                                    setCourseNameEdit(selectedCourse.name);
-                                                    setIsEditingCourseName(true);
-                                                }}
-                                                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors opacity-60 hover:opacity-100"
-                                            >
-                                                <BookOpen className="w-4 h-4 text-white" />
-                                            </button>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="text-xl font-bold">{selectedCourse.name}</h3>
+                                                    <button
+                                                        onClick={() => {
+                                                            setCourseNameEdit(selectedCourse.name);
+                                                            setCourseHoursEdit(selectedCourse.totalHours || 45);
+                                                            setIsEditingCourseName(true);
+                                                        }}
+                                                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors opacity-60 hover:opacity-100"
+                                                    >
+                                                        <BookOpen className="w-4 h-4 text-white" />
+                                                    </button>
+                                                </div>
+                                                <p className="text-[10px] text-white/60 font-black uppercase tracking-widest mt-0.5">
+                                                    Volume Horaire : {selectedCourse.totalHours || 45} Heures
+                                                </p>
+                                                <div className="flex gap-2 mt-2">
+                                                    <button 
+                                                        onClick={() => handleToggleStatus('isActive')}
+                                                        className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border transition-all ${selectedCourse.isActive ? 'bg-blue-600 border-blue-400 text-white' : 'bg-white/10 border-white/20 text-white/60 hover:bg-white/20'}`}
+                                                    >
+                                                        {selectedCourse.isActive ? '✓ Course Actif' : 'Activer Suivi'}
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleToggleStatus('isCompleted')}
+                                                        className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border transition-all ${selectedCourse.isCompleted ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-white/10 border-white/20 text-white/60 hover:bg-white/20'}`}
+                                                    >
+                                                        {selectedCourse.isCompleted ? '✓ Semestre Fini' : 'Marquer comme Fini'}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                     <p className="text-white/70 flex items-center gap-2 mt-1">
@@ -704,6 +780,10 @@ export function StaffAssignmentManager() {
                                 <div className="col-span-2">
                                     <label className="block text-sm font-bold text-[#1B4332] mb-1">Nom du cours</label>
                                     <input type="text" placeholder="Ex: Minéralogie..." className="w-full h-12 px-4 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[16px]" value={newCourseData.name} onChange={(e) => setNewCourseData({ ...newCourseData, name: e.target.value })} />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="block text-sm font-bold text-[#1B4332] mb-1">Volume H.</label>
+                                    <input type="number" placeholder="45" className="w-full h-12 px-4 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[16px] font-bold" value={newCourseData.totalHours} onChange={(e) => setNewCourseData({ ...newCourseData, totalHours: Number(e.target.value) })} />
                                 </div>
                             </div>
                             <div>
