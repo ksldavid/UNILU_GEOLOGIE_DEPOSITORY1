@@ -16,6 +16,7 @@ export interface ExamScheduleData {
         colorTo: string;
     };
     creatorId?: string;
+    isPublished?: boolean;
 }
 
 export const examScheduleService = {
@@ -25,12 +26,27 @@ export const examScheduleService = {
             headers: getAuthHeaders(),
             body: JSON.stringify(data)
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Erreur lors de la création du planning');
         }
-        
+
+        return response.json();
+    },
+
+    async update(id: number, data: Partial<ExamScheduleData>): Promise<ExamScheduleData> {
+        const response = await fetch(`${API_URL}/exam-schedules/${id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Erreur lors de la mise à jour');
+        }
+
         return response.json();
     },
 
@@ -42,11 +58,11 @@ export const examScheduleService = {
         if (params?.courseCode) queryParams.append('courseCode', params.courseCode);
 
         const url = `${API_URL}/exam-schedules${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-        
+
         const response = await fetch(url, {
             headers: getAuthHeaders()
         });
-        
+
         if (!response.ok) throw new Error('Erreur de récupération des plannings');
         return response.json();
     },
@@ -56,7 +72,7 @@ export const examScheduleService = {
             method: 'DELETE',
             headers: getAuthHeaders()
         });
-        
+
         if (!response.ok) throw new Error('Erreur lors de la suppression');
     }
 };

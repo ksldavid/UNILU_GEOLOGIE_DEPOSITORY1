@@ -127,8 +127,8 @@ model User {
   notifications Notification[] @relation("UserNotifications")
 
   // Support Tickets
-  supportTickets  SupportTicket[]  @relation("UserTickets")
-  supportMessages SupportMessage[] @relation("SenderMessages")
+  supportTickets       SupportTicket[]  @relation("UserTickets")
+  supportMessages      SupportMessage[] @relation("SenderMessages")
   createdExamSchedules ExamSchedule[] // Les examens/interros créés par l'utilisateur
 
   @@index([email])
@@ -587,17 +587,18 @@ model Schedule {
 // --- EXAM SCHEDULE ---
 
 model ExamSchedule {
-  id              Int      @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   academicLevelId Int
   courseCode      String
   type            AssessmentType // EXAM or INTERROGATION
   date            DateTime // Date and time of the exam
-  month           Int      // 1-12 for easy filtering
+  month           Int // 1-12 for easy filtering
   year            Int
-  academicYear    String   @default("2025-2026")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  creatorId       String   // ID of the user who scheduled it (Admin or Prof)
+  academicYear    String         @default("2025-2026")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  creatorId       String // ID of the user who scheduled it (Admin or Prof)
+  isPublished     Boolean        @default(false)
 
   academicLevel AcademicLevel @relation(fields: [academicLevelId], references: [id])
   course        Course        @relation(fields: [courseCode], references: [code])

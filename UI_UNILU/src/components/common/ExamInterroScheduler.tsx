@@ -155,16 +155,20 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
             const [hours, minutes] = formData.dateTime.split(':');
             fullDate.setHours(parseInt(hours), parseInt(minutes));
 
+            // Determine if publishing (always true for Professor for now, or use a param)
+            const isPublished = (e.nativeEvent as any).submitter?.name === 'publish';
+
             await examScheduleService.create({
                 courseCode: formData.courseCode,
                 academicLevelId: mode === 'PROFESSOR' ? course.academicLevelId : formData.academicLevelId,
                 type: formData.type,
                 date: fullDate.toISOString(),
                 month: currentMonth,
-                year: currentYear
+                year: currentYear,
+                isPublished: mode === 'PROFESSOR' ? true : isPublished
             });
 
-            toast.success("Programme enregistré !");
+            toast.success(isPublished ? "Programme publié !" : "Brouillon enregistré !");
             setShowForm(false);
             fetchSchedules();
         } catch (error: any) {
@@ -268,6 +272,16 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
         } catch (error) {
             console.error("PDF generation failed:", error);
             toast.error("Échec de la génération du PDF");
+        }
+    };
+
+    const handlePublish = async (id: number) => {
+        try {
+            await examScheduleService.update(id, { isPublished: true });
+            toast.success("Programme publié aux étudiants !");
+            fetchSchedules();
+        } catch (error) {
+            toast.error("Échec de la publication");
         }
     };
 
@@ -516,11 +530,25 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
 
                                     <div className="flex justify-end gap-4 pt-4">
                                         <button type="button" onClick={() => setShowForm(false)} className="px-8 py-4 font-bold text-white/50 hover:text-white transition-colors">Annuler</button>
+
+                                        {mode === 'ACADEMIC_OFFICE' && (
+                                            <button
+                                                type="submit"
+                                                name="draft"
+                                                disabled={isSubmitting}
+                                                className="bg-white/10 text-white px-10 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-white/20 transition-all border border-white/10"
+                                            >
+                                                Enregistrer Brouillon
+                                            </button>
+                                        )}
+
                                         <button
+                                            type="submit"
+                                            name="publish"
                                             disabled={isSubmitting}
-                                            className="bg-white text-blue-900 px-10 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-50 transition-all"
+                                            className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all shadow-xl shadow-blue-900/40"
                                         >
-                                            {isSubmitting ? "Enregistrement..." : "Confirmer le planning"}
+                                            {isSubmitting ? "Envoi..." : (mode === 'ACADEMIC_OFFICE' ? "Publier l'horaire" : "Confirmer le planning")}
                                         </button>
                                     </div>
                                 </form>
@@ -536,6 +564,8 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                 year={currentYear}
                                 schedules={schedules}
                                 onDelete={handleDelete}
+                                onPublish={handlePublish}
+                                mode={mode}
                             />
                         ) : (
                             <div className="space-y-8">
@@ -549,7 +579,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                                 {mName} {currentYear}
                                             </h4>
                                             {monthSchedules.map(s => (
-                                                <ScheduleCard key={s.id} schedule={s} onDelete={handleDelete} />
+                                                <ScheduleCard key={s.id} schedule={s} onDelete={handleDelete} onPublish={handlePublish} mode={mode} />
                                             ))}
                                         </div>
                                     );
@@ -569,7 +599,12 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
     );
 }
 // Internal component for schedule items
-function ScheduleCard({ schedule, onDelete }: { schedule: ExamScheduleData, onDelete: (id: number) => void }) {
+function ScheduleCard({ schedule, onDelete, onPublish, mode }: {
+    schedule: ExamScheduleData,
+    onDelete: (id: number) => void,
+    onPublish: (id: number) => void,
+    mode: 'PROFESSOR' | 'ACADEMIC_OFFICE'
+}) {
     const s = schedule;
     return (
         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
@@ -583,28 +618,45 @@ function ScheduleCard({ schedule, onDelete }: { schedule: ExamScheduleData, onDe
                         <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${s.type === 'EXAM' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'}`}>
                             {s.type === 'EXAM' ? 'Examen' : 'Interro'}
                         </span>
+                        {!s.isPublished && (
+                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100 italic">
+                                Brouillon
+                            </span>
+                        )}
                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <h3 className="font-black text-gray-900 uppercase">{s.course?.name}</h3>
                     <p className="text-xs text-gray-400 font-medium">{s.academicLevelId === 0 ? 'Presciences' : `B${s.academicLevelId}`}</p>
                 </div>
             </div>
-            <button
-                onClick={() => s.id && onDelete(s.id)}
-                className="p-3 text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-            >
-                <Trash2 className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+                {!s.isPublished && mode === 'ACADEMIC_OFFICE' && (
+                    <button
+                        onClick={() => s.id && onPublish(s.id)}
+                        className="px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl text-[10px] font-black uppercase transition-all"
+                    >
+                        Publier
+                    </button>
+                )}
+                <button
+                    onClick={() => s.id && onDelete(s.id)}
+                    className="p-3 text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                >
+                    <Trash2 className="w-5 h-5" />
+                </button>
+            </div>
         </div>
     );
 }
 
 // Calendar Grid Component
-function CalendarGrid({ month, year, schedules, onDelete }: {
+function CalendarGrid({ month, year, schedules, onDelete, onPublish, mode }: {
     month: number,
     year: number,
     schedules: ExamScheduleData[],
-    onDelete: (id: number) => void
+    onDelete: (id: number) => void,
+    onPublish: (id: number) => void,
+    mode: 'PROFESSOR' | 'ACADEMIC_OFFICE'
 }) {
     const daysInMonth = new Date(year, month, 0).getDate();
     const firstDayOfMonth = new Date(year, month - 1, 1).getDay(); // 0 is Sunday
@@ -651,19 +703,32 @@ function CalendarGrid({ month, year, schedules, onDelete }: {
                                     {d.schedules?.map(s => (
                                         <div
                                             key={s.id}
-                                            className={`p-1.5 rounded-lg text-[9px] font-bold border leading-tight group/item relative ${s.type === 'EXAM'
-                                                ? 'bg-rose-50 border-rose-100 text-rose-700'
-                                                : 'bg-blue-50 border-blue-100 text-blue-700'
+                                            className={`p-1.5 rounded-lg text-[9px] font-bold border leading-tight group/item relative ${!s.isPublished
+                                                ? 'bg-amber-50 border-amber-100 text-amber-700'
+                                                : (s.type === 'EXAM' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-blue-50 border-blue-100 text-blue-700')
                                                 }`}
                                         >
-                                            <div className="flex justify-between">
-                                                <span className="truncate pr-4 uppercase">{s.course?.name}</span>
-                                                <button
-                                                    onClick={() => s.id && onDelete(s.id)}
-                                                    className="absolute top-1 right-1 opacity-0 group-hover/item:opacity-100 text-rose-500 bg-white/50 rounded p-0.5"
-                                                >
-                                                    <Trash2 className="w-2.5 h-2.5" />
-                                                </button>
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-1 truncate">
+                                                    {!s.isPublished && <div className="w-1 h-1 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></div>}
+                                                    <span className="truncate uppercase pr-2">{s.course?.name}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    {!s.isPublished && mode === 'ACADEMIC_OFFICE' && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); s.id && onPublish(s.id); }}
+                                                            className="opacity-0 group-hover/item:opacity-100 bg-emerald-500 text-white rounded px-1.5 py-0.5 text-[8px] font-black uppercase"
+                                                        >
+                                                            Publier
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); s.id && onDelete(s.id); }}
+                                                        className="opacity-0 group-hover/item:opacity-100 text-rose-500 bg-white/50 rounded p-0.5"
+                                                    >
+                                                        <Trash2 className="w-2.5 h-2.5" />
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div className="flex items-center gap-1 mt-0.5 opacity-60">
                                                 <span>{new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>

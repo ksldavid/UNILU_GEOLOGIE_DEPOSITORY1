@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/auth.middleware'
 
 export const createExamSchedule = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode, academicLevelId, type, date, month, year, academicYear } = req.body;
+        const { courseCode, academicLevelId, type, date, month, year, academicYear, isPublished = false } = req.body;
         const creatorId = req.user?.userId; // Correct: use userId from AuthRequest
 
         if (!creatorId) {
@@ -35,7 +35,8 @@ export const createExamSchedule = async (req: AuthRequest, res: Response) => {
                 month,
                 year,
                 academicYear: academicYear || '2025-2026',
-                creatorId
+                creatorId,
+                isPublished: Boolean(isPublished)
             }
         });
 
@@ -57,6 +58,11 @@ export const getExamSchedules = async (req: AuthRequest, res: Response) => {
         if (year) whereClause.year = Number(year);
         if (courseCode) whereClause.courseCode = String(courseCode);
 
+        // Filter for students: they only see published schedules
+        if (req.user?.role === 'STUDENT') {
+            whereClause.isPublished = true;
+        }
+
         const schedules = await prisma.examSchedule.findMany({
             where: whereClause,
             include: {
@@ -74,6 +80,29 @@ export const getExamSchedules = async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error('Erreur getExamSchedules:', error);
         res.status(500).json({ error: 'Erreur lors de la récupération des plannings' });
+    }
+};
+
+export const updateExamSchedule = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { date, isPublished } = req.body;
+        const userId = req.user?.userId;
+
+        if (!userId) return res.status(401).json({ error: 'Non autorisé' });
+
+        const updated = await prisma.examSchedule.update({
+            where: { id: Number(id) },
+            data: {
+                ...(date && { date: new Date(date) }),
+                ...(isPublished !== undefined && { isPublished: Boolean(isPublished) })
+            }
+        });
+
+        res.json(updated);
+    } catch (error) {
+        console.error('Erreur updateExamSchedule:', error);
+        res.status(500).json({ error: 'Erreur lors de la mise à jour' });
     }
 };
 
