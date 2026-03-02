@@ -124,11 +124,12 @@ export const getRecentActivities = async (req: Request, res: Response) => {
         }) as any)
 
         recentGrades.forEach((g: any) => {
+            if (!g.grade || !g.grade.assessment) return;
             activities.push({
                 id: `grade-${g.id}`,
                 user: g.requester?.name || 'Inconnu',
                 action: g.status === 'PENDING' || g.status === 'pending' ? 'Demande de rectification' : `Note ${g.status === 'APPROVED' || g.status === 'approved' ? 'approuvée' : 'refusée'}`,
-                detail: g.grade?.assessment?.course?.name || 'Cours inconnu',
+                detail: g.grade.assessment.course?.name || 'Cours inconnu',
                 time: g.createdAt,
                 type: 'GRADE'
             })
@@ -193,6 +194,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
         }) as any)
 
         recentAnnouncements.forEach((ann: any) => {
+            if (!ann) return;
             let targetLabel = 'Tous';
             if (ann.target === 'GLOBAL') targetLabel = "Toute l'Université";
             else if (ann.target === 'ALL_STUDENTS') targetLabel = 'Tous les étudiants';

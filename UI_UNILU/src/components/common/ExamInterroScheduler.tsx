@@ -3,7 +3,6 @@ import {
     Calendar as CalendarIcon,
     ChevronLeft,
     ChevronRight,
-    Plus,
     AlertCircle,
     CheckCircle2,
     Trash2,
@@ -215,13 +214,6 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                             {levels.map(l => <option key={l.id} value={l.id}>{l.displayName}</option>)}
                         </select>
                     )}
-                    <button
-                        onClick={() => setShowForm(!showForm)}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-3 shadow-xl hover:bg-blue-700 transition-all active:scale-95"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Nouvelle Date
-                    </button>
                 </div>
             </div>
 
@@ -302,24 +294,28 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 <div className="flex items-center justify-between">
                     <h4 className="font-black text-gray-900 flex items-center gap-2">
                         <BookMarked className="w-5 h-5 text-blue-600" />
-                        Banque de Cours (Terminés)
+                        {mode === 'PROFESSOR' ? 'Mes Cours (Interrogations)' : 'Banque de Cours (Terminés)'}
                     </h4>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-full">
-                        {availableCourses.filter(c => c.isCompleted).length} COURS DISPONIBLES
+                        {mode === 'PROFESSOR' ? availableCourses.length : availableCourses.filter(c => c.isCompleted).length} COURS {mode === 'PROFESSOR' ? 'À ENSEIGNER' : 'DISPONIBLES'}
                     </span>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
                     {availableCourses
-                        .filter(c => c.isCompleted)
+                        .filter(c => mode === 'PROFESSOR' ? true : c.isCompleted)
                         .map(course => {
-                            const isAlreadyScheduled = schedules.some(s => s.courseCode === course.code && s.type === 'EXAM');
+                            const isAlreadyScheduled = schedules.some(s => s.courseCode === course.code && (mode === 'PROFESSOR' ? s.type === 'INTERROGATION' : s.type === 'EXAM'));
                             return (
                                 <div
                                     key={course.code}
                                     onClick={() => {
-                                        if (!isAlreadyScheduled) {
-                                            setFormData({ ...formData, courseCode: course.code, type: 'EXAM' });
+                                        if (mode === 'PROFESSOR' || !isAlreadyScheduled) {
+                                            setFormData({
+                                                ...formData,
+                                                courseCode: course.code,
+                                                type: mode === 'PROFESSOR' ? 'INTERROGATION' : 'EXAM'
+                                            });
                                             setShowForm(true);
                                         }
                                     }}

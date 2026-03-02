@@ -9,6 +9,8 @@ export function StudentExams() {
     const [schedules, setSchedules] = useState<ExamScheduleData[]>([]);
     const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+    const [viewMode, setViewMode] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
+    const [yearlySchedules, setYearlySchedules] = useState<ExamScheduleData[]>([]);
 
     const monthNames = [
         "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -24,6 +26,11 @@ export function StudentExams() {
                     year: currentYear 
                 });
                 setSchedules(data);
+
+                if (viewMode === 'YEARLY') {
+                    const yData = await examScheduleService.getAll({ year: currentYear });
+                    setYearlySchedules(yData);
+                }
             } catch (error) {
                 console.error("Failed to fetch exam schedules:", error);
             } finally {
@@ -31,7 +38,7 @@ export function StudentExams() {
             }
         };
         fetchExams();
-    }, [currentMonth, currentYear]);
+    }, [currentMonth, currentYear, viewMode]);
 
     const handlePrevMonth = () => {
         if (currentMonth === 1) {
@@ -79,36 +86,47 @@ export function StudentExams() {
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-10">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl md:text-4xl font-black text-gray-900 mb-1 md:mb-2 tracking-tight">Examen & Interro</h1>
-                <p className="text-gray-500 text-xs md:text-base font-medium">Calendrier de vos évaluations académiques</p>
-            </div>
-
-            {/* Month Selector */}
-            <div className="bg-white p-4 md:p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between">
-                <button 
-                    onClick={handlePrevMonth}
-                    className="p-3 hover:bg-gray-50 rounded-2xl transition-all active:scale-90"
-                >
-                    <ChevronLeft className="w-6 h-6 text-gray-400" />
-                </button>
-                
-                <div className="text-center">
-                    <h2 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tighter">
-                        {monthNames[currentMonth - 1]} {currentYear}
-                    </h2>
-                    <p className="text-[10px] md:text-xs font-black text-blue-600 uppercase tracking-[0.2em] mt-1">
-                        {schedules.length} Évaluation{schedules.length > 1 ? 's' : ''} prévue{schedules.length > 1 ? 's' : ''}
-                    </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl md:text-4xl font-black text-gray-900 mb-1 md:mb-2 tracking-tight">Examen & Interro</h1>
+                    <p className="text-gray-500 text-xs md:text-base font-medium">Calendrier de vos évaluations académiques</p>
                 </div>
-
                 <button 
-                    onClick={handleNextMonth}
-                    className="p-3 hover:bg-gray-50 rounded-2xl transition-all active:scale-90"
+                    onClick={() => setViewMode(viewMode === 'MONTHLY' ? 'YEARLY' : 'MONTHLY')}
+                    className="w-full md:w-auto px-6 py-4 bg-white border border-gray-100 rounded-[28px] shadow-sm font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-gray-50 transition-all"
                 >
-                    <ChevronRight className="w-6 h-6 text-gray-400" />
+                    <CalendarIcon className="w-4 h-4 text-blue-600" />
+                    {viewMode === 'MONTHLY' ? 'Vue Annuelle' : 'Vue Mensuelle'}
                 </button>
             </div>
+
+            {/* Month Selector - Only in Monthly Mode */}
+            {viewMode === 'MONTHLY' && (
+                <div className="bg-white p-4 md:p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between">
+                    <button 
+                        onClick={handlePrevMonth}
+                        className="p-3 hover:bg-gray-50 rounded-2xl transition-all active:scale-90"
+                    >
+                        <ChevronLeft className="w-6 h-6 text-gray-400" />
+                    </button>
+                    
+                    <div className="text-center">
+                        <h2 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tighter">
+                            {monthNames[currentMonth - 1]} {currentYear}
+                        </h2>
+                        <p className="text-[10px] md:text-xs font-black text-blue-600 uppercase tracking-[0.2em] mt-1">
+                            {schedules.length} Évaluation{schedules.length > 1 ? 's' : ''} prévue{schedules.length > 1 ? 's' : ''}
+                        </p>
+                    </div>
+
+                    <button 
+                        onClick={handleNextMonth}
+                        className="p-3 hover:bg-gray-50 rounded-2xl transition-all active:scale-90"
+                    >
+                        <ChevronRight className="w-6 h-6 text-gray-400" />
+                    </button>
+                </div>
+            )}
 
             {/* List of Schedules */}
             <div className="space-y-8">

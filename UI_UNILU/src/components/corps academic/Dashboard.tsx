@@ -237,6 +237,43 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Upcoming Interrogations Reminder */}
+        {data?.upcomingInterrogations?.length > 0 && (
+          <div className="mb-10 animate-in slide-in-from-top-4 duration-500">
+            <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500" />
+              Rappels d'Interrogations (À venir)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {data.upcomingInterrogations.map((interro: any) => (
+                <div
+                  key={interro.id}
+                  className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-3xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                  onClick={() => onNavigate('planning')}
+                >
+                  <div className="w-14 h-14 bg-white rounded-2xl flex flex-col items-center justify-center text-amber-600 font-black shadow-sm border border-amber-100 group-hover:scale-110 transition-transform">
+                    <span className="text-[9px] leading-none mb-1 opacity-60">J-</span>
+                    <span className="text-2xl leading-none">{interro.daysRemaining}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-black text-gray-900 text-sm uppercase truncate leading-tight mb-1">{interro.courseName}</h4>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">
+                        {new Date(interro.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-2 bg-white/50 rounded-full text-amber-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Today's Schedule */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-6">

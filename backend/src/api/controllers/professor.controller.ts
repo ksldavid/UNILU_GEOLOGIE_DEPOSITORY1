@@ -401,6 +401,25 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
         });
         const myLevels = Array.from(levelsMap.values());
 
+        // 7. Fetch upcoming Interrogations (next 3 days)
+        const threeDaysFromNow = new Date();
+        threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+
+        const upcomingInterrogations = await prisma.examSchedule.findMany({
+            where: {
+                courseCode: { in: courseCodes },
+                type: 'INTERROGATION',
+                date: {
+                    gte: new Date(),
+                    lte: threeDaysFromNow
+                }
+            },
+            include: {
+                course: { select: { name: true } }
+            },
+            orderBy: { date: 'asc' }
+        });
+
         res.json({
             professorName: professor?.name,
             stats: {
@@ -415,6 +434,12 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                 courseName: a.course?.name || 'Inconnu',
                 expiredAt: a.dueDate,
                 submissionCount: a._count?.submissions || 0
+            })),
+            upcomingInterrogations: (upcomingInterrogations as any[]).map(i => ({
+                id: i.id,
+                courseName: i.course?.name || i.courseCode,
+                date: i.date,
+                daysRemaining: Math.ceil((new Date(i.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
             })),
             todaySchedule: (todaysSchedule as any[]).slice(0, 5).map(s => ({
                 id: s.id,
