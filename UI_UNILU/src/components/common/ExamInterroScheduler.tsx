@@ -8,9 +8,11 @@ import {
     Trash2,
     Lock,
     Unlock,
-    BookMarked
+    BookMarked,
+    Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import jsPDF from "jspdf";
 import { examScheduleService, ExamScheduleData } from "../../services/exam-schedule";
 import { professorService } from "../../services/professor";
 import { courseService } from "../../services/course";
@@ -172,6 +174,103 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
         }
     };
 
+    const downloadScheduleAsPDF = () => {
+        if (!selectedLevelId) {
+            toast.error("Sélectionnez une classe d'abord");
+            return;
+        }
+
+        const level = levels.find(l => l.id === selectedLevelId);
+        const levelName = level?.displayName || "Classe inconnue";
+
+        try {
+            const doc = new jsPDF();
+
+            // PDF Styles and Header
+            doc.setFontSize(22);
+            doc.setTextColor(30, 64, 175); // Blue-800
+            doc.text(`PLANNING DES EXAMENS & INTERROS`, 105, 20, { align: 'center' });
+
+            doc.setFontSize(14);
+            doc.setTextColor(100, 116, 139); // Slate-500
+            doc.text(`${levelName}`, 105, 30, { align: 'center' });
+
+            doc.setDrawColor(226, 232, 240); // Slate-200
+            doc.line(20, 35, 190, 35);
+
+            // Table Header
+            doc.setFontSize(10);
+            doc.setTextColor(30, 41, 59); // Slate-800
+            doc.setFont("helvetica", "bold");
+            doc.text("DATE", 20, 45);
+            doc.text("HEURE", 50, 45);
+            doc.text("TYPE", 75, 45);
+            doc.text("COURS", 100, 45);
+
+            doc.line(20, 48, 190, 48);
+
+            // Content
+            doc.setFont("helvetica", "normal");
+            let y = 58;
+
+            const sortedSchedules = [...schedules].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+            if (sortedSchedules.length === 0) {
+                doc.setTextColor(148, 163, 184); // Slate-400
+                doc.text("Aucun planning enregistré pour cette sélection.", 105, 70, { align: 'center' });
+            }
+
+            sortedSchedules.forEach((s) => {
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                    // Redraw header on new page if needed
+                }
+
+                const date = new Date(s.date).toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+
+                const time = new Date(s.date).toLocaleTimeString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                doc.text(date, 20, y);
+                doc.text(time, 50, y);
+
+                // Type with color
+                if (s.type === 'EXAM') {
+                    doc.setTextColor(225, 29, 72); // Rose-600
+                    doc.text("EXAMEN", 75, y);
+                } else {
+                    doc.setTextColor(37, 99, 235); // Blue-600
+                    doc.text("INTERRO", 75, y);
+                }
+
+                doc.setTextColor(0, 0, 0);
+                const courseName = s.course?.name || s.courseCode;
+                const truncatedName = courseName.length > 40 ? courseName.substring(0, 37) + "..." : courseName;
+                doc.text(truncatedName, 100, y);
+
+                y += 10;
+            });
+
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(148, 163, 184);
+            doc.text(`Généré le ${new Date().toLocaleString('fr-FR')} - Plateforme UNILU Geologie`, 105, 285, { align: 'center' });
+
+            doc.save(`Planning_${levelName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+            toast.success("PDF téléchargé avec succès");
+        } catch (error) {
+            console.error("PDF generation failed:", error);
+            toast.error("Échec de la génération du PDF");
+        }
+    };
+
     const handleDelete = async (id: number) => {
         if (!window.confirm("Voulez-vous supprimer cette date ?")) return;
         try {
@@ -206,13 +305,23 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                         {viewMode === 'MONTHLY' ? 'Vue Annuelle' : 'Vue Mensuelle'}
                     </button>
                     {mode === 'ACADEMIC_OFFICE' && (
-                        <select
-                            value={selectedLevelId !== null ? selectedLevelId : ""}
-                            onChange={(e) => setSelectedLevelId(Number(e.target.value))}
-                            className="px-4 py-3 bg-white border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            {levels.map(l => <option key={l.id} value={l.id}>{l.displayName}</option>)}
-                        </select>
+                        <>
+                            <select
+                                value={selectedLevelId !== null ? selectedLevelId : ""}
+                                onChange={(e) => setSelectedLevelId(Number(e.target.value))}
+                                className="px-4 py-3 bg-white border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                {levels.map(l => <option key={l.id} value={l.id}>{l.displayName}</option>)}
+                            </select>
+                            <button
+                                onClick={downloadScheduleAsPDF}
+                                className="px-5 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
+                                title="Télécharger le planning en PDF"
+                            >
+                                <Download className="w-4 h-4" />
+                                PDF
+                            </button>
+                        </>
                     )}
                 </div>
             </div>
