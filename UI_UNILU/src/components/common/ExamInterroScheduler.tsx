@@ -1,18 +1,15 @@
 import { useState, useEffect } from "react";
-import { 
-    Calendar as CalendarIcon, 
-    Clock, 
-    ChevronLeft, 
-    ChevronRight, 
-    Plus, 
-    BookOpen, 
-    AlertCircle, 
-    CheckCircle2, 
+import {
+    Calendar as CalendarIcon,
+    ChevronLeft,
+    ChevronRight,
+    Plus,
+    AlertCircle,
+    CheckCircle2,
     Trash2,
     Lock,
     Unlock,
-    Search,
-    Filter
+    BookMarked
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { examScheduleService, ExamScheduleData } from "../../services/exam-schedule";
@@ -25,7 +22,6 @@ interface ExamInterroSchedulerProps {
 }
 
 export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
-    const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [schedules, setSchedules] = useState<ExamScheduleData[]>([]);
     const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
@@ -35,7 +31,9 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
     const [levels, setLevels] = useState<any[]>([]);
     const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null);
     const [availableCourses, setAvailableCourses] = useState<any[]>([]);
-    
+    const [allYearlySchedules, setAllYearlySchedules] = useState<ExamScheduleData[]>([]);
+    const [viewMode, setViewMode] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
+
     // Form state
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
@@ -54,12 +52,12 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
     useEffect(() => {
         const initData = async () => {
             try {
-                setLoading(true);
+                // setLoading(true);
                 if (mode === 'PROFESSOR') {
                     const courses = await professorService.getCourses();
                     setAvailableCourses(courses);
                     if (courses.length > 0) {
-                      setFormData(prev => ({ ...prev, courseCode: courses[0].code }));
+                        setFormData(prev => ({ ...prev, courseCode: courses[0].code }));
                     }
                 } else {
                     const levelsData = await courseService.getLevels();
@@ -73,19 +71,25 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
             } catch (error) {
                 console.error("Failed to init scheduler:", error);
             } finally {
-                setLoading(false);
+                // setLoading(false);
             }
         };
         initData();
     }, [mode]);
 
     useEffect(() => {
-        if (mode === 'ACADEMIC_OFFICE' && selectedLevelId) {
+        if (mode === 'ACADEMIC_OFFICE' && (selectedLevelId !== null)) {
             const fetchLevelCourses = async () => {
-                const courses = await courseService.getCourses(selectedLevelId);
-                setAvailableCourses(courses);
-                if (courses.length > 0) {
-                    setFormData(prev => ({ ...prev, courseCode: courses[0].code }));
+                try {
+                    const courses = await courseService.getCourses(selectedLevelId);
+                    setAvailableCourses(courses);
+                    if (courses.length > 0) {
+                        setFormData(prev => ({ ...prev, courseCode: courses[0].code }));
+                    } else {
+                        setFormData(prev => ({ ...prev, courseCode: "" }));
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch courses:", error);
                 }
             };
             fetchLevelCourses();
@@ -97,9 +101,18 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
             const data = await examScheduleService.getAll({
                 month: currentMonth,
                 year: currentYear,
-                academicLevelId: mode === 'ACADEMIC_OFFICE' ? (selectedLevelId || undefined) : undefined
+                academicLevelId: mode === 'ACADEMIC_OFFICE' ? (selectedLevelId !== null ? selectedLevelId : undefined) : undefined
             });
             setSchedules(data);
+
+            // Fetch yearly data for the yearly view
+            if (viewMode === 'YEARLY') {
+                const yearlyData = await examScheduleService.getAll({
+                    year: currentYear,
+                    academicLevelId: mode === 'ACADEMIC_OFFICE' ? (selectedLevelId !== null ? selectedLevelId : undefined) : undefined
+                });
+                setAllYearlySchedules(yearlyData);
+            }
         } catch (error) {
             toast.error("Erreur de récupération du programme");
         }
@@ -107,17 +120,25 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
 
     useEffect(() => {
         fetchSchedules();
-    }, [currentMonth, currentYear, selectedLevelId]);
+    }, [currentMonth, currentYear, selectedLevelId, viewMode]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Find selected course to check status
         const course = availableCourses.find(c => c.code === formData.courseCode);
-        
+
         if (formData.type === 'EXAM' && mode === 'ACADEMIC_OFFICE') {
             if (!course?.isCompleted) {
                 toast.error("Impossible : L'examen ne peut être planifié que si le cours est terminé.");
+                return;
+            }
+
+            // check if already scheduled for exam
+            const existingExam = schedules.find(s => s.courseCode === formData.courseCode && s.type === 'EXAM');
+            if (existingExam) {
+                const date = new Date(existingExam.date).toLocaleDateString('fr-FR');
+                toast.error(`Ce cours a déjà été programmé pour l'examen pour le ${date}`);
                 return;
             }
         }
@@ -171,23 +192,30 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                         Planning {mode === 'PROFESSOR' ? 'des Interros' : 'des Examens'}
                     </h1>
                     <p className="text-gray-500 font-medium">
-                        {mode === 'PROFESSOR' 
-                            ? "Planifiez vos interrogations pour vos étudiants" 
+                        {mode === 'PROFESSOR'
+                            ? "Planifiez vos interrogations pour vos étudiants"
                             : "Gestion centralisée du calendrier des examens et interrogations"}
                     </p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        onClick={() => setViewMode(viewMode === 'MONTHLY' ? 'YEARLY' : 'MONTHLY')}
+                        className="px-4 py-3 bg-white border border-gray-200 rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-gray-50"
+                    >
+                        <CalendarIcon className="w-4 h-4" />
+                        {viewMode === 'MONTHLY' ? 'Vue Annuelle' : 'Vue Mensuelle'}
+                    </button>
                     {mode === 'ACADEMIC_OFFICE' && (
-                        <select 
-                            value={selectedLevelId || ""} 
+                        <select
+                            value={selectedLevelId !== null ? selectedLevelId : ""}
                             onChange={(e) => setSelectedLevelId(Number(e.target.value))}
-                            className="px-4 py-3 bg-white border border-gray-200 rounded-2xl font-bold text-sm"
+                            className="px-4 py-3 bg-white border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             {levels.map(l => <option key={l.id} value={l.id}>{l.displayName}</option>)}
                         </select>
                     )}
-                    <button 
+                    <button
                         onClick={() => setShowForm(!showForm)}
                         className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-3 shadow-xl hover:bg-blue-700 transition-all active:scale-95"
                     >
@@ -197,37 +225,130 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 </div>
             </div>
 
-            {/* Calendar Header */}
-            <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between">
-                <button 
-                    onClick={() => {
-                        if (currentMonth === 1) { setCurrentMonth(12); setCurrentYear(currentYear - 1); }
-                        else setCurrentMonth(currentMonth - 1);
-                    }}
-                    className="p-3 hover:bg-gray-50 rounded-2xl"
-                >
-                    <ChevronLeft className="w-6 h-6" />
-                </button>
-                <div className="text-center">
-                    <span className="text-2xl font-black uppercase">{monthNames[currentMonth-1]} {currentYear}</span>
+            {/* Calendar Header - Only show in monthly mode */}
+            {viewMode === 'MONTHLY' && (
+                <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between">
+                    <button
+                        onClick={() => {
+                            if (currentMonth === 1) { setCurrentMonth(12); setCurrentYear(currentYear - 1); }
+                            else setCurrentMonth(currentMonth - 1);
+                        }}
+                        className="p-3 hover:bg-gray-50 rounded-2xl"
+                    >
+                        <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <div className="text-center">
+                        <span className="text-2xl font-black uppercase">{monthNames[currentMonth - 1]} {currentYear}</span>
+                    </div>
+                    <button
+                        onClick={() => {
+                            if (currentMonth === 12) { setCurrentMonth(1); setCurrentYear(currentYear + 1); }
+                            else setCurrentMonth(currentMonth + 1);
+                        }}
+                        className="p-3 hover:bg-gray-50 rounded-2xl"
+                    >
+                        <ChevronRight className="w-6 h-6" />
+                    </button>
                 </div>
-                <button 
-                    onClick={() => {
-                        if (currentMonth === 12) { setCurrentMonth(1); setCurrentYear(currentYear + 1); }
-                        else setCurrentMonth(currentMonth + 1);
-                    }}
-                    className="p-3 hover:bg-gray-50 rounded-2xl"
-                >
-                    <ChevronRight className="w-6 h-6" />
-                </button>
+            )}
+
+            {/* Informational Panels - Now at the Top */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex flex-col justify-center">
+                    <h4 className="font-black text-xs text-gray-900 mb-3 flex items-center gap-2">
+                        <Lock className="w-3.5 h-3.5 text-blue-600" />
+                        RÈGLES DE PLANNING
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="flex gap-2">
+                            <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 h-fit"><CheckCircle2 className="w-3.5 h-3.5" /></div>
+                            <p className="text-[10px] font-bold text-gray-500 leading-tight">
+                                Interros : programmables à tout moment.
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 h-fit"><AlertCircle className="w-3.5 h-3.5" /></div>
+                            <p className="text-[10px] font-bold text-gray-500 leading-tight">
+                                Le service académique gère les conflits.
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="p-1.5 rounded-lg bg-rose-50 text-rose-600 h-fit"><Lock className="w-3.5 h-3.5" /></div>
+                            <p className="text-[10px] font-bold text-gray-500 leading-tight">
+                                <span className="text-rose-600 font-black">STRICT:</span> Examens si cours fini.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-blue-600 p-6 rounded-[32px] text-white flex flex-col justify-center relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12 blur-xl"></div>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h4 className="font-black text-xs mb-1 italic">Vision Étudiante</h4>
+                            <p className="text-[10px] font-medium text-blue-100 leading-tight">
+                                Diffusion instantanée sur mobile.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
+                            <Unlock className="w-3 h-3" /> Direct
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main View */}
-                <div className="lg:col-span-2 space-y-6">
+            {/* Banque de Cours */}
+            <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm space-y-6">
+                <div className="flex items-center justify-between">
+                    <h4 className="font-black text-gray-900 flex items-center gap-2">
+                        <BookMarked className="w-5 h-5 text-blue-600" />
+                        Banque de Cours (Terminés)
+                    </h4>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-full">
+                        {availableCourses.filter(c => c.isCompleted).length} COURS DISPONIBLES
+                    </span>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                    {availableCourses
+                        .filter(c => c.isCompleted)
+                        .map(course => {
+                            const isAlreadyScheduled = schedules.some(s => s.courseCode === course.code && s.type === 'EXAM');
+                            return (
+                                <div
+                                    key={course.code}
+                                    onClick={() => {
+                                        if (!isAlreadyScheduled) {
+                                            setFormData({ ...formData, courseCode: course.code, type: 'EXAM' });
+                                            setShowForm(true);
+                                        }
+                                    }}
+                                    className={`px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-3 ${isAlreadyScheduled
+                                        ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                                        : 'bg-white border-gray-100 text-gray-700 hover:border-blue-200 hover:shadow-md'
+                                        }`}
+                                >
+                                    <div className={`w-2 h-2 rounded-full ${isAlreadyScheduled ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black uppercase leading-none mb-1">[{course.code}]</span>
+                                        <span className="text-xs font-bold leading-none">{course.name}</span>
+                                    </div>
+                                    {isAlreadyScheduled && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
+                                </div>
+                            );
+                        })}
+                    {availableCourses.filter(c => c.isCompleted).length === 0 && (
+                        <p className="text-gray-300 font-bold italic text-sm">Aucun cours n'est encore marqué comme terminé.</p>
+                    )}
+                </div>
+            </div>
+
+            <div className="w-full space-y-6">
+                {/* Main View - Now takes Full Width */}
+                <div className="space-y-6">
                     <AnimatePresence>
                         {showForm && (
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
@@ -237,27 +358,27 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Cours</label>
-                                            <select 
+                                            <select
                                                 required
                                                 value={formData.courseCode}
-                                                onChange={(e) => setFormData({...formData, courseCode: e.target.value})}
+                                                onChange={(e) => setFormData({ ...formData, courseCode: e.target.value })}
                                                 className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
                                             >
                                                 {availableCourses
-                                                  .filter(c => formData.type === 'EXAM' ? c.isCompleted : true)
-                                                  .map(c => (
-                                                    <option key={c.code} value={c.code} className="text-black">
-                                                        [{c.code}] {c.name} {c.isCompleted ? '✅ Fini' : ''}
-                                                    </option>
-                                                ))}
+                                                    .filter(c => formData.type === 'EXAM' ? c.isCompleted : true)
+                                                    .map(c => (
+                                                        <option key={c.code} value={c.code} className="text-black">
+                                                            [{c.code}] {c.name} {c.isCompleted ? '✅ Fini' : ''}
+                                                        </option>
+                                                    ))}
                                             </select>
                                         </div>
 
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Type</label>
-                                            <select 
+                                            <select
                                                 value={formData.type}
-                                                onChange={(e) => setFormData({...formData, type: e.target.value as any})}
+                                                onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
                                                 className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
                                             >
                                                 <option value="INTERROGATION" className="text-black">Interrogation</option>
@@ -266,23 +387,23 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Jour (en {monthNames[currentMonth-1]})</label>
-                                            <input 
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Jour (en {monthNames[currentMonth - 1]})</label>
+                                            <input
                                                 type="number" min="1" max="31"
                                                 required
                                                 value={formData.dateDay}
-                                                onChange={(e) => setFormData({...formData, dateDay: parseInt(e.target.value)})}
+                                                onChange={(e) => setFormData({ ...formData, dateDay: parseInt(e.target.value) })}
                                                 className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold"
                                             />
                                         </div>
 
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Heure</label>
-                                            <input 
-                                                type="time" 
+                                            <input
+                                                type="time"
                                                 required
                                                 value={formData.dateTime}
-                                                onChange={(e) => setFormData({...formData, dateTime: e.target.value})}
+                                                onChange={(e) => setFormData({ ...formData, dateTime: e.target.value })}
                                                 className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold italic"
                                             />
                                         </div>
@@ -290,7 +411,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
 
                                     <div className="flex justify-end gap-4 pt-4">
                                         <button type="button" onClick={() => setShowForm(false)} className="px-8 py-4 font-bold text-white/50 hover:text-white transition-colors">Annuler</button>
-                                        <button 
+                                        <button
                                             disabled={isSubmitting}
                                             className="bg-white text-blue-900 px-10 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-50 transition-all"
                                         >
@@ -304,83 +425,155 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
 
                     {/* Dashboard/List */}
                     <div className="space-y-4">
-                        {schedules.length === 0 ? (
-                            <div className="py-20 text-center bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-100">
-                                <CalendarIcon className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                                <p className="text-gray-400 font-bold italic">Rien de planifié pour ce mois</p>
-                            </div>
+                        {viewMode === 'MONTHLY' ? (
+                            <CalendarGrid
+                                month={currentMonth}
+                                year={currentYear}
+                                schedules={schedules}
+                                onDelete={handleDelete}
+                            />
                         ) : (
-                            schedules.map((s) => (
-                                <div key={s.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-16 h-16 bg-blue-50 rounded-2xl flex flex-col items-center justify-center border border-blue-100">
-                                            <span className="text-xs font-black text-blue-600 uppercase">{new Date(s.date).toLocaleDateString('fr-FR', { weekday: 'short' })}</span>
-                                            <span className="text-xl font-black text-gray-900">{new Date(s.date).getDate()}</span>
+                            <div className="space-y-8">
+                                {monthNames.map((mName, mIdx) => {
+                                    const monthSchedules = allYearlySchedules.filter(s => s.month === mIdx + 1);
+                                    if (monthSchedules.length === 0) return null;
+                                    return (
+                                        <div key={mName} className="space-y-4">
+                                            <h4 className="text-sm font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                                                <div className="w-8 h-px bg-gray-200"></div>
+                                                {mName} {currentYear}
+                                            </h4>
+                                            {monthSchedules.map(s => (
+                                                <ScheduleCard key={s.id} schedule={s} onDelete={handleDelete} />
+                                            ))}
                                         </div>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${s.type === 'EXAM' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'}`}>
-                                                    {s.type === 'EXAM' ? 'Examen' : 'Interro'}
-                                                </span>
-                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{new Date(s.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                            </div>
-                                            <h3 className="font-black text-gray-900 uppercase">{s.course?.name}</h3>
-                                            <p className="text-xs text-gray-400 font-medium">{s.academicLevelId === 0 ? 'Presciences' : `B${s.academicLevelId}`}</p>
-                                        </div>
+                                    );
+                                })}
+                                {allYearlySchedules.length === 0 && (
+                                    <div className="py-20 text-center bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-100">
+                                        <CalendarIcon className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+                                        <p className="text-gray-400 font-bold italic">Rien de planifié pour toute l'année {currentYear}</p>
                                     </div>
-                                    <button 
-                                        onClick={() => s.id && handleDelete(s.id)}
-                                        className="p-3 text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            ))
+                                )}
+                            </div>
                         )}
-                    </div>
-                </div>
-
-                {/* Status Panel */}
-                <div className="space-y-6">
-                    <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
-                        <h4 className="font-black text-gray-900 mb-6 flex items-center gap-2">
-                            <Lock className="w-4 h-4 text-blue-600" />
-                            Règles de planning
-                        </h4>
-                        <div className="space-y-4">
-                            <div className="flex gap-4">
-                                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 h-fit"><CheckCircle2 className="w-4 h-4" /></div>
-                                <p className="text-xs font-bold text-gray-600">
-                                    Les interrogations peuvent être programmées à tout moment par les professeurs.
-                                </p>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="p-2 rounded-lg bg-blue-50 text-blue-600 h-fit"><AlertCircle className="w-4 h-4" /></div>
-                                <p className="text-xs font-bold text-gray-600">
-                                    Le service académique a priorité sur le calendrier et gère les conflits.
-                                </p>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="p-2 rounded-lg bg-rose-50 text-rose-600 h-fit"><Lock className="w-4 h-4" /></div>
-                                <p className="text-xs font-bold text-gray-600">
-                                    <span className="text-rose-600 font-black">STRICT:</span> Un examen final ne peut être planifié que pour un cours marqué comme fini.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-blue-600 p-8 rounded-[40px] text-white overflow-hidden relative">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-xl"></div>
-                        <h4 className="font-black mb-2 italic">Vision Étudiante</h4>
-                        <p className="text-xs font-medium text-blue-100 leading-relaxed mb-6">
-                            Toute modification effectuée ici est instantanément répercutée sur le calendrier mobile des étudiants concernés.
-                        </p>
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/10 w-fit px-4 py-2 rounded-full border border-white/10">
-                            <Unlock className="w-3 h-3" /> Diffusion Directe
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
     );
 }
+// Internal component for schedule items
+function ScheduleCard({ schedule, onDelete }: { schedule: ExamScheduleData, onDelete: (id: number) => void }) {
+    const s = schedule;
+    return (
+        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
+            <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex flex-col items-center justify-center border border-blue-100">
+                    <span className="text-xs font-black text-blue-600 uppercase">{new Date(s.date).toLocaleDateString('fr-FR', { weekday: 'short' })}</span>
+                    <span className="text-xl font-black text-gray-900">{new Date(s.date).getDate()}</span>
+                </div>
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${s.type === 'EXAM' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'}`}>
+                            {s.type === 'EXAM' ? 'Examen' : 'Interro'}
+                        </span>
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <h3 className="font-black text-gray-900 uppercase">{s.course?.name}</h3>
+                    <p className="text-xs text-gray-400 font-medium">{s.academicLevelId === 0 ? 'Presciences' : `B${s.academicLevelId}`}</p>
+                </div>
+            </div>
+            <button
+                onClick={() => s.id && onDelete(s.id)}
+                className="p-3 text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+            >
+                <Trash2 className="w-5 h-5" />
+            </button>
+        </div>
+    );
+}
+
+// Calendar Grid Component
+function CalendarGrid({ month, year, schedules, onDelete }: {
+    month: number,
+    year: number,
+    schedules: ExamScheduleData[],
+    onDelete: (id: number) => void
+}) {
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const firstDayOfMonth = new Date(year, month - 1, 1).getDay(); // 0 is Sunday
+
+    // Adjust for Monday start (0: Mon, 6: Sun)
+    const startOffset = (firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1);
+
+    const weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+
+    const days = [];
+    // Previous month padding
+    for (let i = 0; i < startOffset; i++) {
+        days.push({ type: 'empty' });
+    }
+    // Current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+        const daySchedules = schedules.filter(s => new Date(s.date).getDate() === d);
+        days.push({ type: 'day', day: d, schedules: daySchedules });
+    }
+
+    return (
+        <div className="bg-white rounded-[40px] border border-gray-100 shadow-xl overflow-hidden">
+            <div className="grid grid-cols-7 border-b border-gray-100">
+                {weekDays.map(wd => (
+                    <div key={wd} className="py-4 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-50/50">
+                        {wd}
+                    </div>
+                ))}
+            </div>
+            <div className="grid grid-cols-7">
+                {days.map((d, i) => (
+                    <div
+                        key={i}
+                        className={`min-h-[140px] p-2 border-r border-b border-gray-50 group hover:bg-blue-50/10 transition-colors ${i % 7 === 6 ? 'border-r-0' : ''}`}
+                    >
+                        {d.type === 'day' && (
+                            <>
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className={`text-sm font-black ${d.day === new Date().getDate() && month === new Date().getMonth() + 1 ? 'text-blue-600' : 'text-gray-300'}`}>
+                                        {d.day}
+                                    </span>
+                                </div>
+                                <div className="space-y-1">
+                                    {d.schedules?.map(s => (
+                                        <div
+                                            key={s.id}
+                                            className={`p-1.5 rounded-lg text-[9px] font-bold border leading-tight group/item relative ${s.type === 'EXAM'
+                                                ? 'bg-rose-50 border-rose-100 text-rose-700'
+                                                : 'bg-blue-50 border-blue-100 text-blue-700'
+                                                }`}
+                                        >
+                                            <div className="flex justify-between">
+                                                <span className="truncate pr-4 uppercase">{s.course?.name}</span>
+                                                <button
+                                                    onClick={() => s.id && onDelete(s.id)}
+                                                    className="absolute top-1 right-1 opacity-0 group-hover/item:opacity-100 text-rose-500 bg-white/50 rounded p-0.5"
+                                                >
+                                                    <Trash2 className="w-2.5 h-2.5" />
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center gap-1 mt-0.5 opacity-60">
+                                                <span>{new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span>•</span>
+                                                <span>{s.academicLevelId === 0 ? 'PS' : `B${s.academicLevelId}`}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
