@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { jsPDF } from "jspdf";
+import { toast } from "sonner";
+import uniluLogo from "../../assets/unilu-official-logo.png";
 import { examScheduleService, ExamScheduleData } from "../../services/exam-schedule";
 import { professorService } from "../../services/professor";
 import { courseService } from "../../services/course";
@@ -27,7 +29,6 @@ const getLevelColor = (levelId: number) => {
         default: return { bg: 'bg-gray-50', border: 'border-gray-100', text: 'text-gray-700', badge: 'bg-gray-500' };
     }
 };
-import { toast } from "sonner";
 
 interface ExamInterroSchedulerProps {
     mode: 'PROFESSOR' | 'ACADEMIC_OFFICE';
@@ -224,41 +225,81 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
         }
 
         const level = levels.find(l => l.id === selectedLevelId);
-        const levelName = selectedLevelId === -1 ? "TOUTES LES CLASSES" : (level?.displayName || "Classe inconnue");
+
+        // Dynamic class name for the PDF
+        let displayClassName = level?.displayName || "Classe inconnue";
+        if (selectedLevelId === 0) displayClassName = "PRESCIENCE";
+        else if (selectedLevelId === 1) displayClassName = "BACHELOR 1";
+        else if (selectedLevelId === 2) displayClassName = "BACHELOR 2";
+        else if (selectedLevelId === 3) displayClassName = "BACHELOR 3";
+        else if (selectedLevelId === -1) displayClassName = "TOUTES LES CLASSES";
 
         try {
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth();
 
-            // PDF Styles and Header
+            // --- DEBUT ENTETE OFFICIELLE ---
+            // Logo Unilu
+            const img = new Image();
+            img.src = uniluLogo;
+            doc.addImage(img, 'PNG', 15, 10, 20, 20);
+
+            // Textes officiels (Gauche)
+            doc.setFontSize(8);
+            doc.setTextColor(30, 41, 59); // Slate-800
+            doc.setFont("helvetica", "bold");
+            doc.text("UNIVERSITÉ DE LUBUMBASHI", 40, 15);
+            doc.text("FACULTÉ DES SCIENCES ET TECHNOLOGIE", 40, 20);
+            doc.text("DÉPARTEMENT DE GÉOLOGIE", 40, 25);
+
+            // Année Académique (Droite)
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "italic");
+            doc.text(`Année Académique: ${currentYear}-${currentYear + 1}`, pageWidth - 20, 15, { align: 'right' });
+            doc.text("Lubumbashi, RDC", pageWidth - 20, 20, { align: 'right' });
+
+            doc.setDrawColor(30, 64, 175);
+            doc.setLineWidth(0.5);
+            doc.line(15, 32, pageWidth - 15, 32);
+            // --- FIN ENTETE OFFICIELLE ---
+
+            // Titre Principal
             doc.setFontSize(22);
             doc.setTextColor(30, 64, 175); // Blue-800
             doc.setFont("helvetica", "bold");
-            doc.text(`PLANNING DES EXAMENS & INTERROS`, pageWidth / 2, 20, { align: 'center' });
+            doc.text("PLANNING DES EXAMENS", pageWidth / 2, 45, { align: 'center' });
 
-            doc.setFontSize(14);
+            // Sous-titre: Classe et Session
+            doc.setFontSize(16);
+            doc.setTextColor(51, 65, 85); // Slate-700
+            doc.text(displayClassName, pageWidth / 2, 55, { align: 'center' });
+
+            doc.setFontSize(11);
             doc.setTextColor(100, 116, 139); // Slate-500
-            doc.setFont("helvetica", "normal");
-            doc.text(`${levelName}`, pageWidth / 2, 30, { align: 'center' });
-            doc.text(`${monthNames[currentMonth - 1]} ${currentYear}`, pageWidth / 2, 38, { align: 'center' });
+            doc.setFont("helvetica", "italic");
+            doc.text(`Examen du Premier Semestre - ${monthNames[currentMonth - 1]} ${currentYear}`, pageWidth / 2, 62, { align: 'center' });
 
+            // Séparateur léger
             doc.setDrawColor(226, 232, 240); // Slate-200
-            doc.line(20, 45, pageWidth - 20, 45);
+            doc.setLineWidth(0.1);
+            doc.line(40, 68, pageWidth - 40, 68);
 
             // Table Header
             doc.setFontSize(10);
             doc.setTextColor(30, 41, 59); // Slate-800
             doc.setFont("helvetica", "bold");
-            doc.text("DATE", 20, 55);
-            doc.text("HEURE", 50, 55);
-            doc.text("TYPE", 75, 55);
-            doc.text("COURS / SALLE", 110, 55);
+            doc.text("DATE", 20, 80);
+            doc.text("HEURE", 50, 80);
+            doc.text("TYPE", 75, 80);
+            doc.text("COURS / SALLE", 110, 80);
 
-            doc.line(20, 58, pageWidth - 20, 58);
+            doc.setDrawColor(30, 41, 59);
+            doc.setLineWidth(0.5);
+            doc.line(20, 83, pageWidth - 20, 83);
 
             // Content
             doc.setFont("helvetica", "normal");
-            let y = 68;
+            let y = 92;
 
             const sortedSchedules = [...schedules].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -271,10 +312,9 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 if (y > 270) {
                     doc.addPage();
                     y = 20;
-                    // Redraw minimal header on new page
                     doc.setFontSize(8);
                     doc.setTextColor(150);
-                    doc.text(`${levelName} - Continued`, 20, 10);
+                    doc.text(`Planning des Examens - ${displayClassName}`, 20, 10);
                     doc.line(20, 12, pageWidth - 20, 12);
                     doc.setFontSize(10);
                     doc.setTextColor(0);
@@ -294,12 +334,15 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 });
 
                 doc.setTextColor(30, 41, 59);
+                doc.setFont("helvetica", "bold");
                 doc.text(dateStr, 20, y);
+                doc.setFont("helvetica", "normal");
                 doc.text(timeStr, 50, y);
 
-                // Type with specific color
+                // Type details
                 if (s.type === 'EXAM') {
                     doc.setTextColor(225, 29, 72); // Rose-600
+                    doc.setFont("helvetica", "bold");
                     doc.text("EXAMEN", 75, y);
                 } else {
                     doc.setTextColor(37, 99, 235); // Blue-600
@@ -307,9 +350,10 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 }
 
                 doc.setTextColor(30, 41, 59);
+                doc.setFont("helvetica", "normal");
                 const courseName = s.course?.name || s.courseCode;
-                const roomName = s.room ? ` (${s.room})` : "";
-                const durationInfo = s.duration ? ` - ${s.duration} min` : "";
+                const roomName = s.room ? ` - Salle: ${s.room}` : "";
+                const durationInfo = s.duration ? ` (${s.duration} min)` : "";
                 const fullCourseLine = `${courseName}${roomName}${durationInfo}`;
 
                 // Truncate if too long for the line
@@ -326,12 +370,12 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
             // Footer
             doc.setFontSize(8);
             doc.setTextColor(148, 163, 184);
-            const footerText = `Généré le ${new Date().toLocaleString('fr-FR')} - Plateforme UNILU Geologie`;
+            const footerText = `Document officiel généré le ${new Date().toLocaleString('fr-FR')} - Secrétariat Géologie`;
             doc.text(footerText, pageWidth / 2, 285, { align: 'center' });
 
-            const fileName = `Planning_${levelName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+            const fileName = `Planning_Examens_${displayClassName.replace(/\s+/g, '_')}.pdf`;
             doc.save(fileName);
-            toast.success("PDF téléchargé avec succès");
+            toast.success("Planning officiel généré !");
         } catch (error) {
             console.error("PDF generation failed:", error);
             toast.error("Échec de la génération du PDF");
