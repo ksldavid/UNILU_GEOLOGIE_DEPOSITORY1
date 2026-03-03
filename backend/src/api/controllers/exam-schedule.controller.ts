@@ -65,10 +65,10 @@ export const getExamSchedules = async (req: AuthRequest, res: Response) => {
 
         let whereClause: any = {};
 
-        if (academicLevelId) whereClause.academicLevelId = Number(academicLevelId);
-        if (month) whereClause.month = Number(month);
-        if (year) whereClause.year = Number(year);
-        if (courseCode) whereClause.courseCode = String(courseCode);
+        if (academicLevelId !== undefined) whereClause.academicLevelId = Number(academicLevelId);
+        if (month !== undefined) whereClause.month = Number(month);
+        if (year !== undefined) whereClause.year = Number(year);
+        if (courseCode !== undefined) whereClause.courseCode = String(courseCode);
 
         // Filter for students: they only see published schedules
         if (req.user?.role === 'STUDENT') {
