@@ -12,7 +12,7 @@ import {
     Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import { examScheduleService, ExamScheduleData } from "../../services/exam-schedule";
 import { professorService } from "../../services/professor";
 import { courseService } from "../../services/course";
@@ -209,63 +209,76 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
 
         try {
             const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
 
             // PDF Styles and Header
             doc.setFontSize(22);
             doc.setTextColor(30, 64, 175); // Blue-800
-            doc.text(`PLANNING DES EXAMENS & INTERROS`, 105, 20, { align: 'center' });
+            doc.setFont("helvetica", "bold");
+            doc.text(`PLANNING DES EXAMENS & INTERROS`, pageWidth / 2, 20, { align: 'center' });
 
             doc.setFontSize(14);
             doc.setTextColor(100, 116, 139); // Slate-500
-            doc.text(`${levelName}`, 105, 30, { align: 'center' });
+            doc.setFont("helvetica", "normal");
+            doc.text(`${levelName}`, pageWidth / 2, 30, { align: 'center' });
+            doc.text(`${monthNames[currentMonth - 1]} ${currentYear}`, pageWidth / 2, 38, { align: 'center' });
 
             doc.setDrawColor(226, 232, 240); // Slate-200
-            doc.line(20, 35, 190, 35);
+            doc.line(20, 45, pageWidth - 20, 45);
 
             // Table Header
             doc.setFontSize(10);
             doc.setTextColor(30, 41, 59); // Slate-800
             doc.setFont("helvetica", "bold");
-            doc.text("DATE", 20, 45);
-            doc.text("HEURE", 50, 45);
-            doc.text("TYPE", 75, 45);
-            doc.text("COURS", 100, 45);
+            doc.text("DATE", 20, 55);
+            doc.text("HEURE", 50, 55);
+            doc.text("TYPE", 75, 55);
+            doc.text("COURS / SALLE", 110, 55);
 
-            doc.line(20, 48, 190, 48);
+            doc.line(20, 58, pageWidth - 20, 58);
 
             // Content
             doc.setFont("helvetica", "normal");
-            let y = 58;
+            let y = 68;
 
             const sortedSchedules = [...schedules].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
             if (sortedSchedules.length === 0) {
                 doc.setTextColor(148, 163, 184); // Slate-400
-                doc.text("Aucun planning enregistré pour cette sélection.", 105, 70, { align: 'center' });
+                doc.text("Aucun planning enregistré pour cette sélection.", pageWidth / 2, 80, { align: 'center' });
             }
 
             sortedSchedules.forEach((s) => {
                 if (y > 270) {
                     doc.addPage();
                     y = 20;
-                    // Redraw header on new page if needed
+                    // Redraw minimal header on new page
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    doc.text(`${levelName} - Continued`, 20, 10);
+                    doc.line(20, 12, pageWidth - 20, 12);
+                    doc.setFontSize(10);
+                    doc.setTextColor(0);
+                    y = 22;
                 }
 
-                const date = new Date(s.date).toLocaleDateString('fr-FR', {
+                const scheduleDate = new Date(s.date);
+                const dateStr = scheduleDate.toLocaleDateString('fr-FR', {
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric'
                 });
 
-                const time = new Date(s.date).toLocaleTimeString('fr-FR', {
+                const timeStr = scheduleDate.toLocaleTimeString('fr-FR', {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
 
-                doc.text(date, 20, y);
-                doc.text(time, 50, y);
+                doc.setTextColor(30, 41, 59);
+                doc.text(dateStr, 20, y);
+                doc.text(timeStr, 50, y);
 
-                // Type with color
+                // Type with specific color
                 if (s.type === 'EXAM') {
                     doc.setTextColor(225, 29, 72); // Rose-600
                     doc.text("EXAMEN", 75, y);
@@ -274,20 +287,31 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                     doc.text("INTERRO", 75, y);
                 }
 
-                doc.setTextColor(0, 0, 0);
+                doc.setTextColor(30, 41, 59);
                 const courseName = s.course?.name || s.courseCode;
-                const truncatedName = courseName.length > 40 ? courseName.substring(0, 37) + "..." : courseName;
-                doc.text(truncatedName, 100, y);
+                const roomName = s.room ? ` (${s.room})` : "";
+                const durationInfo = s.duration ? ` - ${s.duration} min` : "";
+                const fullCourseLine = `${courseName}${roomName}${durationInfo}`;
 
-                y += 10;
+                // Truncate if too long for the line
+                const truncatedLine = fullCourseLine.length > 55 ? fullCourseLine.substring(0, 52) + "..." : fullCourseLine;
+                doc.text(truncatedLine, 110, y);
+
+                // Draw a very light line between items
+                doc.setDrawColor(248, 250, 252);
+                doc.line(20, y + 4, pageWidth - 20, y + 4);
+
+                y += 12; // Increased spacing
             });
 
             // Footer
             doc.setFontSize(8);
             doc.setTextColor(148, 163, 184);
-            doc.text(`Généré le ${new Date().toLocaleString('fr-FR')} - Plateforme UNILU Geologie`, 105, 285, { align: 'center' });
+            const footerText = `Généré le ${new Date().toLocaleString('fr-FR')} - Plateforme UNILU Geologie`;
+            doc.text(footerText, pageWidth / 2, 285, { align: 'center' });
 
-            doc.save(`Planning_${levelName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+            const fileName = `Planning_${levelName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
             toast.success("PDF téléchargé avec succès");
         } catch (error) {
             console.error("PDF generation failed:", error);
@@ -303,6 +327,40 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
         } catch (error) {
             toast.error("Échec de la publication");
         }
+    };
+
+    const handlePublishAll = async () => {
+        const drafts = schedules.filter(s => !s.isPublished);
+        if (drafts.length === 0) {
+            toast.info("Aucun brouillon à publier pour ce mois.");
+            return;
+        }
+
+        if (!window.confirm(`Voulez-vous publier les ${drafts.length} dates de ce mois ?`)) return;
+
+        try {
+            setIsSubmitting(true);
+            await Promise.all(drafts.map(s => s.id && examScheduleService.update(s.id, { isPublished: true })));
+            toast.success("Tous les programmes du mois ont été publiés !");
+            fetchSchedules();
+        } catch (error) {
+            toast.error("Erreur lors de la publication de masse");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const exportToJson = () => {
+        const level = levels.find(l => l.id === selectedLevelId);
+        const levelName = level?.displayName || "Classe";
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(schedules, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `Backup_Planning_${levelName.replace(/\s+/g, '_')}_${currentYear}_M${currentMonth}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        toast.success("Sauvegarde locale (JSON) effectuée !");
     };
 
     const handleDelete = async (id: number) => {
@@ -347,6 +405,22 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                             >
                                 {levels.map(l => <option key={l.id} value={l.id}>{l.displayName}</option>)}
                             </select>
+                            <button
+                                onClick={exportToJson}
+                                className="px-5 py-3 bg-slate-800 text-white rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-slate-900 transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+                                title="Sauvegarder une copie locale (JSON)"
+                            >
+                                <Lock className="w-4 h-4" />
+                                Sauvegarde
+                            </button>
+                            <button
+                                onClick={handlePublishAll}
+                                className="px-5 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                                title="Publier tous les brouillons du mois"
+                            >
+                                <Unlock className="w-4 h-4" />
+                                Publier Tout
+                            </button>
                             <button
                                 onClick={downloadScheduleAsPDF}
                                 className="px-5 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
@@ -584,7 +658,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                                 disabled={isSubmitting}
                                                 className="bg-white/10 text-white px-10 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-white/20 transition-all border border-white/10"
                                             >
-                                                Enregistrer Brouillon
+                                                Enregistrer Localement
                                             </button>
                                         )}
 
