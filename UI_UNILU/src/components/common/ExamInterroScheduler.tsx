@@ -16,6 +16,17 @@ import { jsPDF } from "jspdf";
 import { examScheduleService, ExamScheduleData } from "../../services/exam-schedule";
 import { professorService } from "../../services/professor";
 import { courseService } from "../../services/course";
+
+// Helper for consistent colors across classes
+const getLevelColor = (levelId: number) => {
+    switch (levelId) {
+        case 0: return { bg: 'bg-orange-50', border: 'border-orange-100', text: 'text-orange-700', badge: 'bg-orange-500' }; // Presciences
+        case 1: return { bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-700', badge: 'bg-blue-500' };   // B1
+        case 2: return { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700', badge: 'bg-emerald-500' }; // B2
+        case 3: return { bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-700', badge: 'bg-purple-500' }; // B3
+        default: return { bg: 'bg-gray-50', border: 'border-gray-100', text: 'text-gray-700', badge: 'bg-gray-500' };
+    }
+};
 import { toast } from "sonner";
 
 interface ExamInterroSchedulerProps {
@@ -64,10 +75,14 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                     }
                 } else {
                     const levelsData = await courseService.getLevels();
-                    setLevels(levelsData);
-                    if (levelsData.length > 0) {
-                        setSelectedLevelId(levelsData[0].id);
-                        setFormData(prev => ({ ...prev, academicLevelId: levelsData[0].id }));
+                    const levelsWithGlobal = [
+                        { id: -1, displayName: "🌍 VUE GLOBALE" },
+                        ...levelsData
+                    ];
+                    setLevels(levelsWithGlobal);
+                    if (levelsWithGlobal.length > 0) {
+                        setSelectedLevelId(-1); // Default to Global View
+                        setFormData(prev => ({ ...prev, academicLevelId: -1 }));
                     }
                 }
                 await fetchSchedules();
@@ -82,6 +97,10 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
 
     useEffect(() => {
         if (mode === 'ACADEMIC_OFFICE' && (selectedLevelId !== null)) {
+            if (selectedLevelId === -1) {
+                setAvailableCourses([]);
+                return;
+            }
             const fetchLevelCourses = async () => {
                 try {
                     const courses = await courseService.getCourses(selectedLevelId);
@@ -115,7 +134,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
             const data = await examScheduleService.getAll({
                 month: currentMonth,
                 year: currentYear,
-                academicLevelId: mode === 'ACADEMIC_OFFICE' ? (selectedLevelId !== null ? selectedLevelId : undefined) : undefined
+                academicLevelId: mode === 'ACADEMIC_OFFICE' ? (selectedLevelId !== -1 ? (selectedLevelId !== null ? selectedLevelId : undefined) : undefined) : undefined
             });
             setSchedules(data);
 
@@ -123,7 +142,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
             if (viewMode === 'YEARLY') {
                 const yearlyData = await examScheduleService.getAll({
                     year: currentYear,
-                    academicLevelId: mode === 'ACADEMIC_OFFICE' ? (selectedLevelId !== null ? selectedLevelId : undefined) : undefined
+                    academicLevelId: mode === 'ACADEMIC_OFFICE' ? (selectedLevelId !== -1 ? (selectedLevelId !== null ? selectedLevelId : undefined) : undefined) : undefined
                 });
                 setAllYearlySchedules(yearlyData);
             }
@@ -511,10 +530,10 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 <div className="flex items-center justify-between">
                     <h4 className="font-black text-gray-900 flex items-center gap-2">
                         <BookMarked className="w-5 h-5 text-blue-600" />
-                        {mode === 'PROFESSOR' ? 'Mes Cours (Interrogations)' : 'Cours Terminés (Examens Finaux)'}
+                        {mode === 'PROFESSOR' ? 'Mes Cours (Interrogations)' : (selectedLevelId === -1 ? 'Sélectionnez une classe pour programmer' : 'Cours Terminés (Examens Finaux)')}
                     </h4>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-full">
-                        {mode === 'PROFESSOR' ? availableCourses.length : availableCourses.filter(c => c.isCompleted).length} COURS DISPONIBLES
+                        {mode === 'PROFESSOR' ? availableCourses.length : (selectedLevelId === -1 ? 0 : availableCourses.filter(c => c.isCompleted).length)} COURS DISPONIBLES
                     </span>
                 </div>
 
@@ -553,7 +572,12 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                         })}
                     {availableCourses.filter(c => (mode === 'PROFESSOR' ? true : c.isCompleted)).length === 0 && (
                         <p className="text-gray-300 font-bold italic text-sm">
-                            {mode === 'PROFESSOR' ? "Aucun cours assigné." : "Aucun cours n'est marqué comme terminé."}
+                            {mode === 'PROFESSOR'
+                                ? "Aucun cours assigné."
+                                : (selectedLevelId === -1
+                                    ? "🌍 Sélectionnez une classe spécifique pour voir les cours programmables."
+                                    : "Aucun cours n'est marqué comme terminé.")
+                            }
                         </p>
                     )}
                 </div>
@@ -726,16 +750,18 @@ function ScheduleCard({ schedule, onDelete, onPublish, mode }: {
     mode: 'PROFESSOR' | 'ACADEMIC_OFFICE'
 }) {
     const s = schedule;
+    const colors = getLevelColor(s.academicLevelId);
+
     return (
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
+        <div className={`p-6 rounded-3xl border ${colors.border} ${colors.bg} shadow-sm flex items-center justify-between group hover:shadow-md transition-all`}>
             <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex flex-col items-center justify-center border border-blue-100">
-                    <span className="text-xs font-black text-blue-600 uppercase">{new Date(s.date).toLocaleDateString('fr-FR', { weekday: 'short' })}</span>
+                <div className={`w-16 h-16 ${colors.bg} rounded-2xl flex flex-col items-center justify-center border ${colors.border}`}>
+                    <span className={`text-xs font-black ${colors.text} uppercase`}>{new Date(s.date).toLocaleDateString('fr-FR', { weekday: 'short' })}</span>
                     <span className="text-xl font-black text-gray-900">{new Date(s.date).getDate()}</span>
                 </div>
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${s.type === 'EXAM' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'}`}>
+                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${s.type === 'EXAM' ? 'bg-rose-100 text-rose-700' : colors.bg + ' ' + colors.text}`}>
                             {s.type === 'EXAM' ? 'Examen' : 'Interro'}
                         </span>
                         {!s.isPublished && (
@@ -834,49 +860,51 @@ function CalendarGrid({ month, year, schedules, onDelete, onPublish, mode }: {
                                     </span>
                                 </div>
                                 <div className="space-y-1">
-                                    {d.schedules?.map(s => (
-                                        <div
-                                            key={s.id}
-                                            className={`p-1.5 rounded-lg text-[9px] font-bold border leading-tight group/item relative ${!s.isPublished
-                                                ? 'bg-amber-50 border-amber-100 text-amber-700'
-                                                : (s.type === 'EXAM' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-blue-50 border-blue-100 text-blue-700')
-                                                }`}
-                                        >
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-1 truncate">
-                                                    {!s.isPublished && <div className="w-1 h-1 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></div>}
-                                                    <span className="truncate uppercase pr-2">{s.course?.name}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1 shrink-0">
-                                                    {!s.isPublished && mode === 'ACADEMIC_OFFICE' && (
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); s.id && onPublish(s.id); }}
-                                                            className="opacity-0 group-hover/item:opacity-100 bg-emerald-500 text-white rounded px-1.5 py-0.5 text-[8px] font-black uppercase"
-                                                        >
-                                                            Publier
-                                                        </button>
+                                    {d.schedules?.map(s => {
+                                        const colors = getLevelColor(s.academicLevelId);
+                                        return (
+                                            <div
+                                                key={s.id}
+                                                className={`p-1.5 rounded-lg text-[9px] font-bold border leading-tight group/item relative ${!s.isPublished
+                                                    ? 'bg-amber-50 border-amber-100 text-amber-700'
+                                                    : (s.type === 'EXAM' ? 'bg-rose-50 border-rose-100 text-rose-700' : `${colors.bg} ${colors.border} ${colors.text}`)
+                                                    }`}
+                                            >
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-1 truncate">
+                                                        {!s.isPublished && <div className="w-1 h-1 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></div>}
+                                                        <span className="truncate uppercase pr-2">{s.course?.name}</span>
+                                                    </div>
+                                                    {s.academicLevelId !== -1 && (
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${colors.badge} shrink-0`}></div>
                                                     )}
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); s.id && onDelete(s.id); }}
-                                                        className="opacity-0 group-hover/item:opacity-100 text-rose-500 bg-white/50 rounded p-0.5"
-                                                    >
-                                                        <Trash2 className="w-2.5 h-2.5" />
-                                                    </button>
+                                                </div>
+                                                <div className="flex items-center justify-between mt-1">
+                                                    <div className="flex items-center gap-1 opacity-60">
+                                                        <span>{new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        <span>•</span>
+                                                        <span>{s.academicLevelId === 0 ? 'PS' : `B${s.academicLevelId}`}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 shrink-0">
+                                                        {!s.isPublished && mode === 'ACADEMIC_OFFICE' && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); s.id && onPublish(s.id); }}
+                                                                className="opacity-0 group-hover/item:opacity-100 bg-emerald-500 text-white rounded px-1.5 py-0.5 text-[8px] font-black uppercase"
+                                                            >
+                                                                Publier
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); s.id && onDelete(s.id); }}
+                                                            className="opacity-0 group-hover/item:opacity-100 text-rose-500 bg-white/50 rounded p-0.5"
+                                                        >
+                                                            <Trash2 className="w-2.5 h-2.5" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-1 mt-0.5 opacity-60">
-                                                <span>{new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                <span>•</span>
-                                                <span>{s.academicLevelId === 0 ? 'PS' : `B${s.academicLevelId}`}</span>
-                                                {s.room && (
-                                                    <>
-                                                        <span>•</span>
-                                                        <span className="font-black">{s.room}</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </>
                         )}
