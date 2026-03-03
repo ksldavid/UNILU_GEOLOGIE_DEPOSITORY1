@@ -32,8 +32,7 @@ export const authService = {
             throw new Error(data.message || 'Échec de la connexion');
         }
 
-        // Stocker le token dans sessionStorage UNIQUEMENT
-        // sessionStorage est isolé par onglet : chaque onglet a sa propre session
+        // Stocker le token dans sessionStorage pour l'indépendance des onglets Web
         if (data.token) {
             sessionStorage.setItem('token', data.token);
             sessionStorage.setItem('user', JSON.stringify(data.user));

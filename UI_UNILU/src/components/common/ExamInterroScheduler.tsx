@@ -42,7 +42,9 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
         type: 'INTERROGATION' as 'EXAM' | 'INTERROGATION',
         dateDay: new Date().getDate(),
         dateTime: "08:00",
-        academicLevelId: 0
+        academicLevelId: 0,
+        room: "",
+        duration: 120
     });
 
     const monthNames = [
@@ -84,6 +86,14 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 try {
                     const courses = await courseService.getCourses(selectedLevelId);
                     setAvailableCourses(courses);
+
+                    // FIX: Synchroniser l'ID du niveau dans le formulaire pour éviter les erreurs de classe
+                    setFormData(prev => ({
+                        ...prev,
+                        academicLevelId: selectedLevelId,
+                        type: 'EXAM' // Force EXAM for academic office
+                    }));
+
                     if (courses.length > 0) {
                         setFormData(prev => ({ ...prev, courseCode: courses[0].code }));
                     } else {
@@ -94,6 +104,9 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 }
             };
             fetchLevelCourses();
+        } else if (mode === 'PROFESSOR') {
+            // Force INTERROGATION for professor
+            setFormData(prev => ({ ...prev, type: 'INTERROGATION' }));
         }
     }, [selectedLevelId, mode]);
 
@@ -129,6 +142,16 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
         // Find selected course to check status
         const course = availableCourses.find(c => c.code === formData.courseCode);
 
+        if (mode === 'ACADEMIC_OFFICE' && formData.type !== 'EXAM') {
+            toast.error("Le service académique ne peut planifier que les examens finaux.");
+            return;
+        }
+
+        if (mode === 'PROFESSOR' && formData.type !== 'INTERROGATION') {
+            toast.error("Les professeurs ne peuvent planifier que les interrogations.");
+            return;
+        }
+
         if (formData.type === 'EXAM' && mode === 'ACADEMIC_OFFICE') {
             if (!course?.isCompleted) {
                 toast.error("Impossible : L'examen ne peut être planifié que si le cours est terminé.");
@@ -142,11 +165,6 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 toast.error(`Ce cours a déjà été programmé pour l'examen pour le ${date}`);
                 return;
             }
-        }
-
-        if (mode === 'PROFESSOR' && formData.type === 'EXAM') {
-            toast.error("Seul le service académique peut planifier des examens.");
-            return;
         }
 
         try {
@@ -165,7 +183,9 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 date: fullDate.toISOString(),
                 month: currentMonth,
                 year: currentYear,
-                isPublished: mode === 'PROFESSOR' ? true : isPublished
+                isPublished: mode === 'PROFESSOR' ? true : isPublished,
+                room: formData.room,
+                duration: formData.duration
             });
 
             toast.success(isPublished ? "Programme publié !" : "Brouillon enregistré !");
@@ -417,10 +437,10 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 <div className="flex items-center justify-between">
                     <h4 className="font-black text-gray-900 flex items-center gap-2">
                         <BookMarked className="w-5 h-5 text-blue-600" />
-                        {mode === 'PROFESSOR' ? 'Mes Cours (Interrogations)' : 'Banque de Cours (Terminés)'}
+                        {mode === 'PROFESSOR' ? 'Mes Cours (Interrogations)' : 'Cours Terminés (Examens Finaux)'}
                     </h4>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-full">
-                        {mode === 'PROFESSOR' ? availableCourses.length : availableCourses.filter(c => c.isCompleted).length} COURS {mode === 'PROFESSOR' ? 'À ENSEIGNER' : 'DISPONIBLES'}
+                        {mode === 'PROFESSOR' ? availableCourses.length : availableCourses.filter(c => c.isCompleted).length} COURS DISPONIBLES
                     </span>
                 </div>
 
@@ -437,7 +457,8 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                             setFormData({
                                                 ...formData,
                                                 courseCode: course.code,
-                                                type: mode === 'PROFESSOR' ? 'INTERROGATION' : 'EXAM'
+                                                type: mode === 'PROFESSOR' ? 'INTERROGATION' : 'EXAM',
+                                                academicLevelId: mode === 'PROFESSOR' ? (course.academicLevelId || 0) : (selectedLevelId || 0)
                                             });
                                             setShowForm(true);
                                         }
@@ -447,7 +468,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                         : 'bg-white border-gray-100 text-gray-700 hover:border-blue-200 hover:shadow-md'
                                         }`}
                                 >
-                                    <div className={`w-2 h-2 rounded-full ${isAlreadyScheduled ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
+                                    <div className={`w-2 h-2 rounded-full ${isAlreadyScheduled ? 'bg-emerald-500' : (course.isCompleted ? 'bg-blue-500' : 'bg-gray-300')}`}></div>
                                     <div className="flex flex-col">
                                         <span className="text-[10px] font-black uppercase leading-none mb-1">[{course.code}]</span>
                                         <span className="text-xs font-bold leading-none">{course.name}</span>
@@ -456,8 +477,10 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                 </div>
                             );
                         })}
-                    {availableCourses.filter(c => c.isCompleted).length === 0 && (
-                        <p className="text-gray-300 font-bold italic text-sm">Aucun cours n'est encore marqué comme terminé.</p>
+                    {availableCourses.filter(c => (mode === 'PROFESSOR' ? true : c.isCompleted)).length === 0 && (
+                        <p className="text-gray-300 font-bold italic text-sm">
+                            {mode === 'PROFESSOR' ? "Aucun cours assigné." : "Aucun cours n'est marqué comme terminé."}
+                        </p>
                     )}
                 </div>
             </div>
@@ -494,15 +517,17 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Type</label>
-                                            <select
-                                                value={formData.type}
-                                                onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                                                className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <option value="INTERROGATION" className="text-black">Interrogation</option>
-                                                {mode === 'ACADEMIC_OFFICE' && <option value="EXAM" className="text-black">Examen Final</option>}
-                                            </select>
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Type d'évaluation</label>
+                                            <div className="w-full bg-white/10 border border-white/20 p-4 rounded-2xl font-black text-blue-400 flex items-center justify-between">
+                                                <span>{formData.type === 'EXAM' ? 'EXAMEN FINAL' : 'INTERROGATION'}</span>
+                                                <Lock className="w-4 h-4" />
+                                            </div>
+                                            <p className="text-[9px] text-gray-400 italic">
+                                                {mode === 'ACADEMIC_OFFICE'
+                                                    ? "Le service académique ne planifie que les examens finaux."
+                                                    : "Les professeurs planifient uniquement les interrogations."
+                                                }
+                                            </p>
                                         </div>
 
                                         <div className="space-y-2">
@@ -524,6 +549,27 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                                 value={formData.dateTime}
                                                 onChange={(e) => setFormData({ ...formData, dateTime: e.target.value })}
                                                 className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold italic"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Salle</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Ex: Local 10, Amphi A..."
+                                                value={formData.room}
+                                                onChange={(e) => setFormData({ ...formData, room: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Durée (minutes)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.duration}
+                                                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                                                className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold"
                                             />
                                         </div>
                                     </div>
@@ -626,7 +672,21 @@ function ScheduleCard({ schedule, onDelete, onPublish, mode }: {
                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <h3 className="font-black text-gray-900 uppercase">{s.course?.name}</h3>
-                    <p className="text-xs text-gray-400 font-medium">{s.academicLevelId === 0 ? 'Presciences' : `B${s.academicLevelId}`}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-gray-400 font-medium">{s.academicLevelId === 0 ? 'Presciences' : `B${s.academicLevelId}`}</p>
+                        {s.room && (
+                            <>
+                                <span className="text-gray-300">•</span>
+                                <p className="text-xs font-bold text-blue-600">Salle: {s.room}</p>
+                            </>
+                        )}
+                        {s.duration && (
+                            <>
+                                <span className="text-gray-300">•</span>
+                                <p className="text-xs font-bold text-gray-500">{s.duration} min</p>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
             <div className="flex items-center gap-2">
@@ -734,6 +794,12 @@ function CalendarGrid({ month, year, schedules, onDelete, onPublish, mode }: {
                                                 <span>{new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                 <span>•</span>
                                                 <span>{s.academicLevelId === 0 ? 'PS' : `B${s.academicLevelId}`}</span>
+                                                {s.room && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span className="font-black">{s.room}</span>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

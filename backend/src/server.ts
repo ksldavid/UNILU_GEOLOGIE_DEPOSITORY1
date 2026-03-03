@@ -65,7 +65,7 @@ const generalLimiter = rateLimit({
 // Rate limiter plus strict pour l'authentification
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Maximum 10 tentatives de login par IP
+    max: 50, // Maximum 50 tentatives de login par IP
     message: {
         status: 429,
         message: 'Trop de tentatives de connexion. Veuillez réessayer dans 15 minutes.'

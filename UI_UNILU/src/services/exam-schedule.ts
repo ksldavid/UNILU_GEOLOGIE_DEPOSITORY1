@@ -17,6 +17,8 @@ export interface ExamScheduleData {
     };
     creatorId?: string;
     isPublished?: boolean;
+    room?: string;
+    duration?: number;
 }
 
 export const examScheduleService = {

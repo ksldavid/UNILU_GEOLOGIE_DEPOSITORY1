@@ -498,6 +498,7 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
         const courses = enrollments.map(e => {
             const c = e.course;
             const level = c.academicLevels[0]?.displayName || 'Niveau inconnu';
+            const levelId = c.academicLevels[0]?.id || 0;
             const schedule = c.schedules.map((s: any) => `${s.day}: ${s.startTime} - ${s.endTime} (${s.room})`).join('\n') || 'Non défini';
 
             return {
@@ -505,6 +506,7 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
                 code: c.code,
                 name: c.name,
                 level: level,
+                academicLevelId: levelId,
                 schedule: schedule,
                 location: c.schedules[0]?.room || 'À définir',
                 color: 'blue', // Default

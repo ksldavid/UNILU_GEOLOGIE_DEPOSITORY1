@@ -1,13 +1,11 @@
 import { Request, Response } from 'express'
 import prisma from '../../lib/prisma'
 
-// Créer un ticket de support
+// Créer un ticket de support (authentifié)
 export const createTicket = async (req: Request, res: Response) => {
     try {
         const { userId } = (req as any).user
         const { subject, category, priority, message, metadata } = req.body
-        console.log('DEBUG: Creating ticket for user:', userId);
-        console.log('DEBUG: Ticket data:', { subject, category, priority, message, metadata });
 
         const ticket = await prisma.supportTicket.create({
             data: {
@@ -22,9 +20,6 @@ export const createTicket = async (req: Request, res: Response) => {
                         content: message
                     }
                 }
-            },
-            include: {
-                messages: true
             }
         })
 
@@ -32,6 +27,52 @@ export const createTicket = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Erreur creation ticket:', error)
         res.status(500).json({ message: 'Erreur serveur' })
+    }
+}
+
+// Créer un ticket de support PUBLIC (non authentifié)
+export const createPublicTicket = async (req: Request, res: Response) => {
+    try {
+        const { subject, category, message, studentName, studentId, studentClass, whatsapp } = req.body
+
+        // On cherche si l'utilisateur existe déjà par son matricule/ID
+        let user = await prisma.user.findUnique({
+            where: { id: studentId }
+        });
+
+        // Si l'utilisateur n'existe pas (cas rare car normalement tous les étudiants sont pré-chargés), 
+        // on refuse car on a besoin d'un lien User dans le schéma Prisma pour SupportTicket chargé.
+        // Mais ici, on va supposer que l'ID étudiant fourni dans le formulaire de login est leur Matricule (User.id)
+        if (!user) {
+            return res.status(404).json({ message: "ID étudiant non reconnu. Veuillez vérifier votre ID ou contacter le service académique." });
+        }
+
+        const ticket = await prisma.supportTicket.create({
+            data: {
+                subject: subject || "Aide à la connexion",
+                category: category || "Technique",
+                priority: 'HIGH',
+                userId: user.id,
+                metadata: {
+                    source: 'public_login_form',
+                    studentName,
+                    studentClass,
+                    whatsapp,
+                    submittedAt: new Date().toISOString()
+                },
+                messages: {
+                    create: {
+                        senderId: user.id, // On simule que c'est l'étudiant qui envoie
+                        content: `[MESSAGE PUBLIC] ${message}`
+                    }
+                }
+            }
+        })
+
+        res.status(201).json({ message: "Votre demande a été envoyée avec succès.", ticketId: ticket.id })
+    } catch (error) {
+        console.error('Erreur creation ticket public:', error)
+        res.status(500).json({ message: 'Erreur serveur lors de l\'envoi du message' })
     }
 }
 

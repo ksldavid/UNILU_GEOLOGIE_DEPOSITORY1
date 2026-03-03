@@ -4,12 +4,22 @@ import { AuthRequest } from '../middleware/auth.middleware'
 
 export const createExamSchedule = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode, academicLevelId, type, date, month, year, academicYear, isPublished = false } = req.body;
-        const creatorId = req.user?.userId; // Correct: use userId from AuthRequest
+        const { courseCode, academicLevelId, type, date, month, year, academicYear, isPublished = false, room, duration } = req.body;
+        const creatorId = req.user?.userId;
+        const userRole = req.user?.role;
 
         if (!creatorId) {
             return res.status(401).json({ error: 'Non autorisé' });
         }
+
+        // --- NEW BUSINESS RULES ---
+        if (userRole === 'USER' && type === 'EXAM') {
+            return res.status(403).json({ error: "Les professeurs ne peuvent pas planifier d'examens finaux." });
+        }
+        if (userRole === 'ACADEMIC_OFFICE' && type === 'INTERROGATION') {
+            return res.status(403).json({ error: "Le service académique ne planifie que les examens finaux. Les interrogations sont gérées par les professeurs." });
+        }
+        // --------------------------
 
         // Validate course
         const course = await prisma.course.findUnique({
@@ -36,7 +46,9 @@ export const createExamSchedule = async (req: AuthRequest, res: Response) => {
                 year,
                 academicYear: academicYear || '2025-2026',
                 creatorId,
-                isPublished: Boolean(isPublished)
+                isPublished: Boolean(isPublished),
+                room: room || null,
+                duration: duration ? Number(duration) : null
             }
         });
 
@@ -86,7 +98,7 @@ export const getExamSchedules = async (req: AuthRequest, res: Response) => {
 export const updateExamSchedule = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
-        const { date, isPublished } = req.body;
+        const { date, isPublished, room, duration } = req.body;
         const userId = req.user?.userId;
 
         if (!userId) return res.status(401).json({ error: 'Non autorisé' });
@@ -95,7 +107,9 @@ export const updateExamSchedule = async (req: AuthRequest, res: Response) => {
             where: { id: Number(id) },
             data: {
                 ...(date && { date: new Date(date) }),
-                ...(isPublished !== undefined && { isPublished: Boolean(isPublished) })
+                ...(isPublished !== undefined && { isPublished: Boolean(isPublished) }),
+                ...(room !== undefined && { room: room || null }),
+                ...(duration !== undefined && { duration: duration ? Number(duration) : null })
             }
         });
 

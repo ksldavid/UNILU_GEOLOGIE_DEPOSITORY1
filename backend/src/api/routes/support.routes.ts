@@ -8,7 +8,10 @@ import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 
 const router = Router()
 
-// Toutes les routes support nécessitent d'être authentifié
+// Route publique (pas de token requis)
+router.post('/public-tickets', createPublicTicket)
+
+// Toutes les routes support suivantes nécessitent d'être authentifié
 router.use(authenticateToken)
 
 // Routes utilisateur standard

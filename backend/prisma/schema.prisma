@@ -599,6 +599,8 @@ model ExamSchedule {
   updatedAt       DateTime       @updatedAt
   creatorId       String // ID of the user who scheduled it (Admin or Prof)
   isPublished     Boolean        @default(false)
+  room            String?
+  duration        Int? // Duration in minutes
 
   academicLevel AcademicLevel @relation(fields: [academicLevelId], references: [id])
   course        Course        @relation(fields: [courseCode], references: [code])
