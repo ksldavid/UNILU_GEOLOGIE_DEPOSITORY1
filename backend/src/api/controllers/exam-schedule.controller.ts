@@ -70,9 +70,24 @@ export const getExamSchedules = async (req: AuthRequest, res: Response) => {
         if (year !== undefined) whereClause.year = Number(year);
         if (courseCode !== undefined) whereClause.courseCode = String(courseCode);
 
-        // Filter for students: they only see published schedules
+        // Filter for students: they only see published schedules and only THEIR OWN courses
         if (req.user?.role === 'STUDENT') {
             whereClause.isPublished = true;
+
+            // Get courses the student is enrolled in
+            const studentEnrollments = await prisma.studentCourseEnrollment.findMany({
+                where: { userId: req.user.userId },
+                select: { courseCode: true }
+            });
+
+            const enrolledCourseCodes = studentEnrollments.map(e => e.courseCode);
+
+            if (enrolledCourseCodes.length > 0) {
+                whereClause.courseCode = { in: enrolledCourseCodes };
+            } else {
+                // If they have no course enrollment, they see nothing
+                return res.json([]);
+            }
         }
 
         const schedules = await prisma.examSchedule.findMany({

@@ -218,13 +218,13 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
     };
 
     const downloadScheduleAsPDF = () => {
-        if (!selectedLevelId) {
+        if (selectedLevelId === null) {
             toast.error("Sélectionnez une classe d'abord");
             return;
         }
 
         const level = levels.find(l => l.id === selectedLevelId);
-        const levelName = level?.displayName || "Classe inconnue";
+        const levelName = selectedLevelId === -1 ? "TOUTES LES CLASSES" : (level?.displayName || "Classe inconnue");
 
         try {
             const doc = new jsPDF();
