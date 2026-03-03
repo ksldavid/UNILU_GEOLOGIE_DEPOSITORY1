@@ -2,7 +2,8 @@ import { Router } from 'express'
 import {
     createTicket, getMyTickets, getTicketDetails,
     addMessage, getMyNotifications, markNotificationRead,
-    getAllTickets, updateTicketStatus, deleteTicket
+    getAllTickets, updateTicketStatus, deleteTicket,
+    createPublicTicket
 } from '../controllers/support.controller'
 import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 
