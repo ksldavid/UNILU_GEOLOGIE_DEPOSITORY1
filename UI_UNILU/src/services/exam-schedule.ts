@@ -54,10 +54,10 @@ export const examScheduleService = {
 
     async getAll(params?: { academicLevelId?: number; month?: number; year?: number; courseCode?: string }): Promise<ExamScheduleData[]> {
         const queryParams = new URLSearchParams();
-        if (params?.academicLevelId) queryParams.append('academicLevelId', params.academicLevelId.toString());
-        if (params?.month) queryParams.append('month', params.month.toString());
-        if (params?.year) queryParams.append('year', params.year.toString());
-        if (params?.courseCode) queryParams.append('courseCode', params.courseCode);
+        if (params?.academicLevelId !== undefined) queryParams.append('academicLevelId', params.academicLevelId.toString());
+        if (params?.month !== undefined) queryParams.append('month', params.month.toString());
+        if (params?.year !== undefined) queryParams.append('year', params.year.toString());
+        if (params?.courseCode !== undefined) queryParams.append('courseCode', params.courseCode);
 
         const url = `${API_URL}/exam-schedules${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
