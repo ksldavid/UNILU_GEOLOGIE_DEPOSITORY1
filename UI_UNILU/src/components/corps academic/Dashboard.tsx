@@ -237,45 +237,83 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Upcoming Interrogations Reminder */}
-        {data?.upcomingInterrogations?.length > 0 && (
-          <div className="mb-10 animate-in slide-in-from-top-4 duration-500">
-            <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-500" />
-              Rappels d'Interrogations (À venir)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {data.upcomingInterrogations.map((interro: any) => (
-                <div
-                  key={interro.id}
-                  className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-3xl p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-all group cursor-pointer"
-                  onClick={() => onNavigate('planning')}
-                >
-                  <div className="w-14 h-14 bg-white rounded-2xl flex flex-col items-center justify-center text-amber-600 font-black shadow-sm border border-amber-100 group-hover:scale-110 transition-transform">
-                    <span className="text-[9px] leading-none mb-1 opacity-60">J-</span>
-                    <span className="text-2xl leading-none">{interro.daysRemaining}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-black text-gray-900 text-sm uppercase truncate leading-tight mb-1">{interro.courseName}</h4>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">
-                        {new Date(interro.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-2 bg-white/50 rounded-full text-amber-300 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Today's Schedule */}
-        <div className="lg:col-span-2">
+        {/* Main Content Area */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* RAPPEL Section */}
+          {data?.upcomingEvents?.length > 0 && (
+            <div className="animate-in slide-in-from-top-4 duration-700">
+              <h3 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-3 italic tracking-tight uppercase">
+                <AlertCircle className="w-6 h-6 text-rose-500 animate-pulse" />
+                RAPPEL
+              </h3>
+              <div className="space-y-4">
+                {data.upcomingEvents.map((event: any) => {
+                  const isExam = event.type === 'EXAM';
+                  const dateObj = new Date(event.date);
+                  const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  });
+                  const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'long' });
+
+                  return (
+                    <div
+                      key={event.id}
+                      className={`relative overflow-hidden rounded-[32px] p-8 border-2 transition-all shadow-xl hover:-translate-y-1 active:scale-[0.99] group cursor-pointer ${isExam
+                          ? 'bg-rose-50 border-rose-200 shadow-rose-900/5 hover:shadow-rose-900/10'
+                          : 'bg-blue-50 border-blue-200 shadow-blue-900/5 hover:shadow-blue-900/10'
+                        }`}
+                      onClick={() => onNavigate('planning')}
+                    >
+                      {/* Decorative Background Icon */}
+                      <AlertCircle className={`absolute -right-8 -top-8 w-48 h-48 opacity-[0.03] transition-transform group-hover:scale-110 group-hover:rotate-12 ${isExam ? 'text-rose-600' : 'text-blue-600'}`} />
+
+                      <div className="flex flex-col md:flex-row md:items-center gap-6 relative z-10">
+                        <div className={`w-20 h-20 shrink-0 rounded-[24px] flex flex-col items-center justify-center font-black shadow-lg ${isExam ? 'bg-rose-600 text-white' : 'bg-blue-600 text-white'
+                          }`}>
+                          <span className="text-[10px] leading-none mb-1 opacity-70 uppercase tracking-tighter italic">J-{event.daysRemaining}</span>
+                          <span className="text-3xl leading-none">{event.daysRemaining}</span>
+                          <span className="text-[8px] leading-none mt-1 uppercase opacity-70">JOURS</span>
+                        </div>
+
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest ${isExam ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700'
+                              }`}>
+                              {isExam ? '🔴 Examen Final' : '🔵 Interrogation'}
+                            </span>
+                            <span className="text-[10px] font-bold text-gray-400 bg-white/50 px-2.5 py-1 rounded-full border border-gray-100 uppercase tracking-widest">
+                              {event.academicLevel}
+                            </span>
+                          </div>
+
+                          <p className={`text-lg font-bold leading-tight ${isExam ? 'text-rose-900' : 'text-blue-900'}`}>
+                            {isExam
+                              ? `Votre cours "${event.courseName}" a été planifié pour EXAMEN dans ${event.daysRemaining} jours, le ${dayName} ${formattedDate}.`
+                              : `Vous avez prévu une interrogation pour la classe ${event.academicLevel} dans le cours "${event.courseName}" le ${dayName} ${formattedDate} à ${event.startTime || '08:00'}.`
+                            }
+                          </p>
+
+                          {isExam && (
+                            <div className="mt-4 flex items-start gap-2 bg-white/40 p-3 rounded-2xl border border-rose-100/50">
+                              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                              <p className="text-[10px] font-bold text-rose-800 italic leading-snug">
+                                Si vous avez une modification à proposer, veuillez visiter le bureau du chef de département avant la date de l'examen.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-semibold text-gray-900">Cours de la journée</h3>
             <button
