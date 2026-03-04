@@ -402,16 +402,26 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
         const myLevels = Array.from(levelsMap.values());
 
         // 7. Fetch upcoming Events (Exams and Interrogations - next 30 days)
+        // Set start of today to include all events of the current day
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+        console.log(`[Dashboard] Searching events for courses: ${courseCodes.join(', ')} between ${startOfToday.toISOString()} and ${thirtyDaysFromNow.toISOString()}`);
 
         const upcomingSchedules = await prisma.examSchedule.findMany({
             where: {
                 courseCode: { in: courseCodes },
                 date: {
-                    gte: new Date(),
+                    gte: startOfToday,
                     lte: thirtyDaysFromNow
-                }
+                },
+                OR: [
+                    { type: 'INTERROGATION' }, // Profs see all interros for their courses
+                    { type: 'EXAM', isPublished: true } // Profs only see official/published exams
+                ]
             },
             include: {
                 course: { select: { name: true } },
@@ -419,6 +429,8 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
             },
             orderBy: { date: 'asc' }
         });
+
+        console.log(`[Dashboard] Found ${upcomingSchedules.length} upcoming events`);
 
         res.json({
             professorName: professor?.name,
@@ -435,17 +447,26 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                 expiredAt: a.dueDate,
                 submissionCount: a._count?.submissions || 0
             })),
-            upcomingEvents: (upcomingSchedules as any[]).map(s => ({
-                id: s.id,
-                courseName: s.course?.name || s.courseCode,
-                courseCode: s.courseCode,
-                date: s.date,
-                type: s.type,
-                room: s.room,
-                startTime: s.startTime,
-                academicLevel: s.academicLevel?.displayName || s.academicLevel?.name || 'N/A',
-                daysRemaining: Math.ceil((new Date(s.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-            })),
+            upcomingEvents: (upcomingSchedules as any[]).map(s => {
+                const eventDate = new Date(s.date);
+                const now = new Date();
+                // Différence en jours (0 = aujourd'hui)
+                const diffTime = eventDate.getTime() - now.getTime();
+                let daysRem = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (daysRem < 0) daysRem = 0; // Pour aujourd'hui
+
+                return {
+                    id: s.id,
+                    courseName: s.course?.name || s.courseCode,
+                    courseCode: s.courseCode,
+                    date: s.date,
+                    type: s.type,
+                    room: s.room,
+                    startTime: s.startTime,
+                    academicLevel: s.academicLevel?.displayName || s.academicLevel?.name || 'N/A',
+                    daysRemaining: daysRem
+                };
+            }),
             todaySchedule: (todaysSchedule as any[]).slice(0, 5).map(s => ({
                 id: s.id,
                 title: s.course?.name || 'Sans titre',
