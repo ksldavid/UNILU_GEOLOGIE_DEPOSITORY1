@@ -9,7 +9,8 @@ import {
     Lock,
     Unlock,
     BookMarked,
-    Download
+    Download,
+    GraduationCap
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { jsPDF } from "jspdf";
@@ -461,8 +462,9 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                         <CalendarIcon className="w-4 h-4" />
                         {viewMode === 'MONTHLY' ? 'Vue Annuelle' : 'Vue Mensuelle'}
                     </button>
-                    {mode === 'PROFESSOR' && (() => {
-                        // Derive unique levels from professor's courses
+
+                    {/* Filter for Professor or Academic Office */}
+                    {(() => {
                         const profLevels = Array.from(
                             new Map(
                                 availableCourses
@@ -470,38 +472,47 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                     .map(c => [c.academicLevelId, c.academicLevelId])
                             ).values()
                         ).sort((a, b) => a - b);
-                        if (profLevels.length <= 1) return null;
-                        return (
-                            <select
-                                value={selectedProfLevelId !== null ? selectedProfLevelId : ''}
-                                onChange={(e) => setSelectedProfLevelId(e.target.value === '' ? null : Number(e.target.value))}
-                                className="px-4 py-3 bg-white border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="">🎓 Toutes mes classes</option>
-                                {profLevels.map(lid => (
-                                    <option key={lid} value={lid}>
-                                        {lid === 0 ? 'Presciences' : `Bachelor ${lid}`}
-                                    </option>
-                                ))}
-                            </select>
-                        );
+
+                        if (mode === 'PROFESSOR') {
+                            return (
+                                <select
+                                    value={selectedProfLevelId !== null ? selectedProfLevelId : ''}
+                                    onChange={(e) => setSelectedProfLevelId(e.target.value === '' ? null : Number(e.target.value))}
+                                    className="px-4 py-3 bg-blue-50 border-2 border-blue-100 text-blue-700 rounded-2xl font-black text-xs uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-100 transition-all cursor-pointer whitespace-nowrap"
+                                >
+                                    <option value="">🎓 Choisir une classe...</option>
+                                    {profLevels.map(lid => (
+                                        <option key={lid} value={lid}>
+                                            {lid === 0 ? 'Presciences' : `Bachelor ${lid}`}
+                                        </option>
+                                    ))}
+                                </select>
+                            );
+                        }
+
+                        if (mode === 'ACADEMIC_OFFICE') {
+                            return (
+                                <select
+                                    value={selectedLevelId !== null ? selectedLevelId : ""}
+                                    onChange={(e) => setSelectedLevelId(Number(e.target.value))}
+                                    className="px-4 py-3 bg-white border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    {levels.map(l => <option key={l.id} value={l.id}>{l.displayName}</option>)}
+                                </select>
+                            );
+                        }
+                        return null;
                     })()}
+
                     {mode === 'ACADEMIC_OFFICE' && (
-                        <>
-                            <select
-                                value={selectedLevelId !== null ? selectedLevelId : ""}
-                                onChange={(e) => setSelectedLevelId(Number(e.target.value))}
-                                className="px-4 py-3 bg-white border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                {levels.map(l => <option key={l.id} value={l.id}>{l.displayName}</option>)}
-                            </select>
+                        <div className="flex gap-2">
                             <button
                                 onClick={exportToJson}
                                 className="px-5 py-3 bg-slate-800 text-white rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-slate-900 transition-all shadow-lg shadow-slate-900/20 active:scale-95"
                                 title="Sauvegarder une copie locale (JSON)"
                             >
                                 <Lock className="w-4 h-4" />
-                                Sauvegarde
+                                <span className="hidden sm:inline">Sauvegarde</span>
                             </button>
                             <button
                                 onClick={handlePublishAll}
@@ -509,47 +520,50 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                 title="Publier tous les brouillons du mois"
                             >
                                 <Unlock className="w-4 h-4" />
-                                Publier Tout
+                                <span className="hidden sm:inline">Publier Tout</span>
                             </button>
-                            <button
-                                onClick={downloadScheduleAsPDF}
-                                className="px-5 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
-                                title="Télécharger le planning en PDF"
-                            >
-                                <Download className="w-4 h-4" />
-                                PDF
-                            </button>
-                        </>
+                        </div>
                     )}
+
+                    <button
+                        onClick={downloadScheduleAsPDF}
+                        className="px-5 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
+                        title="Télécharger le planning en PDF"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span className="hidden sm:inline">PDF</span>
+                    </button>
                 </div>
             </div>
 
             {/* Calendar Header - Only show in monthly mode */}
-            {viewMode === 'MONTHLY' && (
-                <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between">
-                    <button
-                        onClick={() => {
-                            if (currentMonth === 1) { setCurrentMonth(12); setCurrentYear(currentYear - 1); }
-                            else setCurrentMonth(currentMonth - 1);
-                        }}
-                        className="p-3 hover:bg-gray-50 rounded-2xl"
-                    >
-                        <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <div className="text-center">
-                        <span className="text-2xl font-black uppercase">{monthNames[currentMonth - 1]} {currentYear}</span>
+            {
+                viewMode === 'MONTHLY' && (
+                    <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between">
+                        <button
+                            onClick={() => {
+                                if (currentMonth === 1) { setCurrentMonth(12); setCurrentYear(currentYear - 1); }
+                                else setCurrentMonth(currentMonth - 1);
+                            }}
+                            className="p-3 hover:bg-gray-50 rounded-2xl"
+                        >
+                            <ChevronLeft className="w-6 h-6" />
+                        </button>
+                        <div className="text-center">
+                            <span className="text-2xl font-black uppercase">{monthNames[currentMonth - 1]} {currentYear}</span>
+                        </div>
+                        <button
+                            onClick={() => {
+                                if (currentMonth === 12) { setCurrentMonth(1); setCurrentYear(currentYear + 1); }
+                                else setCurrentMonth(currentMonth + 1);
+                            }}
+                            className="p-3 hover:bg-gray-50 rounded-2xl"
+                        >
+                            <ChevronRight className="w-6 h-6" />
+                        </button>
                     </div>
-                    <button
-                        onClick={() => {
-                            if (currentMonth === 12) { setCurrentMonth(1); setCurrentYear(currentYear + 1); }
-                            else setCurrentMonth(currentMonth + 1);
-                        }}
-                        className="p-3 hover:bg-gray-50 rounded-2xl"
-                    >
-                        <ChevronRight className="w-6 h-6" />
-                    </button>
-                </div>
-            )}
+                )
+            }
 
             {/* Informational Panels - Now at the Top */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -617,51 +631,77 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                    {availableCourses
-                        .filter(c => {
-                            if (mode === 'PROFESSOR') {
-                                return selectedProfLevelId !== null ? c.academicLevelId === selectedProfLevelId : true;
-                            }
-                            return c.isCompleted;
-                        })
-                        .map(course => {
-                            const isAlreadyScheduled = schedules.some(s => s.courseCode === course.code && (mode === 'PROFESSOR' ? s.type === 'INTERROGATION' : s.type === 'EXAM'));
-                            const courseLevel = getLevelColor(course.academicLevelId);
-                            return (
-                                <div
-                                    key={course.code}
-                                    onClick={() => {
-                                        if (mode === 'PROFESSOR' || !isAlreadyScheduled) {
-                                            setFormData({
-                                                ...formData,
-                                                courseCode: course.code,
-                                                type: mode === 'PROFESSOR' ? 'INTERROGATION' : 'EXAM',
-                                                academicLevelId: mode === 'PROFESSOR' ? (course.academicLevelId || 0) : (selectedLevelId || 0)
-                                            });
-                                            setShowForm(true);
-                                        }
-                                    }}
-                                    className={`px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-3 ${isAlreadyScheduled
-                                        ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                                        : 'bg-white border-gray-100 text-gray-700 hover:border-blue-200 hover:shadow-md'
-                                        }`}
-                                >
-                                    <div className={`w-2 h-2 rounded-full ${isAlreadyScheduled ? 'bg-emerald-500' : (mode === 'PROFESSOR' ? courseLevel.badge : (course.isCompleted ? 'bg-blue-500' : 'bg-gray-300'))}`}></div>
-                                    <div className="flex flex-col">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-black uppercase leading-none">[{course.code}]</span>
-                                            {mode === 'PROFESSOR' && selectedProfLevelId === null && (
-                                                <span className={`text-[8px] font-black px-1 py-0.5 rounded-full ${courseLevel.badge} text-white leading-none`}>
-                                                    {course.academicLevelId === 0 ? 'PS' : `B${course.academicLevelId}`}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <span className="text-xs font-bold leading-none mt-1">{course.name}</span>
-                                    </div>
-                                    {isAlreadyScheduled && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
+                    {mode === 'PROFESSOR' && selectedProfLevelId === null ? (
+                        <div className="w-full py-12 px-6 border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center text-center space-y-8">
+                            <div className="space-y-4">
+                                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-500 mx-auto">
+                                    <GraduationCap className="w-8 h-8" />
                                 </div>
-                            );
-                        })}
+                                <div>
+                                    <h5 className="font-bold text-gray-900">Programmer une Interrogation</h5>
+                                    <p className="text-xs text-gray-500 font-medium">Sélectionnez une classe pour commencer :</p>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap justify-center gap-3">
+                                {Array.from(
+                                    new Map(
+                                        availableCourses
+                                            .filter(c => c.academicLevelId !== undefined && c.academicLevelId !== null)
+                                            .map(c => [c.academicLevelId, c.academicLevelId])
+                                    ).values()
+                                ).sort((a, b) => a - b).map(lid => (
+                                    <button
+                                        key={lid}
+                                        onClick={() => setSelectedProfLevelId(lid)}
+                                        className="px-6 py-3 bg-white border-2 border-gray-100 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:shadow-lg transition-all active:scale-95"
+                                    >
+                                        {lid === 0 ? 'Presciences' : `Bachelor ${lid}`}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        availableCourses
+                            .filter(c => {
+                                if (mode === 'PROFESSOR') {
+                                    return selectedProfLevelId !== null ? c.academicLevelId === selectedProfLevelId : true;
+                                }
+                                return c.isCompleted;
+                            })
+                            .map(course => {
+                                const isAlreadyScheduled = schedules.some(s => s.courseCode === course.code && (mode === 'PROFESSOR' ? s.type === 'INTERROGATION' : s.type === 'EXAM'));
+                                const courseLevel = getLevelColor(course.academicLevelId);
+                                return (
+                                    <div
+                                        key={course.code}
+                                        onClick={() => {
+                                            if (mode === 'PROFESSOR' || !isAlreadyScheduled) {
+                                                setFormData({
+                                                    ...formData,
+                                                    courseCode: course.code,
+                                                    type: mode === 'PROFESSOR' ? 'INTERROGATION' : 'EXAM',
+                                                    academicLevelId: mode === 'PROFESSOR' ? (course.academicLevelId || 0) : (selectedLevelId || 0)
+                                                });
+                                                setShowForm(true);
+                                            }
+                                        }}
+                                        className={`px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-3 ${isAlreadyScheduled
+                                            ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                                            : 'bg-white border-gray-100 text-gray-700 hover:border-blue-200 hover:shadow-md'
+                                            }`}
+                                    >
+                                        <div className={`w-2 h-2 rounded-full ${isAlreadyScheduled ? 'bg-emerald-500' : (mode === 'PROFESSOR' ? courseLevel.badge : (course.isCompleted ? 'bg-blue-500' : 'bg-gray-300'))}`}></div>
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-black uppercase leading-none">[{course.code}]</span>
+                                            </div>
+                                            <span className="text-xs font-bold leading-none mt-1">{course.name}</span>
+                                        </div>
+                                        {isAlreadyScheduled && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
+                                    </div>
+                                );
+                            })
+                    )}
                     {availableCourses.filter(c => mode === 'PROFESSOR'
                         ? (selectedProfLevelId !== null ? c.academicLevelId === selectedProfLevelId : true)
                         : c.isCompleted
@@ -836,7 +876,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
 function ScheduleCard({ schedule, onDelete, onPublish, mode }: {
