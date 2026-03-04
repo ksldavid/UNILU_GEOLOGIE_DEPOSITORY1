@@ -1064,3 +1064,69 @@ export const markAnnouncementAsRead = async (req: AuthRequest, res: Response) =>
     }
 }
 
+
+/**
+ * Récupère le calendrier des examens et interrogations pour l'étudiant
+ */
+export const getStudentExams = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.userId;
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        // 1. Trouver le niveau actuel de l'étudiant
+        const enrollment = await prisma.studentEnrollment.findFirst({
+            where: { userId },
+            orderBy: { enrolledAt: 'desc' },
+            select: { academicLevelId: true, academicYear: true }
+        });
+
+        if (!enrollment) return res.status(404).json({ message: 'Inscription académique non trouvée' });
+
+        // 2. Trouver les cours actifs de l'étudiant
+        const activeEnrollments = await prisma.studentCourseEnrollment.findMany({
+            where: {
+                userId,
+                isActive: true
+            },
+            select: { courseCode: true }
+        });
+        const activeCourseCodes = activeEnrollments.map(e => e.courseCode);
+
+        // 3. Récupérer les examens et interrogations publiés
+        const examSchedules = await prisma.examSchedule.findMany({
+            where: {
+                academicLevelId: enrollment.academicLevelId,
+                academicYear: enrollment.academicYear,
+                courseCode: { in: activeCourseCodes },
+                isPublished: true
+            },
+            include: {
+                course: {
+                    select: { name: true }
+                }
+            },
+            orderBy: {
+                date: 'asc'
+            }
+        });
+
+        // 4. Formater la réponse
+        const formattedExams = examSchedules.map(exam => ({
+            id: exam.id,
+            title: exam.course.name,
+            code: exam.courseCode,
+            date: exam.date,
+            type: exam.type === 'EXAM' ? 'Examen' : 'Interrogation',
+            room: exam.room || 'À définir',
+            duration: exam.duration,
+            status: new Date(exam.date) > new Date() ? 'À venir' : 'Passé'
+        }));
+
+        res.json(formattedExams);
+
+    } catch (error) {
+        console.error('Erreur calendrier examens étudiant:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}

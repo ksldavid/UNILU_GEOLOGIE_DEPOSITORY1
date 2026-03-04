@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getStudentDashboard, getStudentCourses, getStudentCourseDetails, getStudentSchedule, getStudentGrades, getStudentAnnouncements, getStudentProfile, updateStudentProfile, getStudentCourseManagement, toggleCourseActive, submitAssignment, markAnnouncementAsRead } from '../controllers/student.controller'
+import { getStudentDashboard, getStudentCourses, getStudentCourseDetails, getStudentSchedule, getStudentGrades, getStudentAnnouncements, getStudentProfile, updateStudentProfile, getStudentCourseManagement, toggleCourseActive, submitAssignment, markAnnouncementAsRead, getStudentExams } from '../controllers/student.controller'
 import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 import { upload } from '../middleware/upload.middleware'
 
@@ -12,6 +12,7 @@ router.get('/courses-management', authenticateToken, authorizeRole('STUDENT'), g
 router.put('/courses/toggle-active', authenticateToken, authorizeRole('STUDENT'), toggleCourseActive)
 router.get('/courses/:courseCode', authenticateToken, authorizeRole('STUDENT'), getStudentCourseDetails)
 router.get('/schedule', authenticateToken, authorizeRole('STUDENT'), getStudentSchedule)
+router.get('/exams', authenticateToken, authorizeRole('STUDENT'), getStudentExams)
 router.get('/grades', authenticateToken, authorizeRole('STUDENT'), getStudentGrades)
 router.get('/announcements', authenticateToken, authorizeRole('STUDENT'), getStudentAnnouncements)
 router.get('/profile', authenticateToken, authorizeRole('STUDENT'), getStudentProfile)
