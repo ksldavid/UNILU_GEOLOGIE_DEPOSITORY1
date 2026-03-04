@@ -46,6 +46,8 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
     const [availableCourses, setAvailableCourses] = useState<any[]>([]);
     const [allYearlySchedules, setAllYearlySchedules] = useState<ExamScheduleData[]>([]);
     const [viewMode, setViewMode] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
+    // Professor-specific class filter
+    const [selectedProfLevelId, setSelectedProfLevelId] = useState<number | null>(null);
 
     // Form state
     const [showForm, setShowForm] = useState(false);
@@ -459,6 +461,31 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                         <CalendarIcon className="w-4 h-4" />
                         {viewMode === 'MONTHLY' ? 'Vue Annuelle' : 'Vue Mensuelle'}
                     </button>
+                    {mode === 'PROFESSOR' && (() => {
+                        // Derive unique levels from professor's courses
+                        const profLevels = Array.from(
+                            new Map(
+                                availableCourses
+                                    .filter(c => c.academicLevelId !== undefined && c.academicLevelId !== null)
+                                    .map(c => [c.academicLevelId, c.academicLevelId])
+                            ).values()
+                        ).sort((a, b) => a - b);
+                        if (profLevels.length <= 1) return null;
+                        return (
+                            <select
+                                value={selectedProfLevelId !== null ? selectedProfLevelId : ''}
+                                onChange={(e) => setSelectedProfLevelId(e.target.value === '' ? null : Number(e.target.value))}
+                                className="px-4 py-3 bg-white border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">🎓 Toutes mes classes</option>
+                                {profLevels.map(lid => (
+                                    <option key={lid} value={lid}>
+                                        {lid === 0 ? 'Presciences' : `Bachelor ${lid}`}
+                                    </option>
+                                ))}
+                            </select>
+                        );
+                    })()}
                     {mode === 'ACADEMIC_OFFICE' && (
                         <>
                             <select
@@ -574,18 +601,32 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 <div className="flex items-center justify-between">
                     <h4 className="font-black text-gray-900 flex items-center gap-2">
                         <BookMarked className="w-5 h-5 text-blue-600" />
-                        {mode === 'PROFESSOR' ? 'Mes Cours (Interrogations)' : (selectedLevelId === -1 ? 'Sélectionnez une classe pour programmer' : 'Cours Terminés (Examens Finaux)')}
+                        {mode === 'PROFESSOR'
+                            ? (selectedProfLevelId !== null
+                                ? `Mes Cours — ${selectedProfLevelId === 0 ? 'Presciences' : `Bachelor ${selectedProfLevelId}`}`
+                                : 'Mes Cours (Interrogations)')
+                            : (selectedLevelId === -1 ? 'Sélectionnez une classe pour programmer' : 'Cours Terminés (Examens Finaux)')}
                     </h4>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-full">
-                        {mode === 'PROFESSOR' ? availableCourses.length : (selectedLevelId === -1 ? 0 : availableCourses.filter(c => c.isCompleted).length)} COURS DISPONIBLES
+                        {mode === 'PROFESSOR'
+                            ? (selectedProfLevelId !== null
+                                ? availableCourses.filter(c => c.academicLevelId === selectedProfLevelId).length
+                                : availableCourses.length)
+                            : (selectedLevelId === -1 ? 0 : availableCourses.filter(c => c.isCompleted).length)} COURS
                     </span>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
                     {availableCourses
-                        .filter(c => mode === 'PROFESSOR' ? true : c.isCompleted)
+                        .filter(c => {
+                            if (mode === 'PROFESSOR') {
+                                return selectedProfLevelId !== null ? c.academicLevelId === selectedProfLevelId : true;
+                            }
+                            return c.isCompleted;
+                        })
                         .map(course => {
                             const isAlreadyScheduled = schedules.some(s => s.courseCode === course.code && (mode === 'PROFESSOR' ? s.type === 'INTERROGATION' : s.type === 'EXAM'));
+                            const courseLevel = getLevelColor(course.academicLevelId);
                             return (
                                 <div
                                     key={course.code}
@@ -605,25 +646,37 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                         : 'bg-white border-gray-100 text-gray-700 hover:border-blue-200 hover:shadow-md'
                                         }`}
                                 >
-                                    <div className={`w-2 h-2 rounded-full ${isAlreadyScheduled ? 'bg-emerald-500' : (course.isCompleted ? 'bg-blue-500' : 'bg-gray-300')}`}></div>
+                                    <div className={`w-2 h-2 rounded-full ${isAlreadyScheduled ? 'bg-emerald-500' : (mode === 'PROFESSOR' ? courseLevel.badge : (course.isCompleted ? 'bg-blue-500' : 'bg-gray-300'))}`}></div>
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-black uppercase leading-none mb-1">[{course.code}]</span>
-                                        <span className="text-xs font-bold leading-none">{course.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black uppercase leading-none">[{course.code}]</span>
+                                            {mode === 'PROFESSOR' && selectedProfLevelId === null && (
+                                                <span className={`text-[8px] font-black px-1 py-0.5 rounded-full ${courseLevel.badge} text-white leading-none`}>
+                                                    {course.academicLevelId === 0 ? 'PS' : `B${course.academicLevelId}`}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className="text-xs font-bold leading-none mt-1">{course.name}</span>
                                     </div>
                                     {isAlreadyScheduled && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
                                 </div>
                             );
                         })}
-                    {availableCourses.filter(c => (mode === 'PROFESSOR' ? true : c.isCompleted)).length === 0 && (
-                        <p className="text-gray-300 font-bold italic text-sm">
-                            {mode === 'PROFESSOR'
-                                ? "Aucun cours assigné."
-                                : (selectedLevelId === -1
-                                    ? "🌍 Sélectionnez une classe spécifique pour voir les cours programmables."
-                                    : "Aucun cours n'est marqué comme terminé.")
-                            }
-                        </p>
-                    )}
+                    {availableCourses.filter(c => mode === 'PROFESSOR'
+                        ? (selectedProfLevelId !== null ? c.academicLevelId === selectedProfLevelId : true)
+                        : c.isCompleted
+                    ).length === 0 && (
+                            <p className="text-gray-300 font-bold italic text-sm">
+                                {mode === 'PROFESSOR'
+                                    ? (selectedProfLevelId !== null
+                                        ? `Aucun cours trouvé pour cette classe.`
+                                        : "Aucun cours assigné.")
+                                    : (selectedLevelId === -1
+                                        ? "🌍 Sélectionnez une classe spécifique pour voir les cours programmables."
+                                        : "Aucun cours n'est marqué comme terminé.")
+                                }
+                            </p>
+                        )}
                 </div>
             </div>
 
@@ -798,7 +851,6 @@ function ScheduleCard({ schedule, onDelete, onPublish, mode }: {
     const cardBg = isExam ? 'bg-rose-50' : 'bg-blue-50';
     const cardBorder = isExam ? 'border-rose-100' : 'border-blue-100';
     const badgeBg = isExam ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700';
-    const dateBg = isExam ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700';
     const levelColors = getLevelColor(s.academicLevelId);
 
     return (
@@ -912,15 +964,14 @@ function CalendarGrid({ month, year, schedules, onDelete, onPublish, mode }: {
                                 </div>
                                 <div className="space-y-1">
                                     {d.schedules?.map(s => {
-                                        const colors = getLevelColor(s.academicLevelId);
                                         return (
                                             <div
                                                 key={s.id}
                                                 className={`p-1.5 rounded-lg text-[9px] font-bold border leading-tight group/item relative ${!s.isPublished
-                                                        ? 'bg-amber-50 border-amber-100 text-amber-700'
-                                                        : s.type === 'EXAM'
-                                                            ? 'bg-rose-50 border-rose-200 text-rose-700'
-                                                            : 'bg-blue-50 border-blue-200 text-blue-700'
+                                                    ? 'bg-amber-50 border-amber-100 text-amber-700'
+                                                    : s.type === 'EXAM'
+                                                        ? 'bg-rose-50 border-rose-200 text-rose-700'
+                                                        : 'bg-blue-50 border-blue-200 text-blue-700'
                                                     }`}
                                             >
                                                 <div className="flex justify-between items-center">
