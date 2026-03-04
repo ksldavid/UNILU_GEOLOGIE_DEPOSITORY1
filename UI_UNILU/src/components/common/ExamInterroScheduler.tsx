@@ -786,7 +786,6 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
         </div>
     );
 }
-// Internal component for schedule items
 function ScheduleCard({ schedule, onDelete, onPublish, mode }: {
     schedule: ExamScheduleData,
     onDelete: (id: number) => void,
@@ -794,19 +793,25 @@ function ScheduleCard({ schedule, onDelete, onPublish, mode }: {
     mode: 'PROFESSOR' | 'ACADEMIC_OFFICE'
 }) {
     const s = schedule;
-    const colors = getLevelColor(s.academicLevelId);
+    // Color based on TYPE: red for exams, blue for interrogations
+    const isExam = s.type === 'EXAM';
+    const cardBg = isExam ? 'bg-rose-50' : 'bg-blue-50';
+    const cardBorder = isExam ? 'border-rose-100' : 'border-blue-100';
+    const badgeBg = isExam ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700';
+    const dateBg = isExam ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700';
+    const levelColors = getLevelColor(s.academicLevelId);
 
     return (
-        <div className={`p-6 rounded-3xl border ${colors.border} ${colors.bg} shadow-sm flex items-center justify-between group hover:shadow-md transition-all`}>
+        <div className={`p-6 rounded-3xl border ${cardBorder} ${cardBg} shadow-sm flex items-center justify-between group hover:shadow-md transition-all`}>
             <div className="flex items-center gap-6">
-                <div className={`w-16 h-16 ${colors.bg} rounded-2xl flex flex-col items-center justify-center border ${colors.border}`}>
-                    <span className={`text-xs font-black ${colors.text} uppercase`}>{new Date(s.date).toLocaleDateString('fr-FR', { weekday: 'short' })}</span>
+                <div className={`w-16 h-16 bg-white rounded-2xl flex flex-col items-center justify-center border ${cardBorder}`}>
+                    <span className={`text-xs font-black ${isExam ? 'text-rose-600' : 'text-blue-600'} uppercase`}>{new Date(s.date).toLocaleDateString('fr-FR', { weekday: 'short' })}</span>
                     <span className="text-xl font-black text-gray-900">{new Date(s.date).getDate()}</span>
                 </div>
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${s.type === 'EXAM' ? 'bg-rose-100 text-rose-700' : colors.bg + ' ' + colors.text}`}>
-                            {s.type === 'EXAM' ? 'Examen' : 'Interro'}
+                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${badgeBg}`}>
+                            {isExam ? '🔴 Examen' : '🔵 Interro'}
                         </span>
                         {!s.isPublished && (
                             <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100 italic">
@@ -817,7 +822,9 @@ function ScheduleCard({ schedule, onDelete, onPublish, mode }: {
                     </div>
                     <h3 className="font-black text-gray-900 uppercase">{s.course?.name}</h3>
                     <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-gray-400 font-medium">{s.academicLevelId === 0 ? 'Presciences' : `B${s.academicLevelId}`}</p>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${levelColors.badge} text-white`}>
+                            {s.academicLevelId === 0 ? 'Presciences' : `Bachelor ${s.academicLevelId}`}
+                        </span>
                         {s.room && (
                             <>
                                 <span className="text-gray-300">•</span>
@@ -910,8 +917,10 @@ function CalendarGrid({ month, year, schedules, onDelete, onPublish, mode }: {
                                             <div
                                                 key={s.id}
                                                 className={`p-1.5 rounded-lg text-[9px] font-bold border leading-tight group/item relative ${!s.isPublished
-                                                    ? 'bg-amber-50 border-amber-100 text-amber-700'
-                                                    : (s.type === 'EXAM' ? 'bg-rose-50 border-rose-100 text-rose-700' : `${colors.bg} ${colors.border} ${colors.text}`)
+                                                        ? 'bg-amber-50 border-amber-100 text-amber-700'
+                                                        : s.type === 'EXAM'
+                                                            ? 'bg-rose-50 border-rose-200 text-rose-700'
+                                                            : 'bg-blue-50 border-blue-200 text-blue-700'
                                                     }`}
                                             >
                                                 <div className="flex justify-between items-center">
@@ -920,7 +929,7 @@ function CalendarGrid({ month, year, schedules, onDelete, onPublish, mode }: {
                                                         <span className="truncate uppercase pr-2">{s.course?.name}</span>
                                                     </div>
                                                     {s.academicLevelId !== -1 && (
-                                                        <div className={`w-1.5 h-1.5 rounded-full ${colors.badge} shrink-0`}></div>
+                                                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.type === 'EXAM' ? 'bg-rose-500' : 'bg-blue-500'}`}></div>
                                                     )}
                                                 </div>
                                                 <div className="flex items-center justify-between mt-1">

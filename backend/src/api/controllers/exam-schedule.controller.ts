@@ -70,7 +70,7 @@ export const getExamSchedules = async (req: AuthRequest, res: Response) => {
         if (year !== undefined) whereClause.year = Number(year);
         if (courseCode !== undefined) whereClause.courseCode = String(courseCode);
 
-        // Filter for students: they only see published schedules and only THEIR OWN courses
+        // Filter based on user role
         if (req.user?.role === 'STUDENT') {
             whereClause.isPublished = true;
 
@@ -88,7 +88,12 @@ export const getExamSchedules = async (req: AuthRequest, res: Response) => {
                 // If they have no course enrollment, they see nothing
                 return res.json([]);
             }
+        } else if (req.user?.role === 'USER') {
+            // Professors (role USER) only see their OWN interrogations
+            whereClause.type = 'INTERROGATION';
+            whereClause.creatorId = req.user.userId;
         }
+        // ACADEMIC_OFFICE sees everything: no extra filter needed
 
         const schedules = await prisma.examSchedule.findMany({
             where: whereClause,
