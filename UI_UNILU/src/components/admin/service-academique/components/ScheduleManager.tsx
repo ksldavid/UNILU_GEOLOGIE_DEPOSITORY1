@@ -141,27 +141,53 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
         setSelectedLevelId(levelId);
     };
 
+    const [activeDropSlot, setActiveDropSlot] = useState<{ day: string, time: string } | null>(null);
+
     const handleDragStart = (e: React.DragEvent, course: Course) => {
         setDraggedCourse(course);
         e.dataTransfer.setData('source', 'sidebar');
+        e.dataTransfer.setData('courseId', course.id);
+        e.dataTransfer.effectAllowed = 'move';
+
+        // Création d'un ghost plus propre
         const ghost = e.currentTarget.cloneNode(true) as HTMLElement;
-        ghost.style.opacity = '0.5';
+        ghost.style.opacity = '0.8';
         ghost.style.position = 'absolute';
         ghost.style.top = '-1000px';
+        ghost.style.width = '200px';
+        ghost.style.zIndex = '1000';
         document.body.appendChild(ghost);
-        e.dataTransfer.setDragImage(ghost, 0, 0);
+        e.dataTransfer.setDragImage(ghost, 100, 20);
         setTimeout(() => document.body.removeChild(ghost), 0);
     };
 
-    const handleDragOver = (e: React.DragEvent) => {
+    const handleDragOver = (e: React.DragEvent, day: string, time: string) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
+        if (activeDropSlot?.day !== day || activeDropSlot?.time !== time) {
+            setActiveDropSlot({ day, time });
+        }
+    };
+
+    const handleDragLeave = () => {
+        setActiveDropSlot(null);
     };
 
     const handleDrop = (day: string, time: string) => {
+        setActiveDropSlot(null);
         if (draggedCourse) {
             setPendingSchedule({ course: draggedCourse, day });
-            setTimeForm(prev => ({ ...prev, startTime: time }));
+
+            // Calculer une heure de fin par défaut (2h plus tard)
+            const [h, m] = time.split(':').map(Number);
+            const endH = h + 2;
+            const endTime = `${endH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+            setTimeForm({
+                startTime: time,
+                endTime: endTime,
+                room: ''
+            });
             setIsTimeModalOpen(true);
             setDraggedCourse(null);
         }
@@ -396,9 +422,14 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                                                 return (
                                                     <div
                                                         key={`${day}-${time}`}
-                                                        onDragOver={handleDragOver}
+                                                        onDragOver={(e) => handleDragOver(e, day, time)}
+                                                        onDragLeave={handleDragLeave}
                                                         onDrop={() => handleDrop(day, time)}
-                                                        className="h-[40px] bg-white rounded-2xl border border-[#1B4332]/5 hover:border-[#1B4332]/20 hover:bg-white transition-all relative group/slot shadow-sm"
+                                                        className={`h-[40px] bg-white rounded-2xl border transition-all relative group/slot shadow-sm
+                                                            ${activeDropSlot?.day === day && activeDropSlot?.time === time
+                                                                ? 'border-[#1B4332] bg-[#D8F3DC] border-2 scale-[1.02] z-20'
+                                                                : 'border-[#1B4332]/5 hover:border-[#1B4332]/20 hover:bg-white'}
+                                                        `}
                                                     >
                                                         {isFirstSlot && coursesAtSlot.map(course => {
                                                             const durationSlots = (toMinutes(course.endTime) - toMinutes(course.startTime)) / 30;

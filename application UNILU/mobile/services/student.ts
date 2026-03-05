@@ -24,7 +24,7 @@ export const studentService = {
     getDashboard: async () => {
         return apiFetch('/student/dashboard');
     },
-    async updateProfile(data: { name?: string, sex?: string, birthday?: string, nationality?: string, whatsapp?: string }) {
+    async updateProfile(data: { name?: string; email?: string; sex?: string; birthday?: string; nationality?: string; whatsapp?: string }): Promise<any> {
         return apiFetch('/student/profile', {
             method: 'PUT',
             body: JSON.stringify(data)

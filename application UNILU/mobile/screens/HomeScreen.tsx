@@ -121,6 +121,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
 
 
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [editName, setEditName] = useState('');
     const [editSex, setEditSex] = useState('');
     const [editBirthday, setEditBirthday] = useState('');
@@ -278,6 +279,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
             setProfileData(profile);
             setAds(Array.isArray(adsData) ? adsData : []);
             setEditName(profile.name || '');
+            setEditEmail(profile.email || '');
             setEditSex(profile.sex || '');
             if (profile.birthday) {
                 setEditBirthday(new Date(profile.birthday).toISOString().split('T')[0]);
@@ -427,7 +429,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
 
     const headerHeight = scrollY.interpolate({
         inputRange: [0, 100],
-        outputRange: [Platform.OS === 'ios' ? 180 : 150, Platform.OS === 'ios' ? 120 : 90],
+        outputRange: [Platform.OS === 'ios' ? 210 : 180, Platform.OS === 'ios' ? 140 : 110],
         extrapolate: 'clamp',
     });
 
@@ -723,7 +725,11 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                 activeOpacity={0.7}
                             >
                                 <View style={[styles.progressCircle, { borderColor: (stat.color || '#0d9488') + '20' }]}>
-                                    <Text style={[styles.statPercentage, { color: stat.color || '#0d9488' }]}>
+                                    <Text
+                                        style={[styles.statPercentage, { color: stat.color || '#0d9488' }]}
+                                        numberOfLines={1}
+                                        adjustsFontSizeToFit
+                                    >
                                         {stat.percentage != null ? `${stat.percentage}%` : "---%"}
                                     </Text>
                                 </View>
@@ -1233,6 +1239,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
         if (activeTab !== 'profile') return null;
 
         const hasChanges = editName !== (profileData?.name || '') ||
+            editEmail !== (profileData?.email || '') ||
             editSex !== (profileData?.sex || '') ||
             editBirthday !== (profileData?.birthday ? new Date(profileData.birthday).toISOString().split('T')[0] : '') ||
             editNationality !== (profileData?.nationality || '') ||
@@ -1241,6 +1248,24 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
         return (
             <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabScrollPadding}>
                 <View style={styles.profileHeader}>
+                    <TouchableOpacity
+                        style={styles.profileEditToggle}
+                        onPress={() => {
+                            if (isEditingProfile) {
+                                // Annuler : reset les champs vers les données d'origine
+                                setEditName(profileData?.name || '');
+                                setEditSex(profileData?.sex || '');
+                                setEditBirthday(profileData?.birthday ? new Date(profileData.birthday).toISOString().split('T')[0] : '');
+                                setEditNationality(profileData?.nationality || '');
+                                setEditWhatsapp(profileData?.whatsapp || '');
+                            }
+                            setIsEditingProfile(!isEditingProfile);
+                        }}
+                    >
+                        <Text style={styles.profileEditToggleText}>
+                            {isEditingProfile ? "Annuler" : "Modifier"}
+                        </Text>
+                    </TouchableOpacity>
                     <View style={styles.profileAvatarBig}>
                         <UserIcon size={40} color="white" />
                     </View>
@@ -1252,10 +1277,11 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                     <View style={styles.profileInfoItem}>
                         <Text style={styles.profileInfoLabel}>Nom Complet</Text>
                         <TextInput
-                            style={styles.profileInput}
+                            style={[styles.profileInput, !isEditingProfile && styles.profileInputDisabled]}
                             placeholder="Ex: David Kasilmebo"
                             value={editName}
                             onChangeText={setEditName}
+                            editable={isEditingProfile}
                         />
                     </View>
                     <View style={styles.profileInfoDivider} />
@@ -1268,7 +1294,15 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
 
                     <View style={styles.profileInfoItem}>
                         <Text style={styles.profileInfoLabel}>Email</Text>
-                        <Text style={styles.profileInfoValue}>{profileData?.email || '...'}</Text>
+                        <TextInput
+                            style={[styles.profileInput, !isEditingProfile && styles.profileInputDisabled]}
+                            placeholder="votre@email.com"
+                            value={editEmail}
+                            onChangeText={setEditEmail}
+                            keyboardType="email-address"
+                            editable={isEditingProfile}
+                            autoCapitalize="none"
+                        />
                     </View>
                     <View style={styles.profileInfoDivider} />
 
@@ -1276,14 +1310,16 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                         <Text style={styles.profileInfoLabel}>Sexe</Text>
                         <View style={styles.profileEditRow}>
                             <TouchableOpacity
-                                style={[styles.sexOption, editSex === 'M' && styles.sexOptionActive]}
-                                onPress={() => setEditSex('M')}
+                                style={[styles.sexOption, editSex === 'M' && styles.sexOptionActive, !isEditingProfile && { opacity: 0.5 }]}
+                                onPress={() => isEditingProfile && setEditSex('M')}
+                                disabled={!isEditingProfile}
                             >
                                 <Text style={[styles.sexOptionText, editSex === 'M' && styles.sexOptionTextActive]}>Masculin</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.sexOption, editSex === 'F' && styles.sexOptionActive]}
-                                onPress={() => setEditSex('F')}
+                                style={[styles.sexOption, editSex === 'F' && styles.sexOptionActive, !isEditingProfile && { opacity: 0.5 }]}
+                                onPress={() => isEditingProfile && setEditSex('F')}
+                                disabled={!isEditingProfile}
                             >
                                 <Text style={[styles.sexOptionText, editSex === 'F' && styles.sexOptionTextActive]}>Féminin</Text>
                             </TouchableOpacity>
@@ -1294,11 +1330,14 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                     <View style={styles.profileInfoItem}>
                         <Text style={styles.profileInfoLabel}>Nationalité</Text>
                         <TouchableOpacity
-                            style={styles.profileInput}
-                            onPress={() => setIsCountryModalVisible(true)}
+                            style={[styles.profileInput, !isEditingProfile && styles.profileInputDisabled]}
+                            onPress={() => isEditingProfile && setIsCountryModalVisible(true)}
+                            disabled={!isEditingProfile}
                         >
                             <Text style={styles.profileInputText}>
-                                {editNationality ? countries.find(c => c.name === editNationality)?.flag + ' ' + editNationality : "Sélectionner votre nationalité"}
+                                {editNationality ?
+                                    (countries.find(c => c.name === editNationality)?.flag || '🌍') + ' ' + editNationality
+                                    : "Sélectionner votre nationalité"}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -1307,11 +1346,12 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                     <View style={styles.profileInfoItem}>
                         <Text style={styles.profileInfoLabel}>Numéro WhatsApp</Text>
                         <TextInput
-                            style={styles.profileInput}
+                            style={[styles.profileInput, !isEditingProfile && styles.profileInputDisabled]}
                             placeholder="Ex: +243 820 000 000"
                             value={editWhatsapp}
                             onChangeText={setEditWhatsapp}
                             keyboardType="phone-pad"
+                            editable={isEditingProfile}
                         />
                     </View>
                     <View style={styles.profileInfoDivider} />
@@ -1319,15 +1359,16 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                     <View style={styles.profileInfoItem}>
                         <Text style={styles.profileInfoLabel}>Date de Naissance (AAAA-MM-JJ)</Text>
                         <TextInput
-                            style={styles.profileInput}
+                            style={[styles.profileInput, !isEditingProfile && styles.profileInputDisabled]}
                             placeholder="Ex: 2000-01-01"
                             value={editBirthday}
                             onChangeText={setEditBirthday}
                             keyboardType="numeric"
+                            editable={isEditingProfile}
                         />
                     </View>
 
-                    {hasChanges && (
+                    {isEditingProfile && hasChanges && (
                         <TouchableOpacity
                             style={styles.saveProfileButton}
                             disabled={isUpdatingProfile}
@@ -1343,6 +1384,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                     });
                                     const updatedProfile = await studentService.getProfile();
                                     setProfileData(updatedProfile);
+                                    setIsEditingProfile(false); // Sortir du mode édition après sauvegarde
                                     Alert.alert("Succès", "Profil mis à jour");
                                 } catch (error) {
                                     Alert.alert("Erreur", "Impossible de mettre à jour le profil");
@@ -1820,7 +1862,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: Platform.OS === 'ios' ? 10 : 20,
+        marginTop: Platform.OS === 'ios' ? 20 : 40,
         paddingHorizontal: 20,
     },
     userInfo: {
@@ -1929,7 +1971,7 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 20,
         paddingBottom: 120, // Increased to ensure announcements are visible above bottom nav
-        paddingTop: Platform.OS === 'ios' ? 190 : 160,
+        paddingTop: Platform.OS === 'ios' ? 220 : 190,
     },
     card: {
         backgroundColor: 'white',
@@ -2680,6 +2722,63 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     // Styles Onglet Profil
+    profileHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+        width: '100%',
+    },
+    profileEditToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f0fdfa',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        gap: 6,
+        borderWidth: 1,
+        borderColor: '#ccfbf1',
+    },
+    profileEditToggleCancel: {
+        backgroundColor: '#fef2f2',
+        borderColor: '#fee2e2',
+    },
+    profileEditToggleText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#0d9488',
+    },
+    profileEditToggleTextCancel: {
+        color: '#ef4444',
+    },
+    profileHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+        width: '100%',
+    },
+    profileEditToggle: {
+        backgroundColor: '#f0fdfa',
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#ccfbf1',
+    },
+    profileEditToggleCancel: {
+        backgroundColor: '#fef2f2',
+        borderColor: '#fee2e2',
+    },
+    profileEditToggleText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#0d9488',
+    },
+    profileEditToggleTextCancel: {
+        color: '#ef4444',
+    },
     profileHeader: {
         alignItems: 'center',
         marginBottom: 30,
