@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "617996762402",
+    "project_id": "push-notification-unilu",
+    "storage_bucket": "push-notification-unilu.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:617996762402:android:e64b5700046bf46aa0f97b",
+        "android_client_info": {
+          "package_name": "com.ksldavid.unilu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYCvN2b280LquMzPh2oKXHetjErzYHTag"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

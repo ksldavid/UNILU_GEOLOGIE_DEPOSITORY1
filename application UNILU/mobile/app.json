@@ -1,0 +1,87 @@
+{
+  "expo": {
+    "name": "UNILU",
+    "slug": "unilu",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "scheme": "unilu",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ksldavid.unilu",
+      "associatedDomains": [
+        "applinks:unilu-geologie-depository-1-a6kx.vercel.app"
+      ]
+    },
+    "android": {
+      "package": "com.ksldavid.unilu",
+      "versionCode": 3,
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/final-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": false,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "useNextNotificationsApi": true,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "unilu-geologie-depository-1-a6kx.vercel.app",
+              "pathPrefix": "/scan"
+            },
+            {
+              "scheme": "unilu"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "notification": {
+      "icon": "./assets/icon.png",
+      "color": "#0d9488",
+      "androidMode": "default",
+      "androidCollapsedTitle": "UNILU Hub"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#0d9488"
+        }
+      ]
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5a403b6c-f798-45da-9668-0b4361c47cf4"
+      }
+    },
+    "owner": "ksldavid"
+  }
+}
