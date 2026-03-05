@@ -1546,41 +1546,53 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                             <Text style={styles.fullPageSubtitle}>Progression annuelle par matière</Text>
 
                             <ScrollView showsVerticalScrollIndicator={false} style={styles.fullListScroll}>
-                                {coursesData.map(stat => (
-                                    <TouchableOpacity
-                                        key={stat.id}
-                                        style={styles.fullStatCard}
-                                        onPress={() => {
-                                            closeFullStats();
-                                            openCourseDetails(stat);
-                                        }}
-                                    >
-                                        <View style={[styles.fullStatIcon, { backgroundColor: stat.color + '15' }]}>
-                                            <BookOpen size={20} color={stat.color} />
-                                        </View>
-                                        <View style={styles.fullStatInfo}>
-                                            <Text style={styles.fullStatName}>{stat.name}</Text>
-                                            <View style={styles.fullStatProgressRow}>
-                                                <View style={styles.fullProgressBarBg}>
-                                                    <LinearGradient
-                                                        colors={[stat.color, stat.color + 'CC']}
-                                                        start={{ x: 0, y: 0 }}
-                                                        end={{ x: 1, y: 0 }}
-                                                        style={[styles.fullProgressBarFill, { width: `${stat.percentage}%` }]}
-                                                    />
+                                {coursesData.map((stat: any) => {
+                                    const courseColor = stat.color || '#0d9488';
+                                    return (
+                                        <TouchableOpacity
+                                            key={stat.id}
+                                            style={[styles.fullStatCard, { borderLeftColor: courseColor, borderLeftWidth: 6, backgroundColor: courseColor + '08' }]}
+                                            onPress={() => {
+                                                closeFullStats();
+                                                openCourseDetails(stat);
+                                            }}
+                                        >
+                                            <View style={[styles.fullStatIcon, { backgroundColor: courseColor + '20' }]}>
+                                                <BookOpen size={22} color={courseColor} />
+                                            </View>
+                                            <View style={styles.fullStatInfo}>
+                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                                    <Text style={[styles.fullStatName, { color: '#1e293b', flex: 1 }]}>{stat.name}</Text>
+                                                    <View style={[styles.percentBadge, { backgroundColor: courseColor }]}>
+                                                        <Text style={[styles.fullStatPercent, { color: '#fff' }]}>{stat.percentage}%</Text>
+                                                    </View>
                                                 </View>
-                                                <View style={[styles.percentBadge, { backgroundColor: stat.color + '15' }]}>
-                                                    <Text style={[styles.fullStatPercent, { color: stat.color }]}>{stat.percentage}%</Text>
+
+                                                <View style={styles.fullStatProgressRow}>
+                                                    <View style={[styles.fullProgressBarBg, { backgroundColor: courseColor + '15' }]}>
+                                                        <LinearGradient
+                                                            colors={[courseColor, courseColor + 'AA']}
+                                                            start={{ x: 0, y: 0 }}
+                                                            end={{ x: 1, y: 0 }}
+                                                            style={[styles.fullProgressBarFill, { width: `${stat.percentage}%` }]}
+                                                        >
+                                                            <View style={styles.progressBarGlow} />
+                                                        </LinearGradient>
+                                                    </View>
+                                                </View>
+
+                                                <View style={styles.statMetaRow}>
+                                                    <View style={styles.sessionBadge}>
+                                                        <Text style={[styles.sessionBadgeText, { color: courseColor }]}>
+                                                            {stat.attendedCount || 0} / {stat.totalCount || 0} SÉANCES
+                                                        </Text>
+                                                    </View>
+                                                    <ChevronRight size={16} color="#94a3b8" />
                                                 </View>
                                             </View>
-                                            <View style={styles.statMetaRow}>
-                                                <BookOpen size={12} color="#94a3b8" />
-                                                <Text style={styles.fullStatDetailsText}>{stat.attendedCount || 0} séances sur {stat.totalCount || 0}</Text>
-                                            </View>
-                                        </View>
-                                        <ChevronRight size={18} color="#cbd5e1" />
-                                    </TouchableOpacity>
-                                ))}
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </ScrollView>
                         </SafeAreaView>
                     </Animated.View>
@@ -2429,22 +2441,21 @@ const styles = StyleSheet.create({
     fullStatCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'white',
-        padding: 18,
-        borderRadius: 24,
+        padding: 16,
+        borderRadius: 20,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#f1f5f9',
+        borderColor: 'rgba(241, 245, 249, 0.5)',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        elevation: 3,
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
     fullStatIcon: {
-        width: 52,
-        height: 52,
-        borderRadius: 16,
+        width: 50,
+        height: 50,
+        borderRadius: 15,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 15,
@@ -2453,34 +2464,41 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     fullStatName: {
-        fontSize: 17,
+        fontSize: 16,
         fontWeight: '800',
-        color: '#1e293b',
-        marginBottom: 10,
     },
     fullStatProgressRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        marginBottom: 8,
+        marginBottom: 12,
     },
     fullProgressBarBg: {
         flex: 1,
-        height: 10,
-        backgroundColor: '#f1f5f9',
-        borderRadius: 5,
+        height: 12,
+        borderRadius: 6,
         overflow: 'hidden',
     },
     fullProgressBarFill: {
         height: '100%',
-        borderRadius: 5,
+        borderRadius: 6,
+        justifyContent: 'center',
+    },
+    progressBarGlow: {
+        width: '100%',
+        height: '40%',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        position: 'absolute',
+        top: 0,
     },
     percentBadge: {
-        paddingHorizontal: 8,
+        paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 8,
-        minWidth: 45,
-        alignItems: 'center',
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     fullStatPercent: {
         fontSize: 12,
@@ -2489,12 +2507,20 @@ const styles = StyleSheet.create({
     statMetaRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        justifyContent: 'space-between',
     },
-    fullStatDetailsText: {
-        fontSize: 12,
-        color: '#94a3b8',
-        fontWeight: '600',
+    sessionBadge: {
+        backgroundColor: '#fff',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+    },
+    sessionBadgeText: {
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
     fullHistoryItem: {
         flexDirection: 'row',
