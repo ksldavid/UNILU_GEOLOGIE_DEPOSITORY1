@@ -855,13 +855,14 @@ export const getStudentProfile = async (req: AuthRequest, res: Response) => {
 export const updateStudentProfile = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
-        const { sex, birthday, nationality, whatsapp } = req.body;
+        const { name, sex, birthday, nationality, whatsapp } = req.body;
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
         const updated = await prisma.user.update({
             where: { id: userId },
             data: {
+                name,
                 sex,
                 birthday: birthday ? new Date(birthday) : null,
                 nationality,
@@ -871,6 +872,7 @@ export const updateStudentProfile = async (req: AuthRequest, res: Response) => {
 
         res.json({
             message: 'Profil mis à jour avec succès',
+            name: updated.name,
             sex: updated.sex,
             birthday: updated.birthday,
             nationality: updated.nationality,

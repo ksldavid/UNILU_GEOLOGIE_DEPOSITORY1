@@ -121,6 +121,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
 
 
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+    const [editName, setEditName] = useState('');
     const [editSex, setEditSex] = useState('');
     const [editBirthday, setEditBirthday] = useState('');
     const [editNationality, setEditNationality] = useState('');
@@ -276,6 +277,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
             setScheduleData(schedule);
             setProfileData(profile);
             setAds(Array.isArray(adsData) ? adsData : []);
+            setEditName(profile.name || '');
             setEditSex(profile.sex || '');
             if (profile.birthday) {
                 setEditBirthday(new Date(profile.birthday).toISOString().split('T')[0]);
@@ -1230,7 +1232,8 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
     const renderProfileTab = () => {
         if (activeTab !== 'profile') return null;
 
-        const hasChanges = editSex !== (profileData?.sex || '') ||
+        const hasChanges = editName !== (profileData?.name || '') ||
+            editSex !== (profileData?.sex || '') ||
             editBirthday !== (profileData?.birthday ? new Date(profileData.birthday).toISOString().split('T')[0] : '') ||
             editNationality !== (profileData?.nationality || '') ||
             editWhatsapp !== (profileData?.whatsapp || '');
@@ -1247,7 +1250,18 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
 
                 <View style={styles.profileInfoCard}>
                     <View style={styles.profileInfoItem}>
-                        <Text style={styles.profileInfoLabel}>Matricule</Text>
+                        <Text style={styles.profileInfoLabel}>Nom Complet</Text>
+                        <TextInput
+                            style={styles.profileInput}
+                            placeholder="Ex: David Kasilmebo"
+                            value={editName}
+                            onChangeText={setEditName}
+                        />
+                    </View>
+                    <View style={styles.profileInfoDivider} />
+
+                    <View style={styles.profileInfoItem}>
+                        <Text style={styles.profileInfoLabel}>Matricule (Lecture seule)</Text>
                         <Text style={styles.profileInfoValue}>{profileData?.idNumber || '...'}</Text>
                     </View>
                     <View style={styles.profileInfoDivider} />
@@ -1321,6 +1335,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                 setIsUpdatingProfile(true);
                                 try {
                                     await studentService.updateProfile({
+                                        name: editName,
                                         sex: editSex,
                                         birthday: editBirthday,
                                         nationality: editNationality,

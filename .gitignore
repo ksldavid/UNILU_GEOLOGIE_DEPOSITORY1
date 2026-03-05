@@ -55,7 +55,7 @@ ios/
 google-services.json
 GoogleService-Info.plist
 application UNILU/mobile/google-services.json
-*.json
+# *.json (supprimé car bloque package.json, app.json, etc.)
 
 # =============== TESTING ===============
 coverage/
