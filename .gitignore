@@ -51,6 +51,11 @@ Thumbs.db
 *.mobileprovision
 android/
 ios/
+# SCA%CURITAA% : Ne jamais monter ces fichiers sur le cloud
+google-services.json
+GoogleService-Info.plist
+application UNILU/mobile/google-services.json
+*.json
 
 # =============== TESTING ===============
 coverage/
