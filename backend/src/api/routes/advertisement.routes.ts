@@ -15,6 +15,7 @@ router.get('/', authenticateToken, authorizeRole('ADMIN'), adController.getAllAd
 router.post('/', authenticateToken, authorizeRole('ADMIN'), upload.single('image'), adController.createAd);
 router.put('/:id', authenticateToken, authorizeRole('ADMIN'), adController.updateAd);
 router.delete('/:id', authenticateToken, authorizeRole('ADMIN'), adController.deleteAd);
+router.post('/:id/renew', authenticateToken, authorizeRole('ADMIN'), adController.renewAd);
 router.post('/:id/notify', authenticateToken, authorizeRole('ADMIN'), adController.triggerAdNotifications);
 
 export default router;

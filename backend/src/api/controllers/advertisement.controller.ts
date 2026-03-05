@@ -146,6 +146,36 @@ export const deleteAd = async (req: Request, res: Response) => {
 }
 
 /**
+ * Renouveler une publicité (Prolonger la date d'expiration)
+ */
+export const renewAd = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params as { id: string };
+        const { durationDays } = req.body;
+
+        let expiresAt = null;
+        if (durationDays) {
+            expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + parseInt(durationDays));
+        }
+
+        const ad = await prisma.advertisement.update({
+            where: { id },
+            data: {
+                expiresAt,
+                isActive: true,
+                sentToday: 0
+            }
+        });
+
+        res.json({ message: 'Publicité renouvelée avec succès', ad });
+    } catch (error) {
+        console.error('Erreur renouvelle pub:', error);
+        res.status(500).json({ message: 'Erreur lors du renouvellement' });
+    }
+}
+
+/**
  * Déclencher manuellement les notifications pour une publicité (Service Technique)
  * Cette fonction respecte la limite quotidienne configurée.
  */

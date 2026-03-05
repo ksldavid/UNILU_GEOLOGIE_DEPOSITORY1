@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Trash2, Plus, Bell, Image as ImageIcon, Upload, MousePointer2, Clock, MessageSquareText, X } from 'lucide-react';
+import { Trash2, Plus, Bell, Image as ImageIcon, Upload, MousePointer2, Clock, MessageSquareText, X, RefreshCw } from 'lucide-react';
 import { API_URL } from '../../../../services/config';
 
 export function AdsManager() {
@@ -138,6 +138,33 @@ export function AdsManager() {
             setAds(ads.filter(a => a.id !== id));
         } catch (error) {
             alert("Erreur suppression");
+        }
+    };
+
+    const handleRenewAd = async (id: string) => {
+        const days = prompt("Combien de jours prolonger ? (Laissez vide pour Illimité)", "7");
+        if (days === null) return; // Annulé
+
+        try {
+            const token = sessionStorage.getItem('token');
+            const res = await fetch(`${API_URL}/ads/${id}/renew`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ durationDays: days ? parseInt(days) : null })
+            });
+
+            if (res.ok) {
+                alert("Publicité renouvelée ! Elle est à présent active.");
+                fetchAds();
+            } else {
+                const err = await res.json();
+                alert(err.message || "Erreur renouvellement");
+            }
+        } catch (error) {
+            alert("Erreur réseau");
         }
     };
 
@@ -384,6 +411,13 @@ export function AdsManager() {
                                         className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 active:scale-95"
                                     >
                                         <Bell className="w-4 h-4" /> Envoyer Push
+                                    </button>
+                                    <button
+                                        onClick={() => handleRenewAd(ad.id)}
+                                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95"
+                                        title="Renouveler / Prolonger"
+                                    >
+                                        <RefreshCw className="w-4 h-4" /> Renouveler
                                     </button>
                                     <button
                                         onClick={() => handleDeleteAd(ad.id)}
