@@ -675,7 +675,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                 </TouchableOpacity>
 
                 {/* Carte de Présence Globale - Style Site Web */}
-                {!isLoadingData && dashboardData?.stats && (
+                {dashboardData?.stats ? (
                     <View style={styles.globalAttendanceCard}>
                         <LinearGradient
                             colors={['#0d9488', '#0f766e']}
@@ -684,20 +684,24 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                             style={styles.globalAttendanceGradient}
                         >
                             <View style={styles.globalAttendanceContent}>
-                                <View>
+                                <View style={{ flex: 1 }}>
                                     <Text style={styles.globalAttendanceLabel}>Présence Globale</Text>
                                     <Text style={styles.globalAttendanceStatus}>
-                                        {dashboardData.stats.attendance >= 80 ? 'Excellente progression' :
-                                            dashboardData.stats.attendance >= 50 ? 'Progression stable' : 'Attention requise'}
+                                        {(dashboardData.stats.attendance ?? 0) >= 80 ? 'Excellente progression' :
+                                            (dashboardData.stats.attendance ?? 0) >= 50 ? 'Progression stable' : 'Attention requise'}
                                     </Text>
                                 </View>
                                 <View style={styles.globalAttendanceCircle}>
-                                    <Text style={styles.globalAttendanceValue}>{dashboardData.stats.attendance}%</Text>
+                                    <Text style={styles.globalAttendanceValue}>{dashboardData.stats.attendance ?? 0}%</Text>
                                 </View>
                             </View>
                         </LinearGradient>
                     </View>
-                )}
+                ) : isLoadingData ? (
+                    <View style={[styles.globalAttendanceCard, { backgroundColor: '#f1f5f9', height: 100, justifyContent: 'center', alignItems: 'center' }]}>
+                        <ActivityIndicator color="#0d9488" />
+                    </View>
+                ) : null}
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsList}>
                     {isLoadingData ? (
@@ -1558,11 +1562,21 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                             <Text style={styles.fullStatName}>{stat.name}</Text>
                                             <View style={styles.fullStatProgressRow}>
                                                 <View style={styles.fullProgressBarBg}>
-                                                    <View style={[styles.fullProgressBarFill, { width: `${stat.percentage}%`, backgroundColor: stat.color }]} />
+                                                    <LinearGradient
+                                                        colors={[stat.color, stat.color + 'CC']}
+                                                        start={{ x: 0, y: 0 }}
+                                                        end={{ x: 1, y: 0 }}
+                                                        style={[styles.fullProgressBarFill, { width: `${stat.percentage}%` }]}
+                                                    />
                                                 </View>
-                                                <Text style={[styles.fullStatPercent, { color: stat.color }]}>{stat.percentage}%</Text>
+                                                <View style={[styles.percentBadge, { backgroundColor: stat.color + '15' }]}>
+                                                    <Text style={[styles.fullStatPercent, { color: stat.color }]}>{stat.percentage}%</Text>
+                                                </View>
                                             </View>
-                                            <Text style={styles.fullStatDetailsText}>{stat.attendedCount || 0} séances sur {stat.totalCount || 0}</Text>
+                                            <View style={styles.statMetaRow}>
+                                                <BookOpen size={12} color="#94a3b8" />
+                                                <Text style={styles.fullStatDetailsText}>{stat.attendedCount || 0} séances sur {stat.totalCount || 0}</Text>
+                                            </View>
                                         </View>
                                         <ChevronRight size={18} color="#cbd5e1" />
                                     </TouchableOpacity>
@@ -2416,16 +2430,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'white',
-        padding: 16,
-        borderRadius: 20,
-        marginBottom: 12,
+        padding: 18,
+        borderRadius: 24,
+        marginBottom: 16,
         borderWidth: 1,
         borderColor: '#f1f5f9',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        elevation: 3,
     },
     fullStatIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 14,
+        width: 52,
+        height: 52,
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 15,
@@ -2434,36 +2453,48 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     fullStatName: {
-        fontSize: 16,
-        fontWeight: '700',
+        fontSize: 17,
+        fontWeight: '800',
         color: '#1e293b',
-        marginBottom: 8,
+        marginBottom: 10,
     },
     fullStatProgressRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-        marginBottom: 4,
+        gap: 12,
+        marginBottom: 8,
     },
     fullProgressBarBg: {
         flex: 1,
-        height: 6,
+        height: 10,
         backgroundColor: '#f1f5f9',
-        borderRadius: 3,
+        borderRadius: 5,
         overflow: 'hidden',
     },
     fullProgressBarFill: {
         height: '100%',
-        borderRadius: 3,
+        borderRadius: 5,
+    },
+    percentBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        minWidth: 45,
+        alignItems: 'center',
     },
     fullStatPercent: {
-        fontSize: 13,
-        fontWeight: '800',
-        width: 40,
+        fontSize: 12,
+        fontWeight: '900',
+    },
+    statMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
     fullStatDetailsText: {
         fontSize: 12,
         color: '#94a3b8',
+        fontWeight: '600',
     },
     fullHistoryItem: {
         flexDirection: 'row',
