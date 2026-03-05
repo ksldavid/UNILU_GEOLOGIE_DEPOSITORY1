@@ -123,6 +123,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [editName, setEditName] = useState('');
+    const [editEmail, setEditEmail] = useState('');
     const [editSex, setEditSex] = useState('');
     const [editBirthday, setEditBirthday] = useState('');
     const [editNationality, setEditNationality] = useState('');
@@ -1254,6 +1255,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                             if (isEditingProfile) {
                                 // Annuler : reset les champs vers les données d'origine
                                 setEditName(profileData?.name || '');
+                                setEditEmail(profileData?.email || '');
                                 setEditSex(profileData?.sex || '');
                                 setEditBirthday(profileData?.birthday ? new Date(profileData.birthday).toISOString().split('T')[0] : '');
                                 setEditNationality(profileData?.nationality || '');
@@ -2752,33 +2754,7 @@ const styles = StyleSheet.create({
     profileEditToggleTextCancel: {
         color: '#ef4444',
     },
-    profileHeaderRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-        width: '100%',
-    },
-    profileEditToggle: {
-        backgroundColor: '#f0fdfa',
-        paddingHorizontal: 15,
-        paddingVertical: 8,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#ccfbf1',
-    },
-    profileEditToggleCancel: {
-        backgroundColor: '#fef2f2',
-        borderColor: '#fee2e2',
-    },
-    profileEditToggleText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#0d9488',
-    },
-    profileEditToggleTextCancel: {
-        color: '#ef4444',
-    },
+
     profileHeader: {
         alignItems: 'center',
         marginBottom: 30,
@@ -2926,6 +2902,11 @@ const styles = StyleSheet.create({
         marginTop: 5,
         borderWidth: 1,
         borderColor: '#e2e8f0',
+    },
+    profileInputDisabled: {
+        backgroundColor: '#f8fafc',
+        borderColor: '#f1f5f9',
+        color: '#94a3b8',
     },
     saveProfileButton: {
         backgroundColor: '#0d9488',
