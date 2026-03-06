@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { FileText, CheckCircle, Users, Clock, Loader2, ChevronRight, AlertTriangle, RotateCcw, X, Download } from 'lucide-react';
 import { jsPDF } from "jspdf";
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 import uniluLogo from "@/assets/unilu-official-logo.png";
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { courseService } from '../../../../services/course';
 import { attendanceService } from '../../../../services/attendance';
 
@@ -252,6 +255,56 @@ export function AttendanceManager() {
         }
     };
 
+    const exportAttendanceExcel = () => {
+        if (!selectedCourseCode || students.length === 0) return;
+
+        try {
+            const course = courses.find(c => c.code === selectedCourseCode);
+            const level = levels.find(l => l.id === selectedLevelId);
+
+            const zeroAttendance = students.filter(s => s.attendance === 0).sort((a, b) => a.name.localeCompare(b.name));
+            const restAttendance = students.filter(s => s.attendance > 0).sort((a, b) => a.name.localeCompare(b.name));
+
+            // Flatten data for Excel
+            const excelData = [
+                { 'SECTION': 'PRESENCE NULLE', 'NOM COMPLET': '', 'TAUX (%)': '' },
+                ...zeroAttendance.map(s => ({
+                    'SECTION': '0%',
+                    'NOM COMPLET': s.name.toUpperCase(),
+                    'TAUX (%)': `${s.attendance}%`
+                })),
+                { 'SECTION': '', 'NOM COMPLET': '', 'TAUX (%)': '' }, // Spacer
+                { 'SECTION': 'PRESENCE POSITIVE', 'NOM COMPLET': '', 'TAUX (%)': '' },
+                ...restAttendance.map(s => ({
+                    'SECTION': 'ACTIVE',
+                    'NOM COMPLET': s.name.toUpperCase(),
+                    'TAUX (%)': `${s.attendance}%`
+                }))
+            ];
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Assiduité");
+
+            // Auto-size columns
+            worksheet["!cols"] = [
+                { wch: 20 }, // Section
+                { wch: 45 }, // Nom
+                { wch: 15 }  // Taux
+            ];
+
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+
+            const fileName = `Assiduite_${selectedCourseCode}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            saveAs(data, fileName);
+            showToast("Fichier Excel généré !", 'success');
+        } catch (error) {
+            console.error("Excel Export error:", error);
+            showToast("Erreur lors de la génération de l'Excel", 'error');
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Toast */}
@@ -291,13 +344,39 @@ export function AttendanceManager() {
                 {loading && <Loader2 className="w-5 h-5 animate-spin text-[#1B4332]" />}
 
                 {students.length > 0 && (
-                    <button
-                        onClick={exportAttendancePDF}
-                        className="ml-auto flex items-center gap-2 bg-[#1B4332] hover:bg-[#2D5F4C] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-[#1B4332]/20 transition-all active:scale-95"
-                    >
-                        <Download className="w-4 h-4" />
-                        <span>Télécharger PDF</span>
-                    </button>
+                    <DropdownMenu.Root>
+                        <DropdownMenu.Trigger asChild>
+                            <button
+                                className="ml-auto flex items-center gap-2 bg-[#1B4332] hover:bg-[#2D5F4C] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-[#1B4332]/20 transition-all active:scale-95 outline-none"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span>Télécharger</span>
+                                <ChevronRight className="w-4 h-4 rotate-90" />
+                            </button>
+                        </DropdownMenu.Trigger>
+
+                        <DropdownMenu.Portal>
+                            <DropdownMenu.Content
+                                className="min-w-[160px] bg-white rounded-2xl p-2 shadow-2xl border border-[#1B4332]/10 animate-in fade-in zoom-in duration-200 z-50"
+                                sideOffset={5}
+                            >
+                                <DropdownMenu.Item
+                                    onClick={exportAttendancePDF}
+                                    className="flex items-center gap-3 px-3 py-2.5 text-sm text-[#1B4332] font-bold hover:bg-[#F1F8F4] rounded-xl outline-none cursor-pointer"
+                                >
+                                    <FileText className="w-4 h-4 text-red-500" />
+                                    Format PDF
+                                </DropdownMenu.Item>
+                                <DropdownMenu.Item
+                                    onClick={exportAttendanceExcel}
+                                    className="flex items-center gap-3 px-3 py-2.5 text-sm text-[#1B4332] font-bold hover:bg-[#F1F8F4] rounded-xl outline-none cursor-pointer"
+                                >
+                                    <FileText className="w-4 h-4 text-emerald-500" />
+                                    Format Excel
+                                </DropdownMenu.Item>
+                            </DropdownMenu.Content>
+                        </DropdownMenu.Portal>
+                    </DropdownMenu.Root>
                 )}
             </div>
 
