@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FileText, CheckCircle, Users, Clock, Loader2, ChevronRight, AlertTriangle, RotateCcw, X, Download } from 'lucide-react';
 import { jsPDF } from "jspdf";
-import uniluLogo from "../../../assets/unilu-official-logo.png";
+import uniluLogo from "@/assets/unilu-official-logo.png";
 import { courseService } from '../../../../services/course';
 import { attendanceService } from '../../../../services/attendance';
 
