@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, School, BookOpen, UserCheck, Plus, Loader2, X, Users, ArrowRight, Save, Trash2 } from 'lucide-react';
+import { Search, School, BookOpen, UserCheck, Plus, Loader2, X, Users, ArrowRight, Save } from 'lucide-react';
 import { staffService } from '../../../../services/staff';
 import { courseService } from '../../../../services/course';
 
@@ -472,18 +472,6 @@ export function StaffAssignmentManager() {
                                                         <span className="text-sm font-bold text-blue-700">{assistants.length}</span>
                                                     </div>
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteCourse(course.code);
-                                                    }}
-                                                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                                                    title="Supprimer le cours"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
                                             </td>
                                         </tr>
                                     );

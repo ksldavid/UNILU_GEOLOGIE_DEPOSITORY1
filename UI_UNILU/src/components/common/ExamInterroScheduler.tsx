@@ -299,86 +299,100 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
             doc.line(40, 68, pageWidth - 40, 68);
 
             // Table Header
-            doc.setFontSize(10);
+            doc.setFontSize(9);
             doc.setTextColor(30, 41, 59); // Slate-800
             doc.setFont("helvetica", "bold");
-            doc.text("DATE", 20, 80);
-            doc.text("HEURE", 50, 80);
-            doc.text("TYPE", 75, 80);
-            doc.text("COURS / SALLE", 110, 80);
+            doc.text("JOUR", 15, 80);
+            doc.text("DATE", 45, 80);
+            doc.text("HEURE", 75, 80);
+            doc.text("TYPE", 100, 80);
+            doc.text("COURS / SALLE", 130, 80);
 
             doc.setDrawColor(30, 41, 59);
-            doc.setLineWidth(0.5);
-            doc.line(20, 83, pageWidth - 20, 83);
+            doc.setLineWidth(0.4);
+            doc.line(15, 83, pageWidth - 15, 83);
 
             // Content
             doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
             let y = 92;
 
             const sortedSchedules = [...schedules].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
             if (sortedSchedules.length === 0) {
                 doc.setTextColor(148, 163, 184); // Slate-400
-                doc.text("Aucun planning enregistré pour cette sélection.", pageWidth / 2, 80, { align: 'center' });
+                doc.text("Aucun planning enregistré pour cette sélection.", pageWidth / 2, 92, { align: 'center' });
             }
 
             sortedSchedules.forEach((s) => {
-                if (y > 270) {
-                    doc.addPage();
-                    y = 20;
-                    doc.setFontSize(8);
-                    doc.setTextColor(150);
-                    doc.text(`Planning des Examens - ${displayClassName}`, 20, 10);
-                    doc.line(20, 12, pageWidth - 20, 12);
-                    doc.setFontSize(10);
-                    doc.setTextColor(0);
-                    y = 22;
-                }
-
                 const scheduleDate = new Date(s.date);
+
+                // Préparer les textes
+                const dayStr = scheduleDate.toLocaleDateString('fr-FR', { weekday: 'long' }).toUpperCase();
                 const dateStr = scheduleDate.toLocaleDateString('fr-FR', {
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric'
                 });
-
                 const timeStr = scheduleDate.toLocaleTimeString('fr-FR', {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
 
-                doc.setTextColor(30, 41, 59);
-                doc.setFont("helvetica", "bold");
-                doc.text(dateStr, 20, y);
-                doc.setFont("helvetica", "normal");
-                doc.text(timeStr, 50, y);
-
-                // Type details
-                if (s.type === 'EXAM') {
-                    doc.setTextColor(225, 29, 72); // Rose-600
-                    doc.setFont("helvetica", "bold");
-                    doc.text("EXAMEN", 75, y);
-                } else {
-                    doc.setTextColor(37, 99, 235); // Blue-600
-                    doc.text("INTERRO", 75, y);
-                }
-
-                doc.setTextColor(30, 41, 59);
-                doc.setFont("helvetica", "normal");
                 const courseName = s.course?.name || s.courseCode;
                 const roomName = s.room ? ` - Salle: ${s.room}` : "";
                 const durationInfo = s.duration ? ` (${s.duration} min)` : "";
                 const fullCourseLine = `${courseName}${roomName}${durationInfo}`;
 
-                // Truncate if too long for the line
-                const truncatedLine = fullCourseLine.length > 55 ? fullCourseLine.substring(0, 52) + "..." : fullCourseLine;
-                doc.text(truncatedLine, 110, y);
+                // Gérer le wrapping du cours
+                const maxWidth = pageWidth - 130 - 15; // De 130 à la marge droite
+                const splitCourse = doc.splitTextToSize(fullCourseLine, maxWidth);
+                const rowHeight = Math.max(8, splitCourse.length * 5);
+
+                // Saut de page si nécessaire
+                if (y + rowHeight > 275) {
+                    doc.addPage();
+                    y = 25;
+                    // Rappel des entêtes si nouvelle page (Optionnel mais propre)
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    doc.text(`Suite - Planning des Examens - ${displayClassName}`, 20, 15);
+                    doc.line(15, 18, pageWidth - 15, 18);
+                    doc.setFontSize(10);
+                    doc.setTextColor(30, 41, 59);
+                    y = 30;
+                }
+
+                doc.setTextColor(30, 41, 59);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9);
+                doc.text(dayStr, 15, y);
+                doc.text(dateStr, 45, y);
+
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.text(timeStr, 75, y);
+
+                // Type details
+                if (s.type === 'EXAM') {
+                    doc.setTextColor(225, 29, 72); // Rose-600
+                    doc.setFont("helvetica", "bold");
+                    doc.text("EXAMEN", 100, y);
+                } else {
+                    doc.setTextColor(37, 99, 235); // Blue-600
+                    doc.text("INTERRO", 100, y);
+                }
+
+                doc.setTextColor(30, 41, 59);
+                doc.setFont("helvetica", "normal");
+                doc.text(splitCourse, 130, y);
 
                 // Draw a very light line between items
-                doc.setDrawColor(248, 250, 252);
-                doc.line(20, y + 4, pageWidth - 20, y + 4);
+                doc.setDrawColor(241, 245, 249); // Slate-100
+                doc.setLineWidth(0.1);
+                doc.line(15, y + rowHeight - 2, pageWidth - 15, y + rowHeight - 2);
 
-                y += 12; // Increased spacing
+                y += rowHeight + 4; // Espacement entre les lignes
             });
 
             // Footer
