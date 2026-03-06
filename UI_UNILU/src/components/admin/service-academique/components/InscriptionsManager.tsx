@@ -517,7 +517,6 @@ Mot de passe: ${formData.password}
 
       const reportData = filteredUsers.map(u => ({
         'NOM COMPLET': u.name,
-        'EMAIL': u.email,
         'PROMOTION': u.promotion || 'N/A',
         'STATUS': u.status === 'active' ? 'Actif' : 'Bloqué',
         'COURS INSCRITS': u.enrolledCourses?.length || 0,
