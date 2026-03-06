@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { BookOpen, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2, MapPin, GraduationCap, ChevronDown, ChevronUp, Clock, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { Page } from "../../App";
