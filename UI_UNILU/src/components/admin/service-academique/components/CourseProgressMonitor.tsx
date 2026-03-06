@@ -25,6 +25,7 @@ interface CourseProgress {
     professor: string;
     professeurTitle: string;
     level: string;
+    allLevels: string[];
     levelColor: string;
     totalHours: number;   // Volume horaire total confié
     consumedHours: number; // Heures déjà données (présence prise)
@@ -276,13 +277,13 @@ function CourseDetailModal({ course, onClose, onToggleStatus }: { course: Course
                                 </div>
                                 {onToggleStatus && (
                                     <div className="flex flex-wrap gap-2 mt-3">
-                                        <button 
+                                        <button
                                             onClick={() => onToggleStatus('isActive')}
                                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all ${course.isActive ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'}`}
                                         >
                                             {course.isActive ? '✓ Suivi Actif' : 'Activer le Suivi'}
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => onToggleStatus('isCompleted')}
                                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all ${course.isCompleted ? 'bg-emerald-600 border-emerald-400 text-white shadow-lg' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'}`}
                                         >
@@ -427,13 +428,13 @@ export function CourseProgressMonitor() {
     const handleToggleStatus = async (type: 'isActive' | 'isCompleted') => {
         if (!selectedCourse) return;
         const newValue = !selectedCourse[type];
-        
+
         // Optimistic update
         const updatedCourse = { ...selectedCourse, [type]: newValue };
         if (type === 'isCompleted' && newValue) {
             updatedCourse.consumedHours = updatedCourse.totalHours; // Force 100%
         }
-        
+
         setSelectedCourse(updatedCourse);
         setCourses(courses.map(c => c.code === selectedCourse.code ? updatedCourse : c));
 
@@ -448,7 +449,7 @@ export function CourseProgressMonitor() {
 
     const filtered = courses
         .filter(c => {
-            const matchesLevel = selectedLevel === 'Tous' || c.level === selectedLevel;
+            const matchesLevel = selectedLevel === 'Tous' || (c.allLevels && c.allLevels.includes(selectedLevel)) || c.level === selectedLevel;
             const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 c.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 c.professor.toLowerCase().includes(searchTerm.toLowerCase());
@@ -630,7 +631,7 @@ export function CourseProgressMonitor() {
             <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide">
                 {academicLevels.map(lvl => {
                     const lvlCode = lvl.code.toUpperCase();
-                    const lvlCourses = courses.filter(c => c.level === lvlCode);
+                    const lvlCourses = courses.filter(c => (c.allLevels && c.allLevels.includes(lvlCode)) || c.level === lvlCode);
                     const activeInLvl = lvlCourses.filter(c => c.isScheduled);
                     if (lvlCourses.length === 0) return null;
 

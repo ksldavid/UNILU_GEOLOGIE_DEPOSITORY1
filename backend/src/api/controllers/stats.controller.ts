@@ -784,7 +784,7 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
                 const sch = courseSchedules.find(sch => sch.day === dayMap[sDate.getDay()]);
                 const duration = getSessionDuration(sch);
                 const presentCount = s.records.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length;
-                
+
                 return {
                     date: s.date,
                     label: sDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }),
@@ -803,7 +803,7 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
             while (tempDate <= now) {
                 const dayName = dayMap[tempDate.getDay()];
                 const daySchedules = courseSchedules.filter(s => s.day === dayName);
-                
+
                 for (const sch of daySchedules) {
                     const hasReal = sessions.some(s => new Date(s.date).toDateString() === tempDate.toDateString());
                     if (!hasReal) {
@@ -819,13 +819,13 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
                 tempDate.setDate(tempDate.getDate() + 1);
             }
 
-            const allCourseSessions = [...realFormattedSessions, ...missedSessions].sort((a, b) => 
+            const allCourseSessions = [...realFormattedSessions, ...missedSessions].sort((a, b) =>
                 new Date(b.date).getTime() - new Date(a.date).getTime()
             );
 
             // Heures consommées basées sur les appels réels
             let consumedHours = realFormattedSessions.reduce((acc, s) => acc + s.hours, 0);
-            
+
             // Total des heures théorique
             const totalHours = (course as any).totalHours || 45;
 
@@ -834,13 +834,20 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
                 consumedHours = totalHours;
             }
 
+            const allLevels = course.academicLevels.map(al => al.code.toUpperCase());
+            // Si on a filtré par Niveau, on essaie de mettre ce niveau en priorité pour l'affichage
+            const prioritizedLevel = academicLevelId
+                ? course.academicLevels.find(al => al.id === Number(academicLevelId))?.code?.toUpperCase()
+                : allLevels[0];
+
             return {
                 code: course.code,
                 name: course.name,
                 professor: course.enrollments[0]?.user?.name || 'Non assigné',
                 professeurTitle: course.enrollments[0]?.user?.professorProfile?.title || 'Professeur',
-                level: course.academicLevels[0]?.code?.toUpperCase() || 'GEOL',
-                levelColor: getLevelColor(course.academicLevels[0]?.code),
+                level: prioritizedLevel || 'GEOL',
+                allLevels,
+                levelColor: getLevelColor(prioritizedLevel?.toLowerCase()),
                 totalHours,
                 consumedHours: Math.round(consumedHours * 10) / 10,
                 schedule: scheduleText,
