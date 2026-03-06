@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Search, ChevronRight, UserPlus, BookOpen, FileText, CheckCircle, X, Ban, MessageCircle, AlertTriangle, School, Trash2, GraduationCap, Users, Copy, Eye, EyeOff, Lock, Hash, Key } from 'lucide-react';
+import { Search, ChevronRight, UserPlus, BookOpen, FileText, CheckCircle, X, Ban, MessageCircle, AlertTriangle, School, Trash2, GraduationCap, Users, Copy, Eye, EyeOff, Lock, Hash, Key, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 import { userService } from '../../../../services/user';
 import { supportService } from '../../../../services/support';
 import { API_URL } from '../../../../services/config';
@@ -506,6 +508,43 @@ Mot de passe: ${formData.password}
     }
   };
 
+  const exportToExcel = () => {
+    try {
+      if (filteredUsers.length === 0) {
+        alert("Aucun étudiant à exporter pour cette sélection.");
+        return;
+      }
+
+      const reportData = filteredUsers.map(u => ({
+        'NOM COMPLET': u.name,
+        'EMAIL': u.email,
+        'PROMOTION': u.promotion || 'N/A',
+        'STATUS': u.status === 'active' ? 'Actif' : 'Bloqué',
+        'COURS INSCRITS': u.enrolledCourses?.length || 0,
+        'IDENTIFIANT SYSTÈME': u.id
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(reportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Effectifs");
+
+      // Auto-size columns
+      const maxLengths = Object.keys(reportData[0]).map(key => {
+        return Math.max(key.length, ...reportData.map(row => String((row as any)[key]).length));
+      });
+      worksheet["!cols"] = maxLengths.map(l => ({ wch: l + 2 }));
+
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+
+      const fileName = `Effectif_${filterClass.replace(/[\/\s()]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      saveAs(data, fileName);
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("Erreur lors de la génération de l'Excel.");
+    }
+  };
+
   // Affichage du loading si nécessaire (placé ici pour respecter les règles des Hooks)
   if (loading && users.length === 0) {
     return (
@@ -573,27 +612,37 @@ Mot de passe: ${formData.password}
             </div>
 
             {viewMode === 'student' && (
-              <select
-                className="bg-[#F1F8F4] px-3 py-2 rounded-xl border border-[#1B4332]/5 text-sm text-[#1B4332] outline-none cursor-pointer animate-in fade-in slide-in-from-left-2 duration-200"
-                value={filterClass}
-                onChange={(e) => setFilterClass(e.target.value)}
-              >
-                <option value="all">Toutes les promotions</option>
-                <option value="Prescience">Prescience</option>
-                <option value="Licence 1 (B1)">Licence 1 (B1)</option>
-                <option value="Licence 2 (B2)">Licence 2 (B2)</option>
-                <option value="Licence 3 (B3)">Licence 3 (B3)</option>
-                <optgroup label="Master 1">
-                  <option value="Master 1 (Exploration)">M1 Exploration & Géo. Minières</option>
-                  <option value="Master 1 (Hydro)">M1 Environnement & Hydrogéologie</option>
-                  <option value="Master 1 (Géotechnique)">M1 Géotechnique</option>
-                </optgroup>
-                <optgroup label="Master 2">
-                  <option value="Master 2 (Exploration)">M2 Exploration & Géo. Minières</option>
-                  <option value="Master 2 (Hydro)">M2 Environnement & Hydrogéologie</option>
-                  <option value="Master 2 (Géotechnique)">M2 Géotechnique</option>
-                </optgroup>
-              </select>
+              <div className="flex gap-2">
+                <select
+                  className="bg-[#F1F8F4] px-3 py-2 rounded-xl border border-[#1B4332]/5 text-sm text-[#1B4332] outline-none cursor-pointer animate-in fade-in slide-in-from-left-2 duration-200"
+                  value={filterClass}
+                  onChange={(e) => setFilterClass(e.target.value)}
+                >
+                  <option value="all">Toutes les promotions</option>
+                  <option value="Prescience">Prescience</option>
+                  <option value="Licence 1 (B1)">Licence 1 (B1)</option>
+                  <option value="Licence 2 (B2)">Licence 2 (B2)</option>
+                  <option value="Licence 3 (B3)">Licence 3 (B3)</option>
+                  <optgroup label="Master 1">
+                    <option value="Master 1 (Exploration)">M1 Exploration & Géo. Minières</option>
+                    <option value="Master 1 (Hydro)">M1 Environnement & Hydrogéologie</option>
+                    <option value="Master 1 (Géotechnique)">M1 Géotechnique</option>
+                  </optgroup>
+                  <optgroup label="Master 2">
+                    <option value="Master 2 (Exploration)">M2 Exploration & Géo. Minières</option>
+                    <option value="Master 2 (Hydro)">M2 Environnement & Hydrogéologie</option>
+                    <option value="Master 2 (Géotechnique)">M2 Géotechnique</option>
+                  </optgroup>
+                </select>
+
+                <button
+                  onClick={exportToExcel}
+                  title="Télécharger la liste en Excel"
+                  className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 p-2 rounded-xl border border-emerald-200 transition-all flex items-center justify-center shadow-sm active:scale-95"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
             )}
 
             {/* Compteur de résultats */}
