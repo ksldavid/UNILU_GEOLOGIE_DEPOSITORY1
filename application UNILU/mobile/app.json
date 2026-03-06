@@ -32,6 +32,7 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "NOTIFICATIONS",
+        "CAMERA",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "ACCESS_FINE_LOCATION",
