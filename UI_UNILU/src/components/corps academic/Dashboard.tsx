@@ -258,6 +258,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     year: 'numeric'
                   });
                   const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'long' });
+                  // Use browser-local time to avoid UTC offset bug (server may compute in UTC)
+                  const localStartTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
                   return (
                     <div
@@ -292,8 +294,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
                           <p className={`text-lg font-bold leading-tight ${isExam ? 'text-rose-900' : 'text-blue-900'}`}>
                             {isExam
-                              ? `Votre cours "${event.courseName}" a été planifié pour EXAMEN dans ${event.daysRemaining} jours, le ${dayName} ${formattedDate} à ${event.startTime || '08:00'}${event.room ? ` (Local: ${event.room})` : ''}.`
-                              : `Vous avez prévu une interrogation pour la classe ${event.academicLevel} dans le cours "${event.courseName}" le ${dayName} ${formattedDate} à ${event.startTime || '08:00'}${event.room ? ` (Local: ${event.room})` : ''}.`
+                              ? `Votre cours "${event.courseName}" a été planifié pour EXAMEN dans ${event.daysRemaining} jours, le ${dayName} ${formattedDate} à ${localStartTime}${event.room ? ` (Local: ${event.room})` : ''}.`
+                              : `Vous avez prévu une interrogation pour la classe ${event.academicLevel} dans le cours "${event.courseName}" le ${dayName} ${formattedDate} à ${localStartTime}${event.room ? ` (Local: ${event.room})` : ''}.`
                             }
                           </p>
 
