@@ -261,7 +261,10 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
             return res.status(404).json({ message: 'Utilisateur non trouvé' })
         }
 
-        const isSuperUser = userRole === 'ADMIN' || professor.name.toLowerCase().includes('departement');
+        const isSuperUser = userRole === 'ADMIN' ||
+            userRole === 'ACADEMIC_OFFICE' ||
+            professor.name.toLowerCase().includes('departement') ||
+            professor.name.toLowerCase().includes('service académique');
 
         // 1. Récupérer uniquement les CODES des cours (beaucoup plus léger)
         const taughtCourses = await prisma.courseEnrollment.findMany({
@@ -537,7 +540,10 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
         }
 
         const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
-        const isSuperUser = userRole === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+        const isSuperUser = userRole === 'ADMIN' ||
+            userRole === 'ACADEMIC_OFFICE' ||
+            user?.name?.toLowerCase()?.includes('departement') ||
+            user?.name?.toLowerCase()?.includes('service académique');
 
         const enrollments = await prisma.courseEnrollment.findMany({
             where: isSuperUser ? {} : { userId },
@@ -588,7 +594,10 @@ export const updateCourseStatus = async (req: AuthRequest, res: Response) => {
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
         const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
-        const isSuperUser = userRole === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+        const isSuperUser = userRole === 'ADMIN' ||
+            userRole === 'ACADEMIC_OFFICE' ||
+            user?.name?.toLowerCase()?.includes('departement') ||
+            user?.name?.toLowerCase()?.includes('service académique');
 
         if (enrollmentId) {
             await prisma.courseEnrollment.update({
