@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, School, BookOpen, UserCheck, Plus, Loader2, X, Users, ArrowRight, Save } from 'lucide-react';
+import { Search, School, BookOpen, UserCheck, Plus, Loader2, X, Users, ArrowRight, Save, Trash2 } from 'lucide-react';
 import { staffService } from '../../../../services/staff';
 import { courseService } from '../../../../services/course';
 
@@ -220,7 +220,7 @@ export function StaffAssignmentManager() {
         if (!selectedCourse || !courseNameEdit.trim()) return;
         setIsProcessing(true);
         try {
-            await courseService.updateCourse(selectedCourse.code, { 
+            await courseService.updateCourse(selectedCourse.code, {
                 name: courseNameEdit,
                 totalHours: Number(courseHoursEdit)
             });
@@ -241,13 +241,42 @@ export function StaffAssignmentManager() {
         try {
             const newValue = !selectedCourse[field];
             await courseService.updateCourse(selectedCourse.code, { [field]: newValue });
-            
+
             // Update local state
             setCourses(courses.map(c => c.code === selectedCourse.code ? { ...c, [field]: newValue } : c));
             setSelectedCourse({ ...selectedCourse, [field]: newValue });
             fetchAssignments();
         } catch (error: any) {
             alert(error.message || "Erreur de mise à jour");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleDeleteCourse = async (code: string) => {
+        if (!confirm(`ATTENTION : Voulez-vous vraiment supprimer définitivement le cours ${code} ?\n\nCela supprimera également :\n- Toutes les inscriptions (étudiants et profs)\n- Tous les plannings et horaires\n- Toutes les présences et notes\n\nCette action est IRRÉVERSIBLE.`)) {
+            return;
+        }
+
+        // Deuxième confirmation pour la sécurité
+        const confirmCode = prompt(`Veuillez saisir le code du cours "${code}" pour confirmer la suppression :`);
+        if (confirmCode !== code) {
+            alert("Le code ne correspond pas. Suppression annulée.");
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            await courseService.deleteCourse(code);
+            setCourses(courses.filter(c => c.code !== code));
+            if (selectedCourse?.code === code) {
+                setSelectedCourse(null);
+            }
+            alert("Cours supprimé avec succès.");
+            fetchAssignments();
+            fetchCourses();
+        } catch (error: any) {
+            alert(error.message || "Erreur lors de la suppression du cours");
         } finally {
             setIsProcessing(false);
         }
@@ -356,6 +385,7 @@ export function StaffAssignmentManager() {
                                 <th className="px-6 py-4 text-xs font-bold text-[#1B4332] uppercase tracking-wider">V.H. (Heures)</th>
                                 <th className="px-6 py-4 text-xs font-bold text-[#1B4332] uppercase tracking-wider">Classe(s)</th>
                                 <th className="px-6 py-4 text-xs font-bold text-[#1B4332] uppercase tracking-wider">Effectif Académique</th>
+                                <th className="px-6 py-4 text-xs font-bold text-[#1B4332] uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#1B4332]/5">
@@ -442,6 +472,18 @@ export function StaffAssignmentManager() {
                                                         <span className="text-sm font-bold text-blue-700">{assistants.length}</span>
                                                     </div>
                                                 </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteCourse(course.code);
+                                                    }}
+                                                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                                                    title="Supprimer le cours"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </td>
                                         </tr>
                                     );
@@ -626,13 +668,13 @@ export function StaffAssignmentManager() {
                                                 Volume Horaire : <span className="bg-white/20 px-2 py-0.5 rounded ml-1">{selectedCourse.totalHours || 45} Heures</span>
                                             </p>
                                             <div className="flex flex-wrap gap-2 mt-3">
-                                                <button 
+                                                <button
                                                     onClick={() => handleToggleStatus('isActive')}
                                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${selectedCourse.isActive ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'}`}
                                                 >
                                                     {selectedCourse.isActive ? '✓ Suivi Actif' : 'Activer le Suivi'}
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleToggleStatus('isCompleted')}
                                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${selectedCourse.isCompleted ? 'bg-emerald-600 border-emerald-400 text-white shadow-lg' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'}`}
                                                 >

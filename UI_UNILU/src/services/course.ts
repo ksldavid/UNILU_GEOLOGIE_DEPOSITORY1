@@ -59,5 +59,20 @@ export const courseService = {
             throw new Error(error.message || 'Erreur lors de la mise à jour du cours');
         }
         return response.json();
+    },
+
+    async deleteCourse(code: string) {
+        const token = sessionStorage.getItem('token');
+        const response = await fetch(`${API_URL}/courses/${code}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Erreur lors de la suppression du cours');
+        }
+        return response.json();
     }
 };

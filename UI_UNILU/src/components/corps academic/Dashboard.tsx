@@ -263,8 +263,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     <div
                       key={event.id}
                       className={`relative overflow-hidden rounded-[32px] p-8 border-2 transition-all shadow-xl hover:-translate-y-1 active:scale-[0.99] group cursor-pointer ${isExam
-                          ? 'bg-rose-50 border-rose-200 shadow-rose-900/5 hover:shadow-rose-900/10'
-                          : 'bg-blue-50 border-blue-200 shadow-blue-900/5 hover:shadow-blue-900/10'
+                        ? 'bg-rose-50 border-rose-200 shadow-rose-900/5 hover:shadow-rose-900/10'
+                        : 'bg-blue-50 border-blue-200 shadow-blue-900/5 hover:shadow-blue-900/10'
                         }`}
                       onClick={() => onNavigate('planning')}
                     >
@@ -292,8 +292,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
                           <p className={`text-lg font-bold leading-tight ${isExam ? 'text-rose-900' : 'text-blue-900'}`}>
                             {isExam
-                              ? `Votre cours "${event.courseName}" a été planifié pour EXAMEN dans ${event.daysRemaining} jours, le ${dayName} ${formattedDate}.`
-                              : `Vous avez prévu une interrogation pour la classe ${event.academicLevel} dans le cours "${event.courseName}" le ${dayName} ${formattedDate} à ${event.startTime || '08:00'}.`
+                              ? `Votre cours "${event.courseName}" a été planifié pour EXAMEN dans ${event.daysRemaining} jours, le ${dayName} ${formattedDate} à ${event.startTime || '08:00'}${event.room ? ` (Local: ${event.room})` : ''}.`
+                              : `Vous avez prévu une interrogation pour la classe ${event.academicLevel} dans le cours "${event.courseName}" le ${dayName} ${formattedDate} à ${event.startTime || '08:00'}${event.room ? ` (Local: ${event.room})` : ''}.`
                             }
                           </p>
 

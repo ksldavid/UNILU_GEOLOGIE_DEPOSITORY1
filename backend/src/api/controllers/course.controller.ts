@@ -119,8 +119,106 @@ export const createCourse = async (req: Request, res: Response) => {
 
         res.status(201).json(course)
     } catch (error: any) {
-        console.error('Erreur lors de la création du cours:', error)
-        res.status(500).json({ message: 'Erreur serveur', error: error.message })
+        console.error('❌ Erreur lors de la création du cours:', {
+            error: error.message,
+            stack: error.stack,
+            data: req.body
+        })
+        res.status(500).json({
+            message: 'Erreur serveur lors de la création du cours',
+            error: error.message
+        })
+    }
+}
+
+export const deleteCourse = async (req: Request, res: Response) => {
+    try {
+        const code = req.params.code as string
+
+        if (!code) {
+            return res.status(400).json({ message: 'Code du cours requis' })
+        }
+
+        // Vérifier si le cours existe
+        const existingCourse = await prisma.course.findUnique({
+            where: { code }
+        })
+
+        if (!existingCourse) {
+            return res.status(404).json({ message: 'Cours non trouvé' })
+        }
+
+        // Suppression manuelle en cascade sécurisée
+        // On utilise une transaction pour tout supprimer ou rien du tout
+        await prisma.$transaction(async (tx) => {
+            // 1. Supprimer les inscriptions étudiants
+            await tx.studentCourseEnrollment.deleteMany({
+                where: { courseCode: code }
+            })
+
+            // 2. Supprimer les affectations du personnel
+            await tx.courseEnrollment.deleteMany({
+                where: { courseCode: code }
+            })
+
+            // 3. Supprimer les plannings hebdo
+            await tx.schedule.deleteMany({
+                where: { courseCode: code }
+            })
+
+            // 4. Supprimer les plannings d'examens/interros
+            await tx.examSchedule.deleteMany({
+                where: { courseCode: code }
+            })
+
+            // 5. Supprimer les présences (records puis sessions)
+            // D'abord les records car ils dépendent des sessions
+            await tx.attendanceRecord.deleteMany({
+                where: { session: { courseCode: code } }
+            })
+            await tx.attendanceSession.deleteMany({
+                where: { courseCode: code }
+            })
+
+            // 6. Supprimer les évaluations (grades, submissions, puis assessments)
+            await tx.grade.deleteMany({
+                where: { assessment: { courseCode: code } }
+            })
+            await tx.submission.deleteMany({
+                where: { assessment: { courseCode: code } }
+            })
+            await tx.assessment.deleteMany({
+                where: { courseCode: code }
+            })
+
+            // 7. Supprimer les ressources du cours
+            await tx.courseResource.deleteMany({
+                where: { courseCode: code }
+            })
+
+            // 8. Supprimer les annonces liées au cours
+            await tx.announcement.deleteMany({
+                where: { courseCode: code }
+            })
+
+            // 9. Supprimer les rattrapages (retakes)
+            await tx.courseRetake.deleteMany({
+                where: { courseCode: code }
+            })
+
+            // 10. Enfin, supprimer le cours lui-même
+            await tx.course.delete({
+                where: { code }
+            })
+        })
+
+        res.json({ message: 'Cours et toutes les données associées supprimés avec succès' })
+    } catch (error: any) {
+        console.error('Erreur lors de la suppression du cours:', error)
+        res.status(500).json({
+            message: 'Erreur serveur lors de la suppression du cours',
+            error: error.message
+        })
     }
 }
 

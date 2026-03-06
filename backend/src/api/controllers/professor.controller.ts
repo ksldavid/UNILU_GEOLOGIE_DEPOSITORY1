@@ -462,7 +462,7 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
                     date: s.date,
                     type: s.type,
                     room: s.room,
-                    startTime: s.startTime,
+                    startTime: eventDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
                     academicLevel: s.academicLevel?.displayName || s.academicLevel?.name || 'N/A',
                     daysRemaining: daysRem
                 };
