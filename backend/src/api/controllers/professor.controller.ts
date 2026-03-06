@@ -276,23 +276,31 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
         const courseCodes = taughtCourses.map(tc => tc.courseCode);
 
         // -- STATS OPTIMISÉES --
+        const academicYear = "2025-2026";
+        const semesterStart = new Date('2026-02-01');
 
         // 2. Récupérer les cours et calculer la progression réelle (100% = Fini)
-        // On récupère tous les cours assignés avec leurs heures totales
         const managedCourses = await prisma.course.findMany({
-            where: isSuperUser ? {} : {
-                enrollments: { some: { userId } }
+            where: isSuperUser ? {
+                enrollments: { some: { academicYear } }
+            } : {
+                enrollments: { some: { userId, academicYear } }
             },
             select: {
                 code: true,
+                name: true,
                 totalHours: true,
+                isCompleted: true,
                 enrollments: {
-                    where: isSuperUser ? {} : { userId },
+                    where: isSuperUser ? { academicYear } : { userId, academicYear },
                     select: { status: true },
                     take: 1
                 },
-                _count: {
-                    select: { attendanceSessions: true }
+                attendanceSessions: {
+                    where: {
+                        date: { gte: semesterStart }
+                    },
+                    select: { id: true }
                 }
             }
         });
@@ -302,15 +310,21 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
 
         managedCourses.forEach(course => {
             const enrollStatus = course.enrollments[0]?.status;
-            // On calcule les heures faites (2h par séance d'appel)
-            const hoursTaught = (course._count.attendanceSessions || 0) * 2;
+            // Utiliser la longueur du tableau attendanceSessions filtré
+            const sessionsCount = course.attendanceSessions?.length || 0;
+            const hoursTaught = sessionsCount * 2;
             const progressPercent = course.totalHours > 0 ? (hoursTaught / course.totalHours) * 100 : 0;
 
-            // Un cours est fini si le prof l'a marqué fini OU si la progression >= 100%
-            if (enrollStatus === 'FINISHED' || progressPercent >= 100) {
+            const isFini = course.isCompleted || enrollStatus === 'FINISHED' || progressPercent >= 100;
+
+            if (isFini) {
                 finishedCoursesCount++;
             } else {
                 activeCoursesCount++;
+            }
+
+            if (isFini || hoursTaught > 0) {
+                console.log(`[Stats Debug] ${course.code}: ${hoursTaught}/${course.totalHours}h (${progressPercent.toFixed(0)}%), Global:${course.isCompleted}, Status:${enrollStatus} -> Final:${isFini}`);
             }
         });
 
