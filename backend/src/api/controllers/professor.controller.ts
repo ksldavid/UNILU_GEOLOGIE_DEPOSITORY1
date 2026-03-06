@@ -277,25 +277,42 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
 
         // -- STATS OPTIMISÉES --
 
-        // Compter les cours actifs uniques
-        const activeGroup = await prisma.courseEnrollment.groupBy({
-            by: ['courseCode'],
-            where: {
-                ...(isSuperUser ? {} : { userId }),
-                status: 'ACTIVE'
+        // 2. Récupérer les cours et calculer la progression réelle (100% = Fini)
+        // On récupère tous les cours assignés avec leurs heures totales
+        const managedCourses = await prisma.course.findMany({
+            where: isSuperUser ? {} : {
+                enrollments: { some: { userId } }
+            },
+            select: {
+                code: true,
+                totalHours: true,
+                enrollments: {
+                    where: isSuperUser ? {} : { userId },
+                    select: { status: true },
+                    take: 1
+                },
+                _count: {
+                    select: { attendanceSessions: true }
+                }
             }
         });
-        const activeCoursesCount = activeGroup.length;
 
-        // Compter les cours terminés uniques
-        const finishedGroup = await prisma.courseEnrollment.groupBy({
-            by: ['courseCode'],
-            where: {
-                ...(isSuperUser ? {} : { userId }),
-                status: 'FINISHED'
+        let activeCoursesCount = 0;
+        let finishedCoursesCount = 0;
+
+        managedCourses.forEach(course => {
+            const enrollStatus = course.enrollments[0]?.status;
+            // On calcule les heures faites (2h par séance d'appel)
+            const hoursTaught = (course._count.attendanceSessions || 0) * 2;
+            const progressPercent = course.totalHours > 0 ? (hoursTaught / course.totalHours) * 100 : 0;
+
+            // Un cours est fini si le prof l'a marqué fini OU si la progression >= 100%
+            if (enrollStatus === 'FINISHED' || progressPercent >= 100) {
+                finishedCoursesCount++;
+            } else {
+                activeCoursesCount++;
             }
         });
-        const finishedCoursesCount = finishedGroup.length;
 
         // Count unique students (Corrected logic to avoid duplicates)
         let totalStudents = 0;
