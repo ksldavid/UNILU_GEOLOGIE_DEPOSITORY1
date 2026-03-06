@@ -545,13 +545,20 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
             user?.name?.toLowerCase()?.includes('departement') ||
             user?.name?.toLowerCase()?.includes('service académique');
 
+        const academicYear = "2025-2026";
+        const semesterStart = new Date('2026-02-01');
+
         const enrollments = await prisma.courseEnrollment.findMany({
-            where: isSuperUser ? {} : { userId },
+            where: isSuperUser ? { academicYear } : { userId, academicYear },
             include: {
                 course: {
                     include: {
                         academicLevels: true,
-                        schedules: true
+                        schedules: true,
+                        attendanceSessions: {
+                            where: { date: { gte: semesterStart } },
+                            select: { id: true }
+                        }
                     }
                 }
             },
@@ -564,6 +571,14 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
             const levelId = c.academicLevels[0]?.id || 0;
             const schedule = c.schedules.map((s: any) => `${s.day}: ${s.startTime} - ${s.endTime} (${s.room})`).join('\n') || 'Non défini';
 
+            // Calcul de la progression
+            const sessionsCount = c.attendanceSessions?.length || 0;
+            const hoursTaught = sessionsCount * 2;
+            const progress = c.totalHours > 0 ? Math.min(100, (hoursTaught / c.totalHours) * 100) : 0;
+
+            // État fini
+            const isFinished = c.isCompleted || e.status === 'FINISHED' || progress >= 100;
+
             return {
                 id: String(e.id),
                 code: c.code,
@@ -572,9 +587,11 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
                 academicLevelId: levelId,
                 schedule: schedule,
                 location: c.schedules[0]?.room || 'À définir',
-                color: 'blue', // Default
+                color: 'blue',
                 role: e.role === 'PROFESSOR' ? 'Professeur' : 'Assistant',
-                status: e.status
+                status: e.status,
+                isFinished: isFinished,
+                progress: Math.round(progress)
             };
         });
 

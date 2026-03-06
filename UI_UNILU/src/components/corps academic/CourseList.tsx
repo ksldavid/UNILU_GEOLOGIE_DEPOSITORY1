@@ -91,7 +91,7 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {courses.map((course) => {
-          const isFinished = course.status === 'FINISHED';
+          const isFinished = course.isFinished;
           const colorClasses = getColorClasses(course.color);
 
           return (
@@ -101,8 +101,8 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
             >
               {/* Overlapping Status overlay for finished courses */}
               {isFinished && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 scale-90">
-                  <span className="bg-slate-800 text-white text-[9px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full shadow-xl flex items-center gap-2 border border-slate-700">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 scale-95">
+                  <span className="bg-[#123124] text-white text-[9px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full shadow-xl flex items-center gap-2 border border-[#1B4332]">
                     <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                     Cours Terminé
                   </span>
@@ -140,7 +140,7 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
                           className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                         >
                           <CheckCircle2 className="w-4 h-4" />
-                          Finir le cours
+                          Finir le cours (Manuel)
                         </button>
                       )}
 
@@ -172,9 +172,16 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
               </div>
 
               <div className="mb-4">
-                <div className="flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-[0.2em] mb-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-                  {course.level}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-[0.2em]">
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
+                    {course.level}
+                  </div>
+                  {course.progress !== undefined && (
+                    <div className="text-[10px] font-black text-teal-600 bg-teal-50 px-2 py-0.5 rounded uppercase tracking-wider">
+                      Progression: {course.progress}%
+                    </div>
+                  )}
                 </div>
                 <h3 className={`font-black text-slate-900 mt-1 leading-[1.2] min-h-[64px] tracking-tight group-hover:text-teal-900 transition-colors ${isFinished ? 'text-slate-500' : ''} ${course.name.length > 50 ? 'text-base' :
                   course.name.length > 35 ? 'text-lg' :

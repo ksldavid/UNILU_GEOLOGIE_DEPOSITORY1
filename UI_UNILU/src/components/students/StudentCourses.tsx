@@ -129,7 +129,7 @@ export function StudentCourses() {
                     <div className="flex items-center gap-3 mb-2 flex-wrap text-[10px] font-black uppercase tracking-widest">
                       <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg">{selectedCourse.code}</span>
                       <span className="text-blue-600 px-3 py-1 bg-blue-50 rounded-lg">{academicLevel}</span>
-                      {selectedCourse.isFinished && (
+                      {selectedCourse.status === 'FINISHED' && (
                         <span className="px-3 py-1 bg-slate-800 text-white rounded-lg flex items-center gap-2">
                           <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                           Cours Terminé

@@ -49,6 +49,8 @@ export interface Course {
   role?: "Professeur" | "Assistant";
   status?: "ACTIVE" | "FINISHED";
   studentsCount?: number;
+  isFinished?: boolean;
+  progress?: number;
 }
 
 export interface UserData {

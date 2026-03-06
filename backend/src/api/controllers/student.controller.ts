@@ -321,24 +321,35 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
             { from: '#06b6d4', to: '#0891b2' }     // cyan
         ];
 
+        const academicYear = "2025-2026";
+        const semesterStart = new Date('2026-02-01');
+
         const courses = enrollments.map((e, index) => {
             const c = e.course;
             const prof = c.enrollments[0]?.user.name || 'À définir';
             const schedule = c.schedules.map((s: any) => `${s.day} ${s.startTime}-${s.endTime}`).join('\n');
             const room = c.schedules[0]?.room || 'Campus Kasapa';
 
-            // Calculate real attendance statistics
+            // 1. Assiduité personnelle de l'étudiant
             const totalSessions = c.attendanceSessions.length;
             const attendedSessions = c.attendanceSessions.filter((session: any) =>
                 session.records.length > 0 &&
                 (session.records[0].status === 'PRESENT' || session.records[0].status === 'LATE')
             ).length;
 
-            const percentage = totalSessions > 0
+            const personalPercentage = totalSessions > 0
                 ? Math.round((attendedSessions / totalSessions) * 100)
                 : 0;
 
-            const isFinished = c.enrollments.some((en: any) => en.role === 'PROFESSOR' && en.status === 'FINISHED');
+            // 2. Progression globale du cours (Heures enseignées)
+            const sessionsCount = c.attendanceSessions?.length || 0;
+            const hoursTaught = sessionsCount * 2;
+            const progress = c.totalHours > 0 ? (hoursTaught / c.totalHours) * 100 : 0;
+
+            // 3. État fini (Même logique que prof)
+            const profFinished = c.enrollments.some((en: any) => en.role === 'PROFESSOR' && en.status === 'FINISHED');
+            const isFinished = c.isCompleted || profFinished || progress >= 100;
+
             const colorPalette = colors[index % colors.length];
 
             return {
@@ -355,8 +366,9 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
                 assignments: c.assessments.length,
                 attendedCount: attendedSessions,
                 totalCount: totalSessions,
-                percentage: percentage,
-                attendance: percentage,
+                percentage: personalPercentage,
+                attendance: personalPercentage,
+                courseProgress: Math.round(Math.min(100, progress)),
                 status: isFinished ? 'FINISHED' : 'ACTIVE'
             };
         });

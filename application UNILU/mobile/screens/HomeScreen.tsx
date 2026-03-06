@@ -64,6 +64,8 @@ interface CourseStats {
     attendedCount?: number;
     totalCount?: number;
     nextSession?: string;
+    status?: 'ACTIVE' | 'FINISHED';
+    courseProgress?: number;
 }
 
 interface HomeScreenProps {
@@ -718,10 +720,10 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                             </View>
                         ))
                     ) : (dashboardData?.stats?.courses || []).length > 0 ? (
-                        dashboardData.stats.courses.map((stat: any) => (
+                        dashboardData.stats.courses.map((stat: CourseStats) => (
                             <TouchableOpacity
                                 key={stat.id}
-                                style={styles.statCard}
+                                style={[styles.statCard, stat.status === 'FINISHED' && { opacity: 0.8 }]}
                                 onPress={() => openCourseDetails(stat)}
                                 activeOpacity={0.7}
                             >
@@ -733,11 +735,24 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                     >
                                         {stat.percentage != null ? `${stat.percentage}%` : "---%"}
                                     </Text>
+
+                                    {stat.status === 'FINISHED' && (
+                                        <View style={[styles.statusBadgeSmall, { backgroundColor: '#10b981', position: 'absolute', top: -5, right: -10 }]}>
+                                            <Text style={styles.statusBadgeTextSmall}>FINI</Text>
+                                        </View>
+                                    )}
                                 </View>
                                 <Text style={styles.statCourseName} numberOfLines={1}>{stat.name}</Text>
-                                <Text style={styles.statDetails}>
-                                    {stat.attendedCount || 0}/{stat.totalCount || 0} cours
-                                </Text>
+                                <View style={styles.statFooterRow}>
+                                    <Text style={styles.statDetails}>
+                                        {stat.attendedCount || 0}/{stat.totalCount || 0} p.
+                                    </Text>
+                                    {stat.courseProgress !== undefined && (
+                                        <Text style={[styles.statProgressLabel, { color: '#0d9488' }]}>
+                                            {stat.courseProgress}% pg.
+                                        </Text>
+                                    )}
+                                </View>
                             </TouchableOpacity>
                         ))
                     ) : (
@@ -960,20 +975,27 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                         </View>
                     ))
                 ) : coursesData.length > 0 ? (
-                    coursesData.map(course => (
+                    coursesData.map((course: CourseStats) => (
                         <TouchableOpacity
                             key={course.id}
-                            style={styles.courseRow}
+                            style={[styles.courseRow, course.status === 'FINISHED' && { opacity: 0.6 }]}
                             onPress={() => openCourseDetails(course)}
                         >
-                            <View style={[styles.courseColorBar, { backgroundColor: '#0d9488' }]} />
+                            <View style={[styles.courseColorBar, { backgroundColor: course.status === 'FINISHED' ? '#10b981' : '#0d9488' }]} />
                             <View style={styles.courseRowInfo}>
                                 <Text style={styles.courseRowName}>{course.name}</Text>
                                 <Text style={styles.courseRowMeta}>
                                     {course.attendedCount ?? 0}/{course.totalCount ?? 0} présences • {course.percentage}%
                                 </Text>
                             </View>
-                            <ChevronRight size={20} color="#cbd5e1" />
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                {course.status === 'FINISHED' && (
+                                    <View style={{ backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                                        <Text style={{ color: '#166534', fontSize: 10, fontWeight: 'bold' }}>FINI</Text>
+                                    </View>
+                                )}
+                                <ChevronRight size={20} color="#cbd5e1" />
+                            </View>
                         </TouchableOpacity>
                     ))
                 ) : (
@@ -1536,10 +1558,21 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
 
                             <View style={styles.statsOverview}>
                                 <View style={styles.statMetric}>
-                                    <Text style={[styles.metricValue, { color: selectedCourse.color }]}>{selectedCourse.percentage}%</Text>
+                                    <Text style={[styles.metricValue, { color: selectedCourse.status === 'FINISHED' ? '#10b981' : selectedCourse.color }]}>
+                                        {selectedCourse.percentage}%
+                                    </Text>
                                     <Text style={styles.metricLabel}>Assiduité</Text>
                                 </View>
-                                <View style={styles.metricDivider} />
+
+                                {selectedCourse.status === 'FINISHED' ? (
+                                    <View style={[styles.statMetric, { backgroundColor: '#f0fdf4', borderRadius: 12, paddingHorizontal: 10 }]}>
+                                        <CheckCircle size={20} color="#10b981" />
+                                        <Text style={{ color: '#10b981', fontSize: 10, fontWeight: 'bold', marginTop: 4 }}>COURS TERMINÉ</Text>
+                                    </View>
+                                ) : (
+                                    <View style={styles.metricDivider} />
+                                )}
+
                                 <View style={styles.statMetric}>
                                     <Text style={styles.metricValue}>{selectedCourse.attendedCount}/{selectedCourse.totalCount}</Text>
                                     <Text style={styles.metricLabel}>Cours suivis</Text>
@@ -3458,5 +3491,33 @@ const styles = StyleSheet.create({
         color: '#94a3b8',
         fontSize: 14,
         fontWeight: '600',
-    }
+    },
+    // Status Badge Styles
+    statusBadgeSmall: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    statusBadgeTextSmall: {
+        color: 'white',
+        fontSize: 8,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+    },
+    statFooterRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 5,
+        width: '100%',
+    },
+    statProgressLabel: {
+        fontSize: 10,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+    },
 });
