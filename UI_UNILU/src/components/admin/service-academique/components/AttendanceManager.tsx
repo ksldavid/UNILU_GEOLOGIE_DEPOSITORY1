@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { FileText, CheckCircle, Users, Clock, Loader2, ChevronRight, AlertTriangle, RotateCcw, X } from 'lucide-react';
+import { FileText, CheckCircle, Users, Clock, Loader2, ChevronRight, AlertTriangle, RotateCcw, X, Download } from 'lucide-react';
+import { jsPDF } from "jspdf";
+import uniluLogo from "../../../assets/unilu-official-logo.png";
 import { courseService } from '../../../../services/course';
 import { attendanceService } from '../../../../services/attendance';
 
@@ -153,6 +155,103 @@ export function AttendanceManager() {
     const absentSessions = studentSessions.filter(s => s.myStatus === 'ABSENT');
     const presentSessions = studentSessions.filter(s => s.myStatus !== 'ABSENT');
 
+    const exportAttendancePDF = () => {
+        if (!selectedCourseCode || students.length === 0) return;
+
+        try {
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const level = levels.find(l => l.id === selectedLevelId);
+            const course = courses.find(c => c.code === selectedCourseCode);
+
+            // --- Header Officielles ---
+            const img = new Image();
+            img.src = uniluLogo;
+            doc.addImage(img, 'PNG', 15, 10, 20, 20);
+
+            doc.setFontSize(8);
+            doc.setTextColor(30, 41, 59);
+            doc.setFont("helvetica", "bold");
+            doc.text("UNIVERSITÉ DE LUBUMBASHI", 40, 15);
+            doc.text("FACULTÉ DES SCIENCES ET TECHNOLOGIE", 40, 20);
+            doc.text("DÉPARTEMENT DE GÉOLOGIE", 40, 25);
+
+            doc.setFontSize(18);
+            doc.setTextColor(27, 67, 50); // Deep Green
+            doc.text("RAPPORT D'ASSIDUITÉ", pageWidth / 2, 45, { align: 'center' });
+
+            doc.setFontSize(11);
+            doc.setTextColor(82, 121, 111);
+            doc.text(`Cours: ${course?.name} [${selectedCourseCode}]`, pageWidth / 2, 53, { align: 'center' });
+            doc.text(`Promotion: ${level?.displayName || level?.name}`, pageWidth / 2, 58, { align: 'center' });
+
+            doc.setDrawColor(27, 67, 50);
+            doc.setLineWidth(0.5);
+            doc.line(20, 65, pageWidth - 20, 65);
+
+            let y = 75;
+
+            // Split lists
+            const zeroAttendance = students.filter(s => s.attendance === 0).sort((a, b) => a.name.localeCompare(b.name));
+            const restAttendance = students.filter(s => s.attendance > 0).sort((a, b) => a.name.localeCompare(b.name));
+
+            const renderTable = (list: StudentSummary[], title: string, color: [number, number, number]) => {
+                if (list.length === 0) return;
+
+                if (y > 250) { doc.addPage(); y = 20; }
+
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(...color);
+                doc.text(title, 20, y);
+                y += 10;
+
+                doc.setFontSize(9);
+                doc.setTextColor(30, 41, 59);
+                doc.text("NOMS ET POSTNOMS", 25, y);
+                doc.text("TAUX DE PRÉSENCE", pageWidth - 60, y);
+                y += 3;
+                doc.line(20, y, pageWidth - 20, y);
+                y += 8;
+
+                doc.setFont("helvetica", "normal");
+                list.forEach((s, idx) => {
+                    if (y > 275) {
+                        doc.addPage();
+                        y = 20;
+                        doc.setFontSize(9);
+                        doc.text("Suite - NOMS ET POSTNOMS", 25, y);
+                        doc.text("TAUX DE PRÉSENCE", pageWidth - 60, y);
+                        y += 3;
+                        doc.line(20, y, pageWidth - 20, y);
+                        y += 8;
+                    }
+                    doc.text(`${(idx + 1).toString().padStart(2, '0')}. ${s.name.toUpperCase()}`, 25, y);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(`${s.attendance}%`, pageWidth - 45, y);
+                    doc.setFont("helvetica", "normal");
+                    y += 8;
+                });
+                y += 15;
+            };
+
+            renderTable(zeroAttendance, "LISTE DES ÉTUDIANTS À PRÉSENCE NULLE (0%)", [220, 38, 38]); // Red
+            renderTable(restAttendance, "LISTE DES ÉTUDIANTS À PRÉSENCE POSITIVE (A-Z)", [27, 67, 50]); // Green
+
+            // Footer
+            const dateStr = new Date().toLocaleString('fr-FR');
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Document généré le ${dateStr} - Service Académique Géologie Unilu`, pageWidth / 2, 285, { align: 'center' });
+
+            doc.save(`Assiduite_${selectedCourseCode}_${new Date().toISOString().split('T')[0]}.pdf`);
+            showToast("Rapport PDF généré avec succès !", 'success');
+        } catch (error) {
+            console.error("PDF Export error:", error);
+            showToast("Erreur lors de la génération du PDF", 'error');
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Toast */}
@@ -190,6 +289,16 @@ export function AttendanceManager() {
                 </select>
 
                 {loading && <Loader2 className="w-5 h-5 animate-spin text-[#1B4332]" />}
+
+                {students.length > 0 && (
+                    <button
+                        onClick={exportAttendancePDF}
+                        className="ml-auto flex items-center gap-2 bg-[#1B4332] hover:bg-[#2D5F4C] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-[#1B4332]/20 transition-all active:scale-95"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span>Télécharger PDF</span>
+                    </button>
+                )}
             </div>
 
             {!selectedCourseCode ? (
