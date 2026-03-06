@@ -877,17 +877,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   </div>
                 </div>
 
-                <div className="pt-8 border-t border-gray-100">
-                  <button
-                    onClick={() => {
-                      setShowEventModal(false);
-                      onNavigate('planning');
-                    }}
-                    className="w-full py-4 bg-gray-900 text-white font-black rounded-3xl shadow-xl shadow-gray-900/20 hover:bg-black transition-all uppercase tracking-widest text-xs"
-                  >
-                    Voir dans le planning complet
-                  </button>
-                </div>
               </div>
             </motion.div>
           </div>
