@@ -10,7 +10,8 @@ import {
     Unlock,
     BookMarked,
     Download,
-    GraduationCap
+    GraduationCap,
+    Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { jsPDF } from "jspdf";
@@ -59,6 +60,16 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
         dateTime: "08:00",
         academicLevelId: 0,
         room: "",
+        duration: 120
+    });
+
+    // Detail Modal / Edit State
+    const [selectedSchedule, setSelectedSchedule] = useState<ExamScheduleData | null>(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({
+        room: "",
+        dateTime: "",
         duration: 120
     });
 
@@ -395,6 +406,17 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
         }
     };
 
+    const handleDelete = async (id: number) => {
+        if (!window.confirm("Voulez-vous supprimer cette date ?")) return;
+        try {
+            await examScheduleService.delete(id);
+            toast.success("Supprimé");
+            fetchSchedules();
+        } catch (error) {
+            toast.error("Échec de suppression");
+        }
+    };
+
     const handlePublishAll = async () => {
         const drafts = schedules.filter(s => !s.isPublished);
         if (drafts.length === 0) {
@@ -429,14 +451,39 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
         toast.success("Sauvegarde locale (JSON) effectuée !");
     };
 
-    const handleDelete = async (id: number) => {
-        if (!window.confirm("Voulez-vous supprimer cette date ?")) return;
+    const handleSelectSchedule = (s: ExamScheduleData) => {
+        setSelectedSchedule(s);
+        const date = new Date(s.date);
+        setEditData({
+            room: s.room || "",
+            dateTime: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            duration: s.duration || 120
+        });
+        setIsEditing(false);
+        setShowDetailModal(true);
+    };
+
+    const handleUpdate = async () => {
+        if (!selectedSchedule?.id) return;
         try {
-            await examScheduleService.delete(id);
-            toast.success("Supprimé");
+            setIsSubmitting(true);
+            const date = new Date(selectedSchedule.date);
+            const [hours, minutes] = editData.dateTime.split(':');
+            date.setHours(parseInt(hours), parseInt(minutes));
+
+            await examScheduleService.update(selectedSchedule.id, {
+                room: editData.room,
+                date: date.toISOString(),
+                duration: editData.duration
+            });
+
+            toast.success("Informations mises à jour !");
+            setShowDetailModal(false);
             fetchSchedules();
-        } catch (error) {
-            toast.error("Échec de suppression");
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -846,6 +893,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                 schedules={schedules}
                                 onDelete={handleDelete}
                                 onPublish={handlePublish}
+                                onSelect={handleSelectSchedule}
                                 mode={mode}
                             />
                         ) : (
@@ -860,7 +908,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                                 {mName} {currentYear}
                                             </h4>
                                             {monthSchedules.map(s => (
-                                                <ScheduleCard key={s.id} schedule={s} onDelete={handleDelete} onPublish={handlePublish} mode={mode} />
+                                                <ScheduleCard key={s.id} schedule={s} onDelete={handleDelete} onPublish={handlePublish} onSelect={handleSelectSchedule} mode={mode} />
                                             ))}
                                         </div>
                                     );
@@ -876,13 +924,187 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Detail & Edit Modal */}
+            <AnimatePresence>
+                {showDetailModal && selectedSchedule && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowDetailModal(false)}
+                            className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-white w-full max-w-lg rounded-[48px] shadow-2xl relative overflow-hidden flex flex-col"
+                        >
+                            {/* Header Gradient */}
+                            <div className={`h-32 w-full ${selectedSchedule.type === 'EXAM' ? 'bg-gradient-to-br from-rose-500 to-rose-600' : 'bg-gradient-to-br from-blue-500 to-blue-600'} flex items-center justify-center relative p-8`}>
+                                <button
+                                    onClick={() => setShowDetailModal(false)}
+                                    className="absolute top-6 right-6 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center transition-all"
+                                >
+                                    <AlertCircle className="w-6 h-6 rotate-45" />
+                                </button>
+                                <div className="text-center">
+                                    <div className="bg-white/20 px-4 py-1.5 rounded-full inline-block mb-3 border border-white/20 backdrop-blur-md">
+                                        <span className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2">
+                                            {selectedSchedule.type === 'EXAM' ? '🔴 Examen Final' : '🔵 Interrogation'}
+                                        </span>
+                                    </div>
+                                    <h2 className="text-white text-xl md:text-2xl font-black leading-tight truncate px-4">
+                                        {selectedSchedule.course?.name || selectedSchedule.courseCode}
+                                    </h2>
+                                </div>
+                            </div>
+
+                            <div className="p-10 space-y-8">
+                                {/* Details Grid */}
+                                <div className="grid grid-cols-2 gap-8">
+                                    <div className="space-y-1.5">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date & Jour</p>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center">
+                                                <CalendarIcon className="w-5 h-5 text-gray-400" />
+                                            </div>
+                                            <div>
+                                                <p className="font-black text-gray-900 capitalize">
+                                                    {new Date(selectedSchedule.date).toLocaleDateString('fr-FR', { weekday: 'long' })}
+                                                </p>
+                                                <p className="text-xs font-bold text-gray-500">
+                                                    {new Date(selectedSchedule.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tranche Horaire</p>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center">
+                                                <Clock className="w-5 h-5 text-gray-400" />
+                                            </div>
+                                            <div>
+                                                {isEditing ? (
+                                                    <input
+                                                        type="time"
+                                                        value={editData.dateTime}
+                                                        onChange={(e) => setEditData({ ...editData, dateTime: e.target.value })}
+                                                        className="font-black text-blue-600 bg-blue-50 focus:ring-2 focus:ring-blue-100 outline-none rounded-lg px-2 py-1"
+                                                    />
+                                                ) : (
+                                                    <>
+                                                        <p className="font-black text-gray-900">
+                                                            {new Date(selectedSchedule.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            <span className="mx-1 text-gray-300">→</span>
+                                                            {(() => {
+                                                                const end = new Date(selectedSchedule.date);
+                                                                end.setMinutes(end.getMinutes() + (selectedSchedule.duration || 120));
+                                                                return end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                            })()}
+                                                        </p>
+                                                        <p className="text-xs font-bold text-gray-500">Durée: {selectedSchedule.duration || 120} min</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Localisation</p>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center">
+                                                <AlertCircle className="w-5 h-5 text-gray-400" />
+                                            </div>
+                                            <div>
+                                                {isEditing ? (
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Salle..."
+                                                        value={editData.room}
+                                                        onChange={(e) => setEditData({ ...editData, room: e.target.value })}
+                                                        className="font-black text-blue-600 bg-blue-50 focus:ring-2 focus:ring-blue-100 outline-none rounded-lg px-2 py-1 w-full"
+                                                    />
+                                                ) : (
+                                                    <p className="font-black text-gray-900">{selectedSchedule.room || "Non spécifié"}</p>
+                                                )}
+                                                <p className="text-xs font-bold text-gray-500">Salle / Amphi</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Classe / Niveau</p>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center">
+                                                <GraduationCap className="w-5 h-5 text-gray-400" />
+                                            </div>
+                                            <div>
+                                                <p className="font-black text-gray-900">
+                                                    {selectedSchedule.academicLevelId === 0 ? 'Presciences' : `Bachelor ${selectedSchedule.academicLevelId}`}
+                                                </p>
+                                                <p className="text-xs font-bold text-gray-500">Géologie</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Actions Footer */}
+                                <div className="pt-8 border-t border-gray-100 flex items-center justify-between gap-4">
+                                    <button
+                                        onClick={() => {
+                                            selectedSchedule.id && handleDelete(selectedSchedule.id);
+                                            setShowDetailModal(false);
+                                        }}
+                                        className="p-4 bg-rose-50 text-rose-500 hover:bg-rose-100 rounded-2xl transition-all"
+                                    >
+                                        <Trash2 className="w-6 h-6" />
+                                    </button>
+
+                                    <div className="flex items-center gap-3 flex-1">
+                                        {isEditing ? (
+                                            <>
+                                                <button
+                                                    onClick={() => setIsEditing(false)}
+                                                    className="flex-1 py-4 font-black text-gray-400 hover:text-gray-600 transition-all uppercase tracking-widest text-xs"
+                                                >
+                                                    Annuler
+                                                </button>
+                                                <button
+                                                    onClick={handleUpdate}
+                                                    disabled={isSubmitting}
+                                                    className="flex-[2] py-4 bg-emerald-600 text-white font-black rounded-3xl shadow-xl shadow-emerald-900/20 hover:bg-emerald-700 transition-all uppercase tracking-widest text-xs"
+                                                >
+                                                    {isSubmitting ? "..." : "Valider les modifications"}
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button
+                                                onClick={() => setIsEditing(true)}
+                                                className="w-full py-4 bg-gray-900 text-white font-black rounded-3xl shadow-xl shadow-gray-900/20 hover:bg-black transition-all uppercase tracking-widest text-xs"
+                                            >
+                                                Modifier l'examen
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div >
     );
 }
-function ScheduleCard({ schedule, onDelete, onPublish, mode }: {
+function ScheduleCard({ schedule, onDelete, onPublish, onSelect, mode }: {
     schedule: ExamScheduleData,
     onDelete: (id: number) => void,
     onPublish: (id: number) => void,
+    onSelect: (s: ExamScheduleData) => void,
     mode: 'PROFESSOR' | 'ACADEMIC_OFFICE'
 }) {
     const s = schedule;
@@ -894,7 +1116,10 @@ function ScheduleCard({ schedule, onDelete, onPublish, mode }: {
     const levelColors = getLevelColor(s.academicLevelId);
 
     return (
-        <div className={`p-6 rounded-3xl border ${cardBorder} ${cardBg} shadow-sm flex items-center justify-between group hover:shadow-md transition-all`}>
+        <div
+            onClick={() => onSelect(s)}
+            className={`p-6 rounded-3xl border ${cardBorder} ${cardBg} shadow-sm flex items-center justify-between group hover:shadow-md transition-all cursor-pointer`}
+        >
             <div className="flex items-center gap-6">
                 <div className={`w-16 h-16 bg-white rounded-2xl flex flex-col items-center justify-center border ${cardBorder}`}>
                     <span className={`text-xs font-black ${isExam ? 'text-rose-600' : 'text-blue-600'} uppercase`}>{new Date(s.date).toLocaleDateString('fr-FR', { weekday: 'short' })}</span>
@@ -953,12 +1178,13 @@ function ScheduleCard({ schedule, onDelete, onPublish, mode }: {
 }
 
 // Calendar Grid Component
-function CalendarGrid({ month, year, schedules, onDelete, onPublish, mode }: {
+function CalendarGrid({ month, year, schedules, onDelete, onPublish, onSelect, mode }: {
     month: number,
     year: number,
     schedules: ExamScheduleData[],
     onDelete: (id: number) => void,
     onPublish: (id: number) => void,
+    onSelect: (s: ExamScheduleData) => void,
     mode: 'PROFESSOR' | 'ACADEMIC_OFFICE'
 }) {
     const daysInMonth = new Date(year, month, 0).getDate();
@@ -1007,7 +1233,8 @@ function CalendarGrid({ month, year, schedules, onDelete, onPublish, mode }: {
                                         return (
                                             <div
                                                 key={s.id}
-                                                className={`p-1.5 rounded-lg text-[9px] font-bold border leading-tight group/item relative ${!s.isPublished
+                                                onClick={(e) => { e.stopPropagation(); onSelect(s); }}
+                                                className={`p-1.5 rounded-lg text-[9px] font-bold border leading-tight group/item relative cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all ${!s.isPublished
                                                     ? 'bg-amber-50 border-amber-100 text-amber-700'
                                                     : s.type === 'EXAM'
                                                         ? 'bg-rose-50 border-rose-200 text-rose-700'
