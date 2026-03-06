@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { BookOpen, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2, MapPin, GraduationCap, ChevronDown, ChevronUp } from "lucide-react";
+import { BookOpen, Users, Megaphone, X, Send, Search, AlertCircle, ClipboardCheck, CheckCircle2, MapPin, GraduationCap, ChevronDown, ChevronUp, Clock, Calendar } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import type { Page } from "../../App";
 import { professorService } from "../../services/professor";
 import "../../utils/auth-debug"; // Active les outils de débogage d'authentification
@@ -56,6 +56,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [targetLevel, setTargetLevel] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [showEventModal, setShowEventModal] = useState(false);
   const [targetCourse, setTargetCourse] = useState("");
   const [courses, setCourses] = useState<any[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
@@ -268,7 +270,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         ? 'bg-rose-50 border-rose-200 shadow-rose-900/5 hover:shadow-rose-900/10'
                         : 'bg-blue-50 border-blue-200 shadow-blue-900/5 hover:shadow-blue-900/10'
                         }`}
-                      onClick={() => onNavigate('planning')}
+                      onClick={() => {
+                        setSelectedEvent(event);
+                        setShowEventModal(true);
+                      }}
                     >
                       {/* Decorative Background Icon */}
                       <AlertCircle className={`absolute -right-8 -top-8 w-48 h-48 opacity-[0.03] transition-transform group-hover:scale-110 group-hover:rotate-12 ${isExam ? 'text-rose-600' : 'text-blue-600'}`} />
@@ -764,6 +769,129 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </div>
         </div>
       )}
+      {/* Event Detail Modal */}
+      <AnimatePresence>
+        {showEventModal && selectedEvent && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowEventModal(false)}
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-lg rounded-[48px] shadow-2xl relative overflow-hidden flex flex-col"
+            >
+              {/* Header Gradient */}
+              <div className={`h-32 w-full ${selectedEvent.type === 'EXAM' ? 'bg-gradient-to-br from-rose-500 to-rose-600' : 'bg-gradient-to-br from-blue-500 to-blue-600'} flex items-center justify-center relative p-8`}>
+                <button
+                  onClick={() => setShowEventModal(false)}
+                  className="absolute top-6 right-6 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center transition-all"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+                <div className="text-center">
+                  <div className="bg-white/20 px-4 py-1.5 rounded-full inline-block mb-3 border border-white/20 backdrop-blur-md">
+                    <span className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2">
+                      {selectedEvent.type === 'EXAM' ? '🔴 Examen Final' : '🔵 Interrogation'}
+                    </span>
+                  </div>
+                  <h2 className="text-white text-xl md:text-2xl font-black leading-tight truncate px-4">
+                    {selectedEvent.courseName}
+                  </h2>
+                </div>
+              </div>
+
+              <div className="p-10 space-y-8">
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date & Jour</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="font-black text-gray-900 capitalize">
+                          {new Date(selectedEvent.date).toLocaleDateString('fr-FR', { weekday: 'long' })}
+                        </p>
+                        <p className="text-xs font-bold text-gray-500">
+                          {new Date(selectedEvent.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tranche Horaire</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center">
+                        <Clock className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="font-black text-gray-900">
+                          {new Date(selectedEvent.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          <span className="mx-1 text-gray-300">→</span>
+                          {(() => {
+                            const end = new Date(selectedEvent.date);
+                            end.setMinutes(end.getMinutes() + (selectedEvent.duration || 120));
+                            return end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                          })()}
+                        </p>
+                        <p className="text-xs font-bold text-gray-500">Durée: {selectedEvent.duration || 120} min</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Localisation</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="font-black text-gray-900">{selectedEvent.room || "Non spécifié"}</p>
+                        <p className="text-xs font-bold text-gray-500">Salle / Amphi</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Classe / Niveau</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center">
+                        <GraduationCap className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="font-black text-gray-900">
+                          {selectedEvent.academicLevel}
+                        </p>
+                        <p className="text-xs font-bold text-gray-500">Géologie</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-8 border-t border-gray-100">
+                  <button
+                    onClick={() => {
+                      setShowEventModal(false);
+                      onNavigate('planning');
+                    }}
+                    className="w-full py-4 bg-gray-900 text-white font-black rounded-3xl shadow-xl shadow-gray-900/20 hover:bg-black transition-all uppercase tracking-widest text-xs"
+                  >
+                    Voir dans le planning complet
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
