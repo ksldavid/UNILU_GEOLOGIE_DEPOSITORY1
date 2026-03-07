@@ -29,7 +29,7 @@ export const getUsers = async (req: Request, res: Response) => {
                 systemRole: true,
                 createdAt: true,
                 isBlocked: true,
-                // TOUJOURS récupérer les inscriptions
+                // TOUJOURS récupérer les inscriptions académiques (niveau)
                 studentEnrollments: {
                     take: 1,
                     orderBy: { enrolledAt: 'desc' },
@@ -41,18 +41,11 @@ export const getUsers = async (req: Request, res: Response) => {
                         }
                     }
                 },
-                // Récupérer les présences de l'étudiant pour calculer le taux
-                attendances: {
-                    select: {
-                        status: true,
-                        session: {
-                            select: {
-                                courseCode: true
-                            }
-                        }
-                    }
-                },
-                // Récupérer les cours auxquels l'étudiant est inscrit + nombre total de sessions par cours
+                // NOTE: Les présences (attendances) ne sont PAS chargées ici pour éviter un crash
+                // (P5000 - Resource limit: 1800+ étudiants × N présences = trop lourd)
+                // Le taux de présence par cours est calculé lors de l'ouverture d'un étudiant individuel.
+
+                // Récupérer les cours auxquels l'étudiant est inscrit
                 studentCourseEnrollments: {
                     select: {
                         course: {
@@ -104,26 +97,13 @@ export const getUsers = async (req: Request, res: Response) => {
             }
         })
 
-        // Calculer les taux de présence côté serveur pour chaque étudiant
+        // Formatage léger (sans calcul de présence, trop lourd pour 1800+ utilisateurs)
         const formattedUsers = users.map((u: any) => {
             if (u.systemRole === 'STUDENT') {
-                const studentCourseEnrollments = u.studentCourseEnrollments.map((enrollment: any) => {
-                    const courseCode = enrollment.course.code;
-                    const totalSessions = enrollment.course._count.attendanceSessions;
-
-                    // On compte les présences (PRESENT ou LATE) pour ce cours spécifique
-                    const presentCount = u.attendances.filter((a: any) =>
-                        a.session.courseCode === courseCode &&
-                        (a.status === 'PRESENT' || a.status === 'LATE')
-                    ).length;
-
-                    const attendanceRate = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : 0;
-
-                    return {
-                        ...enrollment,
-                        attendanceRate
-                    };
-                });
+                const studentCourseEnrollments = u.studentCourseEnrollments?.map((enrollment: any) => ({
+                    ...enrollment,
+                    attendanceRate: 0 // Taux par défaut - calculé à la demande (détail étudiant)
+                })) || [];
 
                 return {
                     ...u,
