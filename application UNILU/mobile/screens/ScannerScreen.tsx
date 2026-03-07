@@ -161,6 +161,7 @@ export function ScannerScreen({ navigation, deepLinkToken }: any) {
                 const result = await attendanceService.scanQR(qrToken, location.coords.latitude, location.coords.longitude);
 
                 // Succès
+                setIsProcessing(false);
                 setScanned(true);
                 setSuccessMessage(result.message);
                 setShowSuccess(true);
@@ -187,6 +188,7 @@ export function ScannerScreen({ navigation, deepLinkToken }: any) {
                             {
                                 text: "Enregistrer",
                                 onPress: async () => {
+                                    setIsProcessing(false);
                                     await attendanceService.saveOfflineScan(qrToken, location.coords.latitude, location.coords.longitude);
                                     setScanned(true);
                                     setShowSuccess(true);
@@ -461,6 +463,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         alignItems: 'center',
         justifyContent: 'center',
+        zIndex: 200,
     },
     successCard: {
         alignItems: 'center',

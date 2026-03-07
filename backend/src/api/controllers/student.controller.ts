@@ -1127,22 +1127,243 @@ export const getStudentExams = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        // 4. Formater la réponse
-        const formattedExams = examSchedules.map(exam => ({
-            id: exam.id,
-            title: exam.course.name,
-            code: exam.courseCode,
-            date: exam.date,
-            type: exam.type === 'EXAM' ? 'Examen' : 'Interrogation',
-            room: exam.room || 'À définir',
-            duration: exam.duration,
-            status: new Date(exam.date) > new Date() ? 'À venir' : 'Passé'
-        }));
+        // 4. Formater la réponse et filtrer les examens passés
+        const now = new Date();
+        const formattedExams = examSchedules
+            .filter(exam => new Date(exam.date) > now) // Only keep future exams
+            .map(exam => ({
+                id: exam.id,
+                title: exam.course.name,
+                code: exam.courseCode,
+                date: exam.date,
+                type: exam.type === 'EXAM' ? 'Examen' : 'Interrogation',
+                room: exam.room || 'À définir',
+                duration: exam.duration,
+                status: 'À venir'
+            }));
 
         res.json(formattedExams);
 
     } catch (error) {
         console.error('Erreur calendrier examens étudiant:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}
+
+/**
+ * Récupère les cours disponibles pour inscription par l'étudiant
+ */
+export const getAvailableCourses = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.userId;
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+
+        // 1. Trouver le niveau actuel de l'étudiant
+        const student = await prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                studentEnrollments: {
+                    include: { academicLevel: true },
+                    orderBy: { enrolledAt: 'desc' },
+                    take: 1
+                },
+                studentCourseEnrollments: {
+                    where: { isActive: true }
+                }
+            }
+        }) as any;
+
+        if (!student) return res.status(404).json({ message: 'Étudiant non trouvé' });
+        const enrollment = student.studentEnrollments[0];
+        if (!enrollment) return res.json([]); // Pas encore de niveau assigné
+
+        const currentLevel = enrollment.academicLevel;
+
+        // Trouver les IDs des niveaux autorisés
+        // L'étudiant peut s'inscrire dans son niveau OU le niveau immédiatement en dessous (stage précédent)
+        let allowedLevelIds: number[] = [currentLevel.id];
+
+        const cId = currentLevel.id;
+
+        if (cId >= 7 && cId <= 9) { // Master 2
+            // Peut s'inscrire en Master 1 (IDs 4, 5, 6)
+            allowedLevelIds.push(4, 5, 6);
+        } else if (cId >= 4 && cId <= 6) { // Master 1
+            // Peut s'inscrire en Licence 3 (ID 3)
+            allowedLevelIds.push(3);
+        } else if (cId === 3) { // Licence 3
+            // Peut s'inscrire en Licence 2 (ID 2)
+            allowedLevelIds.push(2);
+        } else if (cId === 2) { // Licence 2
+            // Peut s'inscrire en Licence 1 (ID 1)
+            allowedLevelIds.push(1);
+        }
+        // Licence 1 (ID 1) - Pas de niveau inférieur autorisé (Sauf Presciences, mais interdit par règle métier)
+        // Prescience (ID 0) - Pas de niveau inférieur
+
+        // 2. Trouver tous les cours de ces niveaux
+        const availableCourses = await prisma.course.findMany({
+            where: {
+                academicLevels: { some: { id: { in: allowedLevelIds } } }
+            },
+            include: {
+                enrollments: {
+                    where: { role: 'PROFESSOR' },
+                    include: { user: { select: { name: true } } },
+                    take: 1
+                },
+                academicLevels: true // FIX: added include for academicLevels
+            }
+        });
+
+        // Filtrer ceux auxquels il est déjà inscrit
+        const alreadyEnrolledCodes = student.studentCourseEnrollments.map((e: any) => e.courseCode);
+
+        const filteredCourses = availableCourses
+            .filter(c => !alreadyEnrolledCodes.includes(c.code))
+            .map(c => ({
+                id: c.code,
+                code: c.code,
+                name: c.name,
+                professor: c.enrollments[0]?.user.name || 'À définir',
+                level: allowedLevelIds.length > 1 && c.academicLevels?.[0]?.id !== currentLevel.id ? "Niveau inférieur" : "Mon niveau"
+            }));
+
+        res.json(filteredCourses);
+
+    } catch (error) {
+        console.error('Erreur getAvailableCourses:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}
+
+/**
+ * Inscrire un étudiant à un cours spécifique
+ */
+export const enrollInCourse = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.userId;
+        const { courseCode } = req.body;
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+        if (!courseCode) return res.status(400).json({ message: 'Code du cours requis' });
+
+        // 1. Vérifier si l'étudiant est déjà inscrit
+        const existing = await prisma.studentCourseEnrollment.findFirst({
+            where: { userId, courseCode }
+        });
+
+        if (existing) {
+            if (existing.isActive) {
+                return res.status(400).json({ message: 'Vous êtes déjà inscrit à ce cours' });
+            } else {
+                // Réactiver simplement
+                await prisma.studentCourseEnrollment.update({
+                    where: { id: existing.id },
+                    data: { isActive: true }
+                });
+                return res.json({ message: 'Inscription réactivée avec succès' });
+            }
+        }
+
+        // 2. Vérifier les règles de niveau
+        const student = await prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                studentEnrollments: {
+                    include: { academicLevel: true },
+                    orderBy: { enrolledAt: 'desc' },
+                    take: 1
+                }
+            }
+        }) as any;
+
+        const enrollment = student.studentEnrollments[0];
+        const currentLevel = enrollment.academicLevel;
+        const currentYear = enrollment.academicYear;
+
+        const course = await prisma.course.findUnique({
+            where: { code: courseCode },
+            include: { academicLevels: true }
+        });
+
+        if (!course) return res.status(404).json({ message: 'Cours non trouvé' });
+
+        const courseLevelOrders = course.academicLevels.map(al => al.order);
+        const isCurrentLevel = courseLevelOrders.includes(currentLevel.order);
+        const isLowerLevel = courseLevelOrders.some(order => order === currentLevel.order - 1);
+
+        // Règle : Seulement niveau actuel ou inférieur (sauf L1 -> Presciences order 1 -> 0)
+        let isAllowed = isCurrentLevel;
+        if (!isAllowed && isLowerLevel && currentLevel.order > 1) {
+            isAllowed = true;
+        }
+
+        if (!isAllowed) {
+            return res.status(403).json({ message: "Vous n'êtes pas autorisé à vous inscrire à ce cours (Règles académiques)." });
+        }
+
+        // 3. Créer l'inscription
+        await prisma.studentCourseEnrollment.create({
+            data: {
+                userId,
+                courseCode,
+                academicYear: currentYear,
+                isActive: true
+            }
+        });
+
+        res.json({ message: 'Inscription au cours effectuée avec succès' });
+
+    } catch (error) {
+        console.error('Erreur enrollInCourse:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}
+
+/**
+ * Désincrire un étudiant d'un cours (Requiert le mot de passe)
+ */
+export const unenrollFromCourse = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.userId;
+        const { courseCode, password } = req.body;
+        const bcrypt = require('bcrypt');
+
+        if (!userId) return res.status(401).json({ message: 'Non autorisé' });
+        if (!courseCode || !password) return res.status(400).json({ message: 'Code du cours et mot de passe requis' });
+
+        // 1. Vérifier le mot de passe
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Mot de passe incorrect' });
+        }
+
+        // 2. Désincrire (Marquer comme inactif ou supprimer)
+        // L'utilisateur demande une désinscription, on va marquer comme inactif avec withdrawnAt
+        const enrollment = await prisma.studentCourseEnrollment.findFirst({
+            where: { userId, courseCode }
+        });
+
+        if (!enrollment) {
+            return res.status(404).json({ message: 'Inscription non trouvée' });
+        }
+
+        await prisma.studentCourseEnrollment.update({
+            where: { id: enrollment.id },
+            data: {
+                isActive: false,
+                withdrawnAt: new Date()
+            }
+        });
+
+        res.json({ message: 'Désinscription réussie.' });
+
+    } catch (error) {
+        console.error('Erreur unenrollFromCourse:', error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 }

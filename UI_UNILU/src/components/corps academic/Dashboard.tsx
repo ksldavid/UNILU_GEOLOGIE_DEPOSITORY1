@@ -282,9 +282,15 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       <div className="flex flex-col md:flex-row md:items-center gap-6 relative z-10">
                         <div className={`w-20 h-20 shrink-0 rounded-[24px] flex flex-col items-center justify-center font-black shadow-lg ${isExam ? 'bg-rose-600 text-white' : 'bg-blue-600 text-white'
                           }`}>
-                          <span className="text-[10px] leading-none mb-1 opacity-70 uppercase tracking-tighter italic">J-{event.daysRemaining}</span>
-                          <span className="text-3xl leading-none">{event.daysRemaining}</span>
-                          <span className="text-[8px] leading-none mt-1 uppercase opacity-70">JOURS</span>
+                          <span className="text-[10px] leading-none mb-1 opacity-70 uppercase tracking-tighter italic">
+                            {event.daysRemaining === 0 ? 'STATUS' : `J-${event.daysRemaining}`}
+                          </span>
+                          <span className={`${event.daysRemaining === 0 ? 'text-xl' : 'text-3xl'} leading-none uppercase`}>
+                            {event.daysRemaining === 0 ? "Auj." : event.daysRemaining}
+                          </span>
+                          <span className="text-[8px] leading-none mt-1 uppercase opacity-70">
+                            {event.daysRemaining === 0 ? 'MAINTENANT' : event.daysRemaining === 1 ? 'JOUR' : 'JOURS'}
+                          </span>
                         </div>
 
                         <div className="flex-1 space-y-2">
@@ -300,8 +306,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
                           <p className={`text-lg font-bold leading-tight ${isExam ? 'text-rose-900' : 'text-blue-900'}`}>
                             {isExam
-                              ? `Votre cours "${event.courseName}" a été planifié pour EXAMEN dans ${event.daysRemaining} jours, le ${dayName} ${formattedDate} à ${localStartTime}${event.room ? ` (Local: ${event.room})` : ''}.`
-                              : `Vous avez prévu une interrogation pour la classe ${event.academicLevel} dans le cours "${event.courseName}" le ${dayName} ${formattedDate} à ${localStartTime}${event.room ? ` (Local: ${event.room})` : ''}.`
+                              ? `Votre cours "${event.courseName}" a été planifié pour EXAMEN ${event.daysRemaining === 0 ? "aujourd'hui" : event.daysRemaining === 1 ? "demain" : `dans ${event.daysRemaining} jours`}, le ${dayName} ${formattedDate} à ${localStartTime}${event.room ? ` (Local: ${event.room})` : ''}.`
+                              : `Vous avez prévu une interrogation pour la classe ${event.academicLevel} dans le cours "${event.courseName}" ${event.daysRemaining === 0 ? "aujourd'hui" : event.daysRemaining === 1 ? "demain" : `le ${dayName} ${formattedDate}`} à ${localStartTime}${event.room ? ` (Local: ${event.room})` : ''}.`
                             }
                           </p>
 

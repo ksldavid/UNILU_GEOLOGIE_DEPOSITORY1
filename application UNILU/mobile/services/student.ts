@@ -62,5 +62,20 @@ export const studentService = {
         return apiFetch(`/ads/${id}/click`, {
             method: 'POST'
         });
+    },
+    async getAvailableCourses() {
+        return apiFetch('/student/courses/available');
+    },
+    async enrollInCourse(courseCode: string) {
+        return apiFetch('/student/courses/enroll', {
+            method: 'POST',
+            body: JSON.stringify({ courseCode })
+        });
+    },
+    async unenrollFromCourse(courseCode: string, password: string) {
+        return apiFetch('/student/courses/unenroll', {
+            method: 'POST',
+            body: JSON.stringify({ courseCode, password })
+        });
     }
 };

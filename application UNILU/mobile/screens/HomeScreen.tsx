@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, SafeAreaView, StatusBar, ScrollView, Dimensions, Platform, RefreshControl, ActivityIndicator, Modal, FlatList, BackHandler, ToastAndroid } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Animated } from 'react-native';
-import { QrCode, Search, LogOut, Bell, ChevronRight, ArrowLeft, BookOpen, Wifi, WifiOff, Calendar, GraduationCap, User as UserIcon, Home, CheckCircle, ExternalLink, ArrowRight, ImagePlus, Megaphone, Trash2, Send, Plus } from 'lucide-react-native';
+import { QrCode, Search, LogOut, Bell, ChevronRight, ArrowLeft, BookOpen, Wifi, WifiOff, Calendar, GraduationCap, User as UserIcon, Home, CheckCircle, ExternalLink, ArrowRight, ImagePlus, Megaphone, Trash2, Send, Plus, AlertCircle } from 'lucide-react-native';
 import { Linking, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
@@ -68,6 +68,12 @@ interface CourseStats {
     courseProgress?: number;
 }
 
+const getAttendanceColor = (percentage: number) => {
+    if (percentage >= 70) return '#10b981'; // Vert
+    if (percentage >= 40) return '#f59e0b'; // Jaune
+    return '#ef4444'; // Rouge
+};
+
 interface HomeScreenProps {
     onLogout: () => void;
     onOpenScanner: () => void;
@@ -131,6 +137,13 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
     const [editNationality, setEditNationality] = useState('');
     const [editWhatsapp, setEditWhatsapp] = useState('');
     const [isCountryModalVisible, setIsCountryModalVisible] = useState(false);
+
+    const [isUnenrolling, setIsUnenrolling] = useState(false);
+    const [unenrollPassword, setUnenrollPassword] = useState('');
+    const [availableCourses, setAvailableCourses] = useState<any[]>([]);
+    const [isEnrolling, setIsEnrolling] = useState(false);
+    const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
+    const [isLoadingAvailable, setIsLoadingAvailable] = useState(false);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const courseDetailAnim = useRef(new Animated.Value(0)).current;
@@ -490,7 +503,53 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
             toValue: 0,
             duration: 200,
             useNativeDriver: true,
-        }).start(() => setSelectedCourse(null));
+        }).start(() => {
+            setSelectedCourse(null);
+            setIsUnenrolling(false);
+            setUnenrollPassword('');
+        });
+    };
+
+    const handleUnenroll = async () => {
+        if (!selectedCourse || !unenrollPassword) return;
+
+        setIsEnrolling(true);
+        try {
+            const response = await studentService.unenrollFromCourse(selectedCourse.id, unenrollPassword);
+            Alert.alert("Succès", response.message || "Désinscription réussie.");
+            closeCourseDetails();
+            fetchDashboardData();
+        } catch (error: any) {
+            Alert.alert("Erreur", error.message || "Impossible de se désinscrire.");
+        } finally {
+            setIsEnrolling(false);
+        }
+    };
+
+    const fetchAvailableCourses = async () => {
+        setIsLoadingAvailable(true);
+        try {
+            const data = await studentService.getAvailableCourses();
+            setAvailableCourses(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoadingAvailable(false);
+        }
+    };
+
+    const handleEnroll = async (courseCode: string) => {
+        setIsEnrolling(true);
+        try {
+            const response = await studentService.enrollInCourse(courseCode);
+            Alert.alert("Succès", response.message || "Inscription réussie !");
+            setShowEnrollmentModal(false);
+            fetchDashboardData();
+        } catch (error: any) {
+            Alert.alert("Erreur", error.message || "Échec de l'inscription.");
+        } finally {
+            setIsEnrolling(false);
+        }
     };
 
     const openFullStats = () => {
@@ -720,41 +779,46 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                             </View>
                         ))
                     ) : (dashboardData?.stats?.courses || []).length > 0 ? (
-                        dashboardData.stats.courses.map((stat: CourseStats) => (
-                            <TouchableOpacity
-                                key={stat.id}
-                                style={[styles.statCard, stat.status === 'FINISHED' && { opacity: 0.8 }]}
-                                onPress={() => openCourseDetails(stat)}
-                                activeOpacity={0.7}
-                            >
-                                <View style={[styles.progressCircle, { borderColor: (stat.color || '#0d9488') + '20' }]}>
-                                    <Text
-                                        style={[styles.statPercentage, { color: stat.color || '#0d9488' }]}
-                                        numberOfLines={1}
-                                        adjustsFontSizeToFit
-                                    >
-                                        {stat.percentage != null ? `${stat.percentage}%` : "---%"}
-                                    </Text>
-
-                                    {stat.status === 'FINISHED' && (
-                                        <View style={[styles.statusBadgeSmall, { backgroundColor: '#10b981', position: 'absolute', top: -5, right: -10 }]}>
-                                            <Text style={styles.statusBadgeTextSmall}>FINI</Text>
+                        dashboardData.stats.courses.map((stat: CourseStats) => {
+                            const isFinished = stat.status === 'FINISHED';
+                            const displayPct = isFinished ? 100 : (stat.percentage ?? 0);
+                            const circleColor = isFinished ? '#10b981' : getAttendanceColor(stat.percentage);
+                            return (
+                                <TouchableOpacity
+                                    key={stat.id}
+                                    style={[styles.statCard, isFinished && { borderColor: '#d1fae5', borderWidth: 1.5 }]}
+                                    onPress={() => openCourseDetails(stat)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[styles.progressCircle, { borderColor: circleColor + '30', borderWidth: 4 }]}>
+                                        <Text
+                                            style={[styles.statPercentage, { color: circleColor }]}
+                                            numberOfLines={1}
+                                            adjustsFontSizeToFit
+                                        >
+                                            {displayPct}%
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.statCourseName} numberOfLines={1}>{stat.name}</Text>
+                                    {isFinished ? (
+                                        <View style={{ backgroundColor: '#d1fae5', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, marginTop: 2 }}>
+                                            <Text style={{ color: '#065f46', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>{'\u2713 COURS TERMIN\u00c9'}</Text>
+                                        </View>
+                                    ) : (
+                                        <View style={styles.statFooterRow}>
+                                            <Text style={styles.statDetails}>
+                                                {stat.attendedCount || 0}/{stat.totalCount || 0} p.
+                                            </Text>
+                                            {stat.courseProgress !== undefined && (
+                                                <Text style={[styles.statProgressLabel, { color: '#0d9488' }]}>
+                                                    {stat.courseProgress}% pg.
+                                                </Text>
+                                            )}
                                         </View>
                                     )}
-                                </View>
-                                <Text style={styles.statCourseName} numberOfLines={1}>{stat.name}</Text>
-                                <View style={styles.statFooterRow}>
-                                    <Text style={styles.statDetails}>
-                                        {stat.attendedCount || 0}/{stat.totalCount || 0} p.
-                                    </Text>
-                                    {stat.courseProgress !== undefined && (
-                                        <Text style={[styles.statProgressLabel, { color: '#0d9488' }]}>
-                                            {stat.courseProgress}% pg.
-                                        </Text>
-                                    )}
-                                </View>
-                            </TouchableOpacity>
-                        ))
+                                </TouchableOpacity>
+                            );
+                        })
                     ) : (
                         renderEmptyState("Aucune statistique disponible")
                     )}
@@ -962,7 +1026,19 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
         return (
             <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabScrollPadding}>
                 <Text style={styles.tabTitle}>Mes Cours</Text>
-                <Text style={styles.tabSubtitle}>Liste complète de vos matières</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.tabSubtitle}>Liste complète de vos matières</Text>
+                    <TouchableOpacity
+                        style={styles.enrollOpenBtn}
+                        onPress={() => {
+                            fetchAvailableCourses();
+                            setShowEnrollmentModal(true);
+                        }}
+                    >
+                        <Plus size={16} color="white" />
+                        <Text style={styles.enrollOpenBtnText}>S'inscrire</Text>
+                    </TouchableOpacity>
+                </View>
 
                 {isLoadingData ? (
                     [1, 2, 3, 4].map(i => (
@@ -975,31 +1051,41 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                         </View>
                     ))
                 ) : coursesData.length > 0 ? (
-                    coursesData.map((course: CourseStats) => (
-                        <TouchableOpacity
-                            key={course.id}
-                            style={[styles.courseRow, course.status === 'FINISHED' && { opacity: 0.6 }]}
-                            onPress={() => openCourseDetails(course)}
-                        >
-                            <View style={[styles.courseColorBar, { backgroundColor: course.status === 'FINISHED' ? '#10b981' : '#0d9488' }]} />
-                            <View style={styles.courseRowInfo}>
-                                <Text style={styles.courseRowName}>{course.name}</Text>
-                                <Text style={styles.courseRowMeta}>
-                                    {course.attendedCount ?? 0}/{course.totalCount ?? 0} présences • {course.percentage}%
-                                </Text>
-                            </View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                                {course.status === 'FINISHED' && (
-                                    <View style={{ backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                                        <Text style={{ color: '#166534', fontSize: 10, fontWeight: 'bold' }}>FINI</Text>
+                    coursesData.map((course: CourseStats) => {
+                        const isFinished = course.status === 'FINISHED';
+                        const displayPct = isFinished ? 100 : (course.percentage ?? 0);
+                        return (
+                            <TouchableOpacity
+                                key={course.id}
+                                style={[
+                                    styles.courseRow,
+                                    isFinished && { backgroundColor: '#f0fdf4', borderLeftColor: '#10b981' }
+                                ]}
+                                onPress={() => openCourseDetails(course)}
+                            >
+                                <View style={[styles.courseColorBar, { backgroundColor: isFinished ? '#10b981' : '#0d9488' }]} />
+                                <View style={styles.courseRowInfo}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Text style={styles.courseRowName}>{course.name}</Text>
+                                        {isFinished && (
+                                            <View style={{ backgroundColor: '#d1fae5', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 }}>
+                                                <Text style={{ color: '#065f46', fontSize: 9, fontWeight: '900' }}>✓ TERMINÉ</Text>
+                                            </View>
+                                        )}
                                     </View>
-                                )}
-                                <ChevronRight size={20} color="#cbd5e1" />
-                            </View>
-                        </TouchableOpacity>
-                    ))
+                                    <Text style={styles.courseRowMeta}>
+                                        {course.attendedCount ?? 0}/{course.totalCount ?? 0} présences •{' '}
+                                        <Text style={{ color: isFinished ? '#10b981' : getAttendanceColor(course.percentage), fontWeight: 'bold' }}>
+                                            {displayPct}%
+                                        </Text>
+                                    </Text>
+                                </View>
+                                <ChevronRight size={20} color={isFinished ? '#10b981' : '#cbd5e1'} />
+                            </TouchableOpacity>
+                        );
+                    }))
                 ) : (
-                    renderEmptyState("Aucun cours inscrit")
+                renderEmptyState("Aucun cours inscrit")
                 )}
             </ScrollView>
         );
@@ -1032,9 +1118,9 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                     </Text>
                                 </View>
                                 <View style={styles.scheduleCourseContainer}>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <Text style={styles.scheduleCourseName}>{exam.title}</Text>
-                                        <View style={{ backgroundColor: exam.type === 'Examen' ? '#fef2f2' : '#eff6ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                                        <Text style={[styles.scheduleCourseName, { flex: 1 }]}>{exam.title}</Text>
+                                        <View style={{ backgroundColor: exam.type === 'Examen' ? '#fef2f2' : '#eff6ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' }}>
                                             <Text style={{ fontSize: 10, fontWeight: '800', color: exam.type === 'Examen' ? '#ef4444' : '#3b82f6' }}>{exam.type.toUpperCase()}</Text>
                                         </View>
                                     </View>
@@ -1558,7 +1644,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
 
                             <View style={styles.statsOverview}>
                                 <View style={styles.statMetric}>
-                                    <Text style={[styles.metricValue, { color: selectedCourse.status === 'FINISHED' ? '#10b981' : selectedCourse.color }]}>
+                                    <Text style={[styles.metricValue, { color: getAttendanceColor(selectedCourse.percentage) }]}>
                                         {selectedCourse.percentage}%
                                     </Text>
                                     <Text style={styles.metricLabel}>Assiduité</Text>
@@ -1618,6 +1704,54 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                 {(dashboardData?.recentAttendance || []).filter((record: any) => record.courseName === selectedCourse.name).length === 0 && (
                                     <Text style={styles.noNotifText}>Aucune présence enregistrée pour ce cours.</Text>
                                 )}
+
+                                {/* Désinscription section */}
+                                <View style={[styles.cautionSection, { marginTop: 30, marginBottom: 50 }]}>
+                                    {!isUnenrolling ? (
+                                        <TouchableOpacity
+                                            style={styles.unenrollTrigger}
+                                            onPress={() => setIsUnenrolling(true)}
+                                        >
+                                            <Trash2 size={20} color="#ef4444" />
+                                            <Text style={styles.unenrollTriggerText}>Se désinscrire du cours</Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <LinearGradient colors={['#fff', '#fff1f2']} style={styles.unenrollConfirmCard}>
+                                            <View style={styles.cautionIconContainer}>
+                                                <AlertCircle size={24} color="#ef4444" />
+                                                <Text style={styles.cautionTitle}>Attention !</Text>
+                                            </View>
+                                            <Text style={styles.cautionText}>
+                                                En vous désinscrivant :
+                                                {'\n'}• Vous ne pourrez plus prendre la présence.
+                                                {'\n'}• Vos statistiques ne seront plus incluses.
+                                                {'\n'}• Plus aucune notification pour ce cours.
+                                            </Text>
+                                            <TextInput
+                                                style={styles.cautionInput}
+                                                placeholder="Saisissez votre mot de passe UNILUHUB"
+                                                secureTextEntry
+                                                value={unenrollPassword}
+                                                onChangeText={setUnenrollPassword}
+                                            />
+                                            <View style={styles.cautionActions}>
+                                                <TouchableOpacity
+                                                    style={styles.cautionCancel}
+                                                    onPress={() => setIsUnenrolling(false)}
+                                                >
+                                                    <Text style={styles.cautionCancelText}>Annuler</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[styles.cautionConfirm, !unenrollPassword && { opacity: 0.5 }]}
+                                                    onPress={handleUnenroll}
+                                                    disabled={!unenrollPassword || isEnrolling}
+                                                >
+                                                    {isEnrolling ? <ActivityIndicator color="white" size="small" /> : <Text style={styles.cautionConfirmText}>Confirmer</Text>}
+                                                </TouchableOpacity>
+                                            </View>
+                                        </LinearGradient>
+                                    )}
+                                </View>
                             </ScrollView>
                         </SafeAreaView>
                     </Animated.View>
@@ -1655,15 +1789,15 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                             <View style={styles.fullStatInfo}>
                                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                                     <Text style={[styles.fullStatName, { color: '#1e293b', flex: 1 }]}>{stat.name}</Text>
-                                                    <View style={[styles.percentBadge, { backgroundColor: courseColor }]}>
+                                                    <View style={[styles.percentBadge, { backgroundColor: getAttendanceColor(stat.percentage) }]}>
                                                         <Text style={[styles.fullStatPercent, { color: '#fff' }]}>{stat.percentage}%</Text>
                                                     </View>
                                                 </View>
 
                                                 <View style={styles.fullStatProgressRow}>
-                                                    <View style={[styles.fullProgressBarBg, { backgroundColor: courseColor + '15' }]}>
+                                                    <View style={[styles.fullProgressBarBg, { backgroundColor: getAttendanceColor(stat.percentage) + '15' }]}>
                                                         <LinearGradient
-                                                            colors={[courseColor, courseColor + 'AA']}
+                                                            colors={[getAttendanceColor(stat.percentage), getAttendanceColor(stat.percentage) + 'AA']}
                                                             start={{ x: 0, y: 0 }}
                                                             end={{ x: 1, y: 0 }}
                                                             style={[styles.fullProgressBarFill, { width: `${stat.percentage}%` }]}
@@ -1872,6 +2006,65 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                     </Animated.View>
                 )
             }
+
+            {/* Modal d'inscription aux cours */}
+            <Modal
+                visible={showEnrollmentModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowEnrollmentModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.enrollModalContent}>
+                        <View style={styles.modalHeader}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.modalTitle}>Inscription aux cours</Text>
+                                <Text style={styles.modalSubtitle}>Sélectionnez les matières à ajouter</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.modalCloseBtn}
+                                onPress={() => setShowEnrollmentModal(false)}
+                            >
+                                <Plus size={24} color="#64748b" style={{ transform: [{ rotate: '45deg' }] }} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {isLoadingAvailable ? (
+                            <ActivityIndicator size="large" color="#0d9488" style={{ marginVertical: 40 }} />
+                        ) : availableCourses.length > 0 ? (
+                            <FlatList
+                                data={availableCourses}
+                                keyExtractor={item => item.id}
+                                contentContainerStyle={{ paddingBottom: 20 }}
+                                renderItem={({ item }) => (
+                                    <View style={styles.availableCourseCard}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.availableCourseName}>{item.name}</Text>
+                                            <Text style={styles.availableCourseProf}>{item.professor}</Text>
+                                            <View style={[styles.levelTag, item.level === "Niveau inférieur" && { backgroundColor: '#fff7ed' }]}>
+                                                <Text style={[styles.levelTagText, item.level === "Niveau inférieur" && { color: '#f97316' }]}>{item.level}</Text>
+                                            </View>
+                                        </View>
+                                        <TouchableOpacity
+                                            style={[styles.enrollActionBtn, isEnrolling && { opacity: 0.5 }]}
+                                            onPress={() => handleEnroll(item.code)}
+                                            disabled={isEnrolling}
+                                        >
+                                            {isEnrolling ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.enrollActionBtnText}>M'inscrire</Text>}
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                            />
+                        ) : (
+                            <View style={styles.emptyAvailable}>
+                                <BookOpen size={48} color="#cbd5e1" strokeWidth={1} />
+                                <Text style={styles.emptyAvailableText}>Aucun nouveau cours disponible pour le moment.</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </Modal>
+
             {AdManagerModal()}
         </View >
     );
@@ -2365,8 +2558,8 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     statPercentage: {
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 18,
+        fontWeight: '900',
     },
     statCourseName: {
         fontSize: 13,
@@ -3519,5 +3712,211 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '800',
         textTransform: 'uppercase',
+    },
+    // Enrollment & Unenrollment Styles
+    enrollOpenBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#0d9488',
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        borderRadius: 14,
+        gap: 8,
+    },
+    enrollOpenBtnText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    cautionSection: {
+        paddingHorizontal: 5,
+    },
+    unenrollTrigger: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        paddingVertical: 15,
+        backgroundColor: '#fef2f2',
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: '#fee2e2',
+    },
+    unenrollTriggerText: {
+        color: '#ef4444',
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    unenrollConfirmCard: {
+        padding: 20,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: '#fee2e2',
+        elevation: 2,
+        shadowColor: '#ef4444',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+    },
+    cautionIconContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 12,
+    },
+    cautionTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#ef4444',
+    },
+    cautionText: {
+        fontSize: 14,
+        color: '#475569',
+        lineHeight: 22,
+        marginBottom: 20,
+    },
+    cautionInput: {
+        backgroundColor: '#f8fafc',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        borderRadius: 12,
+        paddingHorizontal: 15,
+        paddingVertical: 12,
+        fontSize: 14,
+        color: '#1e293b',
+        marginBottom: 20,
+    },
+    cautionActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    cautionCancel: {
+        flex: 1,
+        paddingVertical: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 15,
+        backgroundColor: '#f1f5f9',
+    },
+    cautionCancelText: {
+        color: '#64748b',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    cautionConfirm: {
+        flex: 1,
+        paddingVertical: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 15,
+        backgroundColor: '#ef4444',
+    },
+    cautionConfirmText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: '800',
+    },
+    // Enrollment Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    enrollModalContent: {
+        backgroundColor: 'white',
+        borderTopLeftRadius: 35,
+        borderTopRightRadius: 35,
+        minHeight: height * 0.7,
+        maxHeight: height * 0.9,
+        padding: 24,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 25,
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: '900',
+        color: '#1e293b',
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        color: '#64748b',
+        marginTop: 4,
+    },
+    modalCloseBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#f1f5f9',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    availableCourseCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        borderRadius: 22,
+        padding: 20,
+        marginBottom: 15,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 2,
+    },
+    availableCourseName: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#1e293b',
+        marginBottom: 4,
+    },
+    availableCourseProf: {
+        fontSize: 13,
+        color: '#64748b',
+        marginBottom: 8,
+    },
+    levelTag: {
+        alignSelf: 'flex-start',
+        backgroundColor: '#f0fdfa',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    levelTagText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#0d9488',
+        textTransform: 'uppercase',
+    },
+    enrollActionBtn: {
+        backgroundColor: '#0d9488',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        minWidth: 90,
+        alignItems: 'center',
+    },
+    enrollActionBtnText: {
+        color: 'white',
+        fontSize: 13,
+        fontWeight: 'bold',
+    },
+    emptyAvailable: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+        gap: 15,
+    },
+    emptyAvailableText: {
+        color: '#94a3b8',
+        fontSize: 15,
+        textAlign: 'center',
+        lineHeight: 22,
+        maxWidth: 250,
     },
 });

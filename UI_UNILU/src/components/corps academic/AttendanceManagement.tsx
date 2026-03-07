@@ -111,8 +111,7 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
   const fetchHistory = async () => {
     setLoadingHistory(true);
     try {
-      // Automatic sync before fetching history to ensure counts are correct
-      await professorService.syncPastAttendance();
+      // Load history immediately without waiting for sync
       const data = await professorService.getAttendanceHistory(course.code);
       setHistory(data);
     } catch (error) {
@@ -120,6 +119,8 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
     } finally {
       setLoadingHistory(false);
     }
+    // Run sync silently in the background AFTER history loads (fire and forget)
+    professorService.syncPastAttendance().catch(() => {/* silent */ });
   };
 
   // Timer pour l'expiration du QR Code

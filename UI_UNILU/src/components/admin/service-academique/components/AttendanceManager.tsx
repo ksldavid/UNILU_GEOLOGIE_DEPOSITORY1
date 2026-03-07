@@ -259,9 +259,6 @@ export function AttendanceManager() {
         if (!selectedCourseCode || students.length === 0) return;
 
         try {
-            const course = courses.find(c => c.code === selectedCourseCode);
-            const level = levels.find(l => l.id === selectedLevelId);
-
             const zeroAttendance = students.filter(s => s.attendance === 0).sort((a, b) => a.name.localeCompare(b.name));
             const restAttendance = students.filter(s => s.attendance > 0).sort((a, b) => a.name.localeCompare(b.name));
 

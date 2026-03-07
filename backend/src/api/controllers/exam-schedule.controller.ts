@@ -74,6 +74,11 @@ export const getExamSchedules = async (req: AuthRequest, res: Response) => {
         if (req.user?.role === 'STUDENT') {
             whereClause.isPublished = true;
 
+            // Masquer les examens passés pour les étudiants
+            whereClause.date = {
+                gte: new Date()
+            };
+
             // Get courses the student is enrolled in
             const studentEnrollments = await prisma.studentCourseEnrollment.findMany({
                 where: { userId: req.user.userId },

@@ -436,25 +436,23 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
         const myLevels = Array.from(levelsMap.values());
 
         // 7. Fetch upcoming Events (Exams and Interrogations - next 30 days)
-        // Set start of today to include all events of the current day
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
-
+        // Only show events that have NOT occurred yet
+        const now = new Date();
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-        console.log(`[Dashboard] Searching events for courses: ${courseCodes.join(', ')} between ${startOfToday.toISOString()} and ${thirtyDaysFromNow.toISOString()}`);
+        console.log(`[Dashboard] Searching events for courses: ${courseCodes.join(', ')} between ${now.toISOString()} and ${thirtyDaysFromNow.toISOString()}`);
 
         const upcomingSchedules = await prisma.examSchedule.findMany({
             where: {
                 courseCode: { in: courseCodes },
                 date: {
-                    gte: startOfToday,
+                    gt: now, // Important: Masque automatiquement si l'heure est passée
                     lte: thirtyDaysFromNow
                 },
                 OR: [
-                    { type: 'INTERROGATION' }, // Profs see all interros for their courses
-                    { type: 'EXAM', isPublished: true } // Profs only see official/published exams
+                    { type: 'INTERROGATION' },
+                    { type: 'EXAM', isPublished: true }
                 ]
             },
             include: {
@@ -483,11 +481,15 @@ export const getProfessorDashboard = async (req: AuthRequest, res: Response) => 
             })),
             upcomingEvents: (upcomingSchedules as any[]).map(s => {
                 const eventDate = new Date(s.date);
-                const now = new Date();
-                // Différence en jours (0 = aujourd'hui)
-                const diffTime = eventDate.getTime() - now.getTime();
-                let daysRem = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                if (daysRem < 0) daysRem = 0; // Pour aujourd'hui
+
+                // Calcul précis de la différence de jours calendaires (basé sur 00:00:00)
+                const startOfNow = new Date();
+                startOfNow.setHours(0, 0, 0, 0);
+                const startOfEvent = new Date(s.date);
+                startOfEvent.setHours(0, 0, 0, 0);
+
+                const diffTime = startOfEvent.getTime() - startOfNow.getTime();
+                const daysRem = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
                 return {
                     id: s.id,
