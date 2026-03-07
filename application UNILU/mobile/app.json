@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.ksldavid.unilu",
-      "versionCode": 3,
+      "versionCode": 4,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/final-icon.png",
@@ -36,8 +36,7 @@
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "com.google.android.gms.permission.AD_ID"
+        "ACCESS_COARSE_LOCATION"
       ],
       "useNextNotificationsApi": true,
       "intentFilters": [
