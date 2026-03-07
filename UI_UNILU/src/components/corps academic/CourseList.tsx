@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
-import { CheckCircle2, Settings2, ArrowRight } from "lucide-react";
+import { Settings2, ArrowRight } from "lucide-react";
 
 interface CourseListProps {
   onCourseSelect: (course: Course) => void;
@@ -76,13 +76,12 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
                   {course.role || 'Professeur'}
                 </span>
 
-                {/* Badge COURS TERMINÉ — Positionné élégamment à droite si fini */}
+                {/* Badge COURS TERMINÉ — Style Ruban d'angle pour éviter tout overlap */}
                 {isFinished && (
-                  <div className="absolute top-8 right-8 z-10 animate-in fade-in zoom-in duration-500">
-                    <span className="flex items-center gap-2 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-[0.2em] px-5 py-2 rounded-2xl shadow-xl shadow-emerald-900/20 border border-emerald-500/50">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                  <div className="absolute -top-2 -right-2 z-20 overflow-hidden w-32 h-32 rounded-tr-[40px]">
+                    <div className="absolute top-6 -right-8 bg-[#123124] text-white text-[9px] font-black uppercase tracking-widest py-2 w-40 text-center shadow-lg rotate-45 border-y border-emerald-400/30">
                       TERMINÉ
-                    </span>
+                    </div>
                   </div>
                 )}
               </div>
