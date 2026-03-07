@@ -67,26 +67,24 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
               key={course.id}
               className={`group relative bg-white border border-slate-100 rounded-[40px] p-8 transition-all duration-500 hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-2 ${isFinished ? 'opacity-75 grayscale-[0.4]' : ''}`}
             >
-              {/* Overlapping Status overlay for finished courses */}
-              {isFinished && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 scale-95">
-                  <span className="bg-[#123124] text-white text-[9px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full shadow-xl flex items-center gap-2 border border-[#1B4332]">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                    Cours Terminé
-                  </span>
-                </div>
-              )}
-
-              {/* Options Menu Button (REMOVED: Professors do not have academic management rights) */}
-
-              {/* Card Content */}
-              <div className="mb-6 flex flex-wrap items-center gap-2 pr-8">
+              {/* Header Badges */}
+              <div className="mb-6 flex flex-wrap items-center gap-2">
                 <span className={`inline-block ${colorClasses.bg} ${colorClasses.text} px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm border border-transparent`}>
                   {course.code}
                 </span>
                 <span className={`inline-block px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm ${course.role === 'Professeur' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-600'}`}>
                   {course.role || 'Professeur'}
                 </span>
+
+                {/* Badge COURS TERMINÉ — Positionné élégamment à droite si fini */}
+                {isFinished && (
+                  <div className="absolute top-8 right-8 z-10 animate-in fade-in zoom-in duration-500">
+                    <span className="flex items-center gap-2 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-[0.2em] px-5 py-2 rounded-2xl shadow-xl shadow-emerald-900/20 border border-emerald-500/50">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      TERMINÉ
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="mb-4">
@@ -96,8 +94,11 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
                     {course.level}
                   </div>
                   {course.progress !== undefined && (
-                    <div className="text-[10px] font-black text-teal-600 bg-teal-50 px-2 py-0.5 rounded uppercase tracking-wider">
-                      Progression: {course.progress}%
+                    <div className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm border transition-all ${isFinished
+                      ? 'text-white bg-emerald-500 border-emerald-400 shadow-emerald-200'
+                      : 'text-teal-600 bg-teal-50 border-teal-100'
+                      }`}>
+                      {isFinished ? 'COMPLÉTÉ: 100%' : `Progression: ${course.progress}%`}
                     </div>
                   )}
                 </div>

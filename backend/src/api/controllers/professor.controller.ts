@@ -593,7 +593,7 @@ export const getProfessorCourses = async (req: AuthRequest, res: Response) => {
                 role: e.role === 'PROFESSOR' ? 'Professeur' : 'Assistant',
                 status: e.status,
                 isFinished: isFinished,
-                progress: Math.round(progress)
+                progress: isFinished ? 100 : Math.round(progress)
             };
         });
 
