@@ -31,7 +31,7 @@ export async function sendPushNotifications(tokens: string[], payload: PushNotif
             body: payload.body,
             data: payload.data,
             priority: 'high',
-            channelId: 'announcements'
+            channelId: 'announcements_v2'
         });
     }
 

@@ -35,9 +35,15 @@ export const notificationService = {
         }
 
         if (Platform.OS === 'android') {
-            await Notifications.setNotificationChannelAsync('announcements', {
-                name: 'Annonces UNILU',
+            await Notifications.setNotificationChannelAsync('announcements_v2', {
+                name: 'Alertes UNILU',
                 importance: Notifications.AndroidImportance.MAX,
+                vibrationPattern: [0, 500, 200, 500],
+                lightColor: '#0d9488',
+                lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+                sound: 'default',
+                enableVibrate: true,
+                showBadge: true,
             });
         }
 
