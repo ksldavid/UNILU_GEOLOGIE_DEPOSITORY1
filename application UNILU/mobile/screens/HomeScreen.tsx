@@ -1083,10 +1083,11 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                 <ChevronRight size={20} color={isFinished ? '#10b981' : '#cbd5e1'} />
                             </TouchableOpacity>
                         );
-                    }))
+                    })
                 ) : (
-                renderEmptyState("Aucun cours inscrit")
+                    renderEmptyState("Aucun cours inscrit")
                 )}
+
             </ScrollView>
         );
     };
