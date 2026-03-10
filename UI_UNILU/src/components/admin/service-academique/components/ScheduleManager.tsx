@@ -9,6 +9,7 @@ interface Course {
     code: string;
     professor: string;
     color: string;
+    isCompleted?: boolean;
 }
 
 interface ScheduledCourse extends Course {
@@ -353,7 +354,14 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                                     >
                                         <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: course.color }} />
                                         <div className="flex justify-between items-start mb-1">
-                                            <span className="text-[10px] font-black text-[#1B4332]/30 uppercase tracking-tighter">{course.code}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-black text-[#1B4332]/30 uppercase tracking-tighter">{course.code}</span>
+                                                {course.isCompleted && (
+                                                    <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[8px] font-black uppercase border border-emerald-200">
+                                                        Fini
+                                                    </span>
+                                                )}
+                                            </div>
                                             <GripVertical className="w-3.5 h-3.5 text-[#1B4332]/20 group-hover:text-[#1B4332]" />
                                         </div>
                                         <p className="font-bold text-[#1B4332] text-sm leading-tight mb-1">{course.name}</p>

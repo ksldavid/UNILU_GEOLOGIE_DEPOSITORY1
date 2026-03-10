@@ -21,9 +21,9 @@ export function StudentExams() {
         const fetchExams = async () => {
             try {
                 setLoading(true);
-                const data = await examScheduleService.getAll({ 
-                    month: currentMonth, 
-                    year: currentYear 
+                const data = await examScheduleService.getAll({
+                    month: currentMonth,
+                    year: currentYear
                 });
                 setSchedules(data);
 
@@ -91,7 +91,7 @@ export function StudentExams() {
                     <h1 className="text-2xl md:text-4xl font-black text-gray-900 mb-1 md:mb-2 tracking-tight">Examen & Interro</h1>
                     <p className="text-gray-500 text-xs md:text-base font-medium">Calendrier de vos évaluations académiques</p>
                 </div>
-                <button 
+                <button
                     onClick={() => setViewMode(viewMode === 'MONTHLY' ? 'YEARLY' : 'MONTHLY')}
                     className="w-full md:w-auto px-6 py-4 bg-white border border-gray-100 rounded-[28px] shadow-sm font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-gray-50 transition-all"
                 >
@@ -103,13 +103,13 @@ export function StudentExams() {
             {/* Month Selector - Only in Monthly Mode */}
             {viewMode === 'MONTHLY' && (
                 <div className="bg-white p-4 md:p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between">
-                    <button 
+                    <button
                         onClick={handlePrevMonth}
                         className="p-3 hover:bg-gray-50 rounded-2xl transition-all active:scale-90"
                     >
                         <ChevronLeft className="w-6 h-6 text-gray-400" />
                     </button>
-                    
+
                     <div className="text-center">
                         <h2 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tighter">
                             {monthNames[currentMonth - 1]} {currentYear}
@@ -119,7 +119,7 @@ export function StudentExams() {
                         </p>
                     </div>
 
-                    <button 
+                    <button
                         onClick={handleNextMonth}
                         className="p-3 hover:bg-gray-50 rounded-2xl transition-all active:scale-90"
                     >
@@ -144,7 +144,7 @@ export function StudentExams() {
                     sortedDates.map((dateStr) => {
                         const items = groupedSchedules[dateStr];
                         const dateObj = new Date(items[0].date);
-                        
+
                         return (
                             <div key={dateStr} className="space-y-4">
                                 <div className="flex items-center gap-4">
@@ -164,7 +164,7 @@ export function StudentExams() {
                                             className="relative overflow-hidden group"
                                         >
                                             <div className={`p-6 md:p-8 bg-white rounded-[32px] border border-gray-100 shadow-sm transition-all hover:shadow-xl hover:shadow-blue-500/5 group-hover:-translate-y-1 border-l-8 ${exam.type === 'EXAM' ? 'border-l-rose-500' : 'border-l-blue-500'}`}>
-                                                
+
                                                 <div className="flex items-start justify-between mb-6">
                                                     <div className="space-y-1">
                                                         <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ export function StudentExams() {
                                                         </h3>
                                                     </div>
 
-                                                    <div 
+                                                    <div
                                                         className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/10"
                                                         style={{ background: `linear-gradient(to bottom right, ${exam.course?.colorFrom || '#1B4332'}, ${exam.course?.colorTo || '#2D6A4F'})` }}
                                                     >
@@ -221,7 +221,7 @@ export function StudentExams() {
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    
+
                                                     {exam.type === 'EXAM' && (
                                                         <div className="flex items-center gap-2 text-rose-500 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100 animate-pulse">
                                                             <AlertCircle className="w-3.5 h-3.5" />
