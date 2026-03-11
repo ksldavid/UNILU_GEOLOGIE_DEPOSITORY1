@@ -69,6 +69,9 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
     const [isPublishing, setIsPublishing] = useState(false);
     const [hasNewTickets, setHasNewTickets] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [myAnnouncements, setMyAnnouncements] = useState<any[]>([]);
+    const [isDeletingAnnouncement, setIsDeletingAnnouncement] = useState<number | null>(null);
+    const [announcementModalTab, setAnnouncementModalTab] = useState<'create' | 'manage'>('create');
 
     // Navigation Guard for Planning
     const [isPlanningModified, setIsPlanningModified] = useState(false);
@@ -146,6 +149,10 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                     iconColor: "text-purple-500"
                 },
             ]);
+
+            // Fetch My Announcements
+            const announcements = await userService.getMyAnnouncements();
+            setMyAnnouncements(announcements);
 
             // Fetch real pending note requests
             const { gradeService } = await import("../../../services/grade");
@@ -228,6 +235,22 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
             ));
         } catch (error) {
             alert("Erreur lors de l'action");
+        }
+    };
+
+    const handleDeleteAnnouncement = async (id: number) => {
+        if (!confirm("Êtes-vous sûr de vouloir supprimer cette annonce ?")) return;
+        setIsDeletingAnnouncement(id);
+        try {
+            await userService.deleteAnnouncement(id);
+            setMyAnnouncements(prev => prev.filter(a => a.id !== id));
+            // Rafraîchir aussi les activités pour être sûr
+            const activities = await userService.getRecentActivities();
+            setRealRecentActivities(activities);
+        } catch (error) {
+            alert("Erreur lors de la suppression");
+        } finally {
+            setIsDeletingAnnouncement(null);
         }
     };
 
@@ -884,147 +907,200 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                 )}
             </div>
 
-            {/* Modal d'Annonce */}
             {showAnnouncementModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-[24px] w-full max-w-lg shadow-2xl border border-[#1B4332]/10 overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="bg-[#1B4332] p-6 text-white flex justify-between items-start">
+                    <div className="bg-white rounded-[24px] w-full max-w-lg shadow-2xl border border-[#1B4332]/10 overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+                        <div className="bg-[#1B4332] p-6 text-white flex justify-between items-start flex-shrink-0">
                             <div>
                                 <h3 className="text-xl font-bold flex items-center gap-2">
                                     <Megaphone className="w-5 h-5" />
-                                    Nouvelle Annonce
+                                    Annonces
                                 </h3>
-                                <p className="text-[#FEFCF3]/80 text-sm mt-1">Diffuser une information importante</p>
+                                <p className="text-[#FEFCF3]/80 text-sm mt-1">Gérer la communication académique</p>
                             </div>
                             <button onClick={() => setShowAnnouncementModal(false)} className="p-1 hover:bg-white/10 rounded-full transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-[#1B4332] mb-2">Cible de l'annonce</label>
-                                <select
-                                    value={announcementTarget}
-                                    onChange={(e) => setAnnouncementTarget(e.target.value)}
-                                    className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[16px] outline-none focus:border-[#1B4332] transition-colors text-[#1B4332]"
-                                >
-                                    <optgroup label="Classes">
-                                        <option value="prescience">Préscience</option>
-                                        <option value="bac1">Bachelor 1</option>
-                                        <option value="bac2">Bachelor 2</option>
-                                        <option value="bac3">Bachelor 3</option>
-                                        <option value="master1">Master 1</option>
-                                        <option value="master2">Master 2</option>
-                                    </optgroup>
-                                    <optgroup label="Personnel">
-                                        <option value="profs">Professeurs</option>
-                                        <option value="assistants">Assistants</option>
-                                        <option value="profs_assistants">Professeurs & Assistants</option>
-                                    </optgroup>
-                                    <optgroup label="Autre">
-                                        <option value="all_students">Tous les étudiants</option>
-                                        <option value="student_specific">Étudiant spécifique</option>
-                                        <option value="global">Toute l'Université (Tous)</option>
-                                    </optgroup>
-                                </select>
-                            </div>
+                        {/* Onglets */}
+                        <div className="flex bg-[#1B4332]/5 p-1 mx-6 mt-4 rounded-xl flex-shrink-0">
+                            <button
+                                onClick={() => setAnnouncementModalTab('create')}
+                                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${announcementModalTab === 'create' ? 'bg-white text-[#1B4332] shadow-sm' : 'text-[#52796F] hover:text-[#1B4332]'}`}
+                            >
+                                Nouvelle Annonce
+                            </button>
+                            <button
+                                onClick={() => setAnnouncementModalTab('manage')}
+                                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${announcementModalTab === 'manage' ? 'bg-white text-[#1B4332] shadow-sm' : 'text-[#52796F] hover:text-[#1B4332]'}`}
+                            >
+                                Mes Annonces ({myAnnouncements.length})
+                            </button>
+                        </div>
 
-                            {announcementTarget === "student_specific" && (
-                                <div className="animate-in slide-in-from-top-2 duration-200">
-                                    <label className="block text-sm font-medium text-[#1B4332] mb-2">Nom de l'étudiant / Matricule</label>
-                                    <div className="flex items-center gap-2 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[16px] px-3 py-1">
-                                        <Search className="w-4 h-4 text-[#52796F]" />
-                                        <input
-                                            type="text"
-                                            placeholder="Rechercher..."
-                                            value={specificTarget}
-                                            onChange={(e) => setSpecificTarget(e.target.value)}
-                                            className="w-full p-2 bg-transparent outline-none text-[#1B4332]"
-                                        />
+                        <div className="p-6 overflow-y-auto custom-scrollbar">
+                            {announcementModalTab === 'create' ? (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#1B4332] mb-2">Cible de l'annonce</label>
+                                        <select
+                                            value={announcementTarget}
+                                            onChange={(e) => setAnnouncementTarget(e.target.value)}
+                                            className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[16px] outline-none focus:border-[#1B4332] transition-colors text-[#1B4332]"
+                                        >
+                                            <optgroup label="Classes">
+                                                <option value="prescience">Préscience</option>
+                                                <option value="bac1">Bachelor 1</option>
+                                                <option value="bac2">Bachelor 2</option>
+                                                <option value="bac3">Bachelor 3</option>
+                                                <option value="master1">Master 1</option>
+                                                <option value="master2">Master 2</option>
+                                            </optgroup>
+                                            <optgroup label="Personnel">
+                                                <option value="profs">Professeurs</option>
+                                                <option value="assistants">Assistants</option>
+                                                <option value="profs_assistants">Professeurs & Assistants</option>
+                                            </optgroup>
+                                            <optgroup label="Autre">
+                                                <option value="all_students">Tous les étudiants</option>
+                                                <option value="student_specific">Étudiant spécifique</option>
+                                                <option value="global">Toute l'Université (Tous)</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+
+                                    {announcementTarget === "student_specific" && (
+                                        <div className="animate-in slide-in-from-top-2 duration-200">
+                                            <label className="block text-sm font-medium text-[#1B4332] mb-2">Nom de l'étudiant / Matricule</label>
+                                            <div className="flex items-center gap-2 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[16px] px-3 py-1">
+                                                <Search className="w-4 h-4 text-[#52796F]" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Rechercher..."
+                                                    value={specificTarget}
+                                                    onChange={(e) => setSpecificTarget(e.target.value)}
+                                                    className="w-full p-2 bg-transparent outline-none text-[#1B4332]"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#1B4332] mb-2">Message</label>
+                                        <textarea
+                                            rows={4}
+                                            placeholder="Écrivez votre annonce ici..."
+                                            value={announcementMessage}
+                                            onChange={(e) => setAnnouncementMessage(e.target.value)}
+                                            className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[16px] outline-none focus:border-[#1B4332] transition-colors text-[#1B4332] resize-none"
+                                        ></textarea>
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 pt-2">
+                                        <button
+                                            onClick={() => {
+                                                setShowAnnouncementModal(false);
+                                                setAnnouncementMessage("");
+                                            }}
+                                            className="px-4 py-2 text-[#52796F] hover:bg-[#F1F8F4] rounded-[12px] font-medium transition-colors"
+                                            disabled={isPublishing}
+                                        >
+                                            Annuler
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                if (!announcementMessage.trim()) return;
+
+                                                setIsPublishing(true);
+                                                try {
+                                                    let target = 'ALL_STUDENTS';
+                                                    let levelId: number | undefined = undefined;
+
+                                                    if (announcementTarget === 'global') target = 'GLOBAL';
+                                                    else if (announcementTarget === 'all_students') target = 'ALL_STUDENTS';
+                                                    else if (announcementTarget === 'profs' || announcementTarget === 'profs_assistants') target = 'ALL_PROFESSORS';
+                                                    else if (announcementTarget === 'student_specific') target = 'SPECIFIC_USER';
+                                                    else {
+                                                        target = 'ACADEMIC_LEVEL';
+                                                        if (announcementTarget === 'prescience') levelId = 0;
+                                                        else if (announcementTarget === 'bac1') levelId = 1;
+                                                        else if (announcementTarget === 'bac2') levelId = 2;
+                                                        else if (announcementTarget === 'bac3') levelId = 3;
+                                                        else if (announcementTarget === 'master1') levelId = 4;
+                                                        else if (announcementTarget === 'master2') levelId = 7;
+                                                    }
+
+                                                    await userService.createAnnouncement({
+                                                        title: "Information Académique",
+                                                        content: announcementMessage,
+                                                        type: 'GENERAL',
+                                                        target: target as any,
+                                                        academicLevelId: levelId,
+                                                        targetUserId: announcementTarget === 'student_specific' ? specificTarget : undefined
+                                                    });
+
+                                                    setAnnouncementMessage("");
+                                                    alert("Annonce envoyée avec succès !");
+                                                    fetchDashboardData();
+                                                    setAnnouncementModalTab('manage');
+                                                } catch (error) {
+                                                    alert("Erreur lors de l'envoi");
+                                                } finally {
+                                                    setIsPublishing(false);
+                                                }
+                                            }}
+                                            disabled={isPublishing || !announcementMessage.trim()}
+                                            className="px-6 py-2 bg-[#1B4332] hover:bg-[#2D6A4F] text-white rounded-[12px] font-medium flex items-center gap-2 transition-colors shadow-lg shadow-[#1B4332]/20 disabled:opacity-50"
+                                        >
+                                            {isPublishing ? (
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                                <Send className="w-4 h-4" />
+                                            )}
+                                            {isPublishing ? "Publication..." : "Publier"}
+                                        </button>
                                     </div>
                                 </div>
-                            )}
-
-                            <div>
-                                <label className="block text-sm font-medium text-[#1B4332] mb-2">Message</label>
-                                <textarea
-                                    rows={4}
-                                    placeholder="Écrivez votre annonce ici..."
-                                    value={announcementMessage}
-                                    onChange={(e) => setAnnouncementMessage(e.target.value)}
-                                    className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[16px] outline-none focus:border-[#1B4332] transition-colors text-[#1B4332] resize-none"
-                                ></textarea>
-                            </div>
-
-                            <div className="flex justify-end gap-3 pt-2">
-                                <button
-                                    onClick={() => {
-                                        setShowAnnouncementModal(false);
-                                        setAnnouncementMessage("");
-                                    }}
-                                    className="px-4 py-2 text-[#52796F] hover:bg-[#F1F8F4] rounded-[12px] font-medium transition-colors"
-                                    disabled={isPublishing}
-                                >
-                                    Annuler
-                                </button>
-                                <button
-                                    onClick={async () => {
-                                        if (!announcementMessage.trim()) return;
-
-                                        setIsPublishing(true);
-                                        try {
-                                            let target = 'ALL_STUDENTS';
-                                            let levelId: number | undefined = undefined;
-
-                                            if (announcementTarget === 'global') target = 'GLOBAL';
-                                            else if (announcementTarget === 'all_students') target = 'ALL_STUDENTS';
-                                            else if (announcementTarget === 'profs' || announcementTarget === 'profs_assistants') target = 'ALL_PROFESSORS';
-                                            else if (announcementTarget === 'student_specific') target = 'SPECIFIC_USER';
-                                            else {
-                                                target = 'ACADEMIC_LEVEL';
-                                                // Map to real DB IDs found in AcademicLevel table
-                                                if (announcementTarget === 'prescience') levelId = 0;
-                                                else if (announcementTarget === 'bac1') levelId = 1;
-                                                else if (announcementTarget === 'bac2') levelId = 2;
-                                                else if (announcementTarget === 'bac3') levelId = 3;
-                                                // Master IDs vary by specialty, we might need a more robust mapping for them
-                                                // defaulting to common IDs if they match
-                                                else if (announcementTarget === 'master1') levelId = 4;
-                                                else if (announcementTarget === 'master2') levelId = 7;
-                                            }
-
-                                            await userService.createAnnouncement({
-                                                title: "Information Académique",
-                                                content: announcementMessage,
-                                                type: 'GENERAL',
-                                                target: target as any,
-                                                academicLevelId: levelId,
-                                                targetUserId: announcementTarget === 'student_specific' ? specificTarget : undefined
-                                            });
-
-                                            setShowAnnouncementModal(false);
-                                            setAnnouncementMessage("");
-                                            alert("Annonce envoyée avec succès !");
-                                            // Rafraîchir les données pour voir l'annonce dans l'historique
-                                            fetchDashboardData();
-                                        } catch (error) {
-                                            alert("Erreur lors de l'envoi");
-                                        } finally {
-                                            setIsPublishing(false);
-                                        }
-                                    }}
-                                    disabled={isPublishing || !announcementMessage.trim()}
-                                    className="px-6 py-2 bg-[#1B4332] hover:bg-[#2D6A4F] text-white rounded-[12px] font-medium flex items-center gap-2 transition-colors shadow-lg shadow-[#1B4332]/20 disabled:opacity-50"
-                                >
-                                    {isPublishing ? (
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <div className="space-y-4">
+                                    {myAnnouncements.length === 0 ? (
+                                        <div className="text-center py-10">
+                                            <Megaphone className="w-12 h-12 text-[#1B4332] opacity-10 mx-auto mb-3" />
+                                            <p className="text-[#52796F] text-sm italic">Vous n'avez pas encore publié d'annonce.</p>
+                                        </div>
                                     ) : (
-                                        <Send className="w-4 h-4" />
+                                        myAnnouncements.map((announcement) => (
+                                            <div key={announcement.id} className="bg-[#F1F8F4] p-4 rounded-[20px] border border-[#1B4332]/5 group relative transition-all">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-[#1B4332] bg-[#1B4332]/10 px-2 py-0.5 rounded">
+                                                        {announcement.target === 'GLOBAL' ? 'Tous' :
+                                                         announcement.target === 'ACADEMIC_LEVEL' ? announcement.academicLevel?.displayName || 'Niveau' :
+                                                         announcement.target}
+                                                    </span>
+                                                    <span className="text-[10px] text-[#52796F] font-bold">
+                                                        {new Date(announcement.createdAt).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-[#1B4332] leading-relaxed mb-3">{announcement.content}</p>
+                                                <div className="flex justify-end border-t border-[#1B4332]/5 pt-2">
+                                                    <button
+                                                        onClick={() => handleDeleteAnnouncement(announcement.id)}
+                                                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
+                                                        disabled={isDeletingAnnouncement === announcement.id}
+                                                    >
+                                                        {isDeletingAnnouncement === announcement.id ? (
+                                                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                                                        ) : (
+                                                            <X className="w-4 h-4" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
                                     )}
-                                    {isPublishing ? "Publication..." : "Publier"}
-                                </button>
-                            </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -71,6 +71,38 @@ export const userService = {
         return response.json();
     },
 
+    async getMyAnnouncements() {
+        const token = sessionStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        const response = await fetch(`${API_URL}/announcements/my`, { headers });
+        if (!response.ok) {
+            throw new Error('Erreur lors de la récupération des annonces');
+        }
+        return response.json();
+    },
+
+    async deleteAnnouncement(id: number) {
+        const token = sessionStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        const response = await fetch(`${API_URL}/announcements/${id}`, {
+            method: 'DELETE',
+            headers
+        });
+
+        if (!response.ok) {
+            throw new Error('Erreur lors de la suppression de l\'annonce');
+        }
+        return response.json();
+    },
+
     async getRecentActivities() {
         const token = sessionStorage.getItem('token');
         const headers = {
