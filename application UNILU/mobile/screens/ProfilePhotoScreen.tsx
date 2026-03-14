@@ -165,23 +165,89 @@ export function ProfilePhotoScreen({ navigation, currentPhotoUrl, onPhotoUpdated
             const { getAuthToken } = await import('../services/api');
             const token = await getAuthToken();
 
-            const response = await fetch(`${BASE_URL}/users/profile-photo`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    // Ne PAS mettre Content-Type ici — fetch le fait automatiquement pour FormData
-                },
-                body: formData,
-            });
+            if (!token) {
+                Alert.alert(
+                    '🔐 Session expirée',
+                    'Votre session a expiré. Veuillez vous reconnecter pour continuer.',
+                    [{ text: 'OK' }]
+                );
+                return;
+            }
 
-            const data = await response.json();
+            let response: Response;
+            try {
+                response = await fetch(`${BASE_URL}/users/profile-photo`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: formData,
+                });
+            } catch (networkError: any) {
+                // Erreur réseau (pas de connexion, timeout, etc.)
+                Alert.alert(
+                    '📡 Pas de connexion',
+                    'Impossible de joindre le serveur. Vérifiez votre connexion internet et réessayez.',
+                    [{ text: 'OK' }]
+                );
+                return;
+            }
+
+            let data: any;
+            try {
+                data = await response.json();
+            } catch {
+                Alert.alert(
+                    '⚠️ Réponse inattendue',
+                    `Le serveur a répondu avec le code ${response.status} mais sans données lisibles.`,
+                    [{ text: 'OK' }]
+                );
+                return;
+            }
 
             if (!response.ok) {
-                // Photo rejetée avec raisons
+                // Photo rejetée avec raisons détaillées
                 if (data.rejectionReasons && data.rejectionReasons.length > 0) {
                     setRejectionReasons(data.rejectionReasons);
-                } else {
-                    throw new Error(data.message || 'Erreur lors de l\'upload');
+                    return;
+                }
+
+                // Erreurs HTTP avec messages explicites
+                switch (response.status) {
+                    case 400:
+                        Alert.alert(
+                            '❌ Image invalide',
+                            data.message || 'Le fichier envoyé n\'est pas accepté. Utilisez une image JPG, PNG ou WebP de moins de 10 MB.',
+                            [{ text: 'OK' }]
+                        );
+                        break;
+                    case 401:
+                        Alert.alert(
+                            '🔐 Non autorisé',
+                            'Vous devez être connecté pour modifier votre photo.',
+                            [{ text: 'OK' }]
+                        );
+                        break;
+                    case 413:
+                        Alert.alert(
+                            '📦 Fichier trop grand',
+                            'L\'image est trop volumineuse pour être envoyée. Choisissez une image plus petite (max 10 MB).',
+                            [{ text: 'OK' }]
+                        );
+                        break;
+                    case 500:
+                        Alert.alert(
+                            '🔧 Erreur serveur',
+                            `Une erreur s'est produite sur le serveur lors du traitement de l'image.\n\nDétail technique : ${data.message || 'Erreur inconnue'}\n\nVeuillez réessayer dans quelques instants.`,
+                            [{ text: 'OK' }]
+                        );
+                        break;
+                    default:
+                        Alert.alert(
+                            `⚠️ Erreur ${response.status}`,
+                            data.message || 'Une erreur inattendue s\'est produite. Veuillez réessayer.',
+                            [{ text: 'OK' }]
+                        );
                 }
                 return;
             }
@@ -195,11 +261,17 @@ export function ProfilePhotoScreen({ navigation, currentPhotoUrl, onPhotoUpdated
             Alert.alert('✅ Succès', 'Votre photo de profil a été mise à jour !');
 
         } catch (error: any) {
-            Alert.alert('Erreur', error.message || 'Impossible d\'uploader la photo.');
+            // Erreur inattendue non gérée
+            Alert.alert(
+                '❌ Erreur inattendue',
+                `Une erreur inattendue s'est produite.\n\nDétail : ${error.message || 'Erreur inconnue'}`,
+                [{ text: 'OK' }]
+            );
         } finally {
             setIsUploading(false);
         }
     };
+
 
     // ============================================================
     // SUPPRIMER LA PHOTO
