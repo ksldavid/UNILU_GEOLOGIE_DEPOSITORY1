@@ -156,10 +156,14 @@ export function SupportTicketsAdmin({ onRegister, categoryRestrict }: { onRegist
                                 <h4 className="text-base font-bold text-white mb-2 group-hover:text-blue-400 transition-colors line-clamp-2">{ticket.subject}</h4>
                                 <div className="flex items-center gap-3 mb-4">
                                     {getCategoryBadge(ticket.category)}
-                                    <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                                        <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center border border-white/5">
-                                            <User className="w-3 h-3" />
-                                        </div>
+                                     <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                                         <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center border border-white/5 overflow-hidden">
+                                             {ticket.user?.profilePhotoUrl ? (
+                                                 <img src={ticket.user.profilePhotoUrl} alt={ticket.user.name} className="w-full h-full object-cover" />
+                                             ) : (
+                                                 <User className="w-3 h-3" />
+                                             )}
+                                         </div>
                                         <span className="truncate max-w-[120px]">{ticket.user?.name || 'Inconnu'}</span>
                                     </div>
                                 </div>
@@ -194,11 +198,15 @@ export function SupportTicketsAdmin({ onRegister, categoryRestrict }: { onRegist
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-4 text-xs text-slate-400">
-                                            <div className="flex items-center gap-2">
-                                                <User className="w-3.5 h-3.5 text-blue-500" />
-                                                <span className="font-medium text-slate-300">{selectedTicket.user?.name}</span>
-                                                <span className="text-slate-600">({selectedTicket.user?.email})</span>
-                                            </div>
+                                              <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 overflow-hidden">
+                                                 {selectedTicket.user?.profilePhotoUrl ? (
+                                                     <img src={selectedTicket.user.profilePhotoUrl} alt={selectedTicket.user.name} className="w-full h-full object-cover" />
+                                                 ) : (
+                                                     <User className="w-3.5 h-3.5 text-blue-500" />
+                                                 )}
+                                             </div>
+                                             <span className="font-medium text-slate-300">{selectedTicket.user?.name}</span>
+                                             <span className="text-slate-600">({selectedTicket.user?.email})</span>
                                             <div className="w-1 h-1 rounded-full bg-slate-700" />
                                             <div className="flex items-center gap-2 font-mono text-slate-500">
                                                 <Clock className="w-3.5 h-3.5" />

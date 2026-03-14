@@ -12,14 +12,16 @@ export const getGradeChangeRequests = async (req: Request, res: Response) => {
             include: {
                 requester: {
                     select: {
-                        name: true
+                        name: true,
+                        profilePhotoUrl: true
                     }
                 },
                 grade: {
                     include: {
                         student: {
                             select: {
-                                name: true
+                                name: true,
+                                profilePhotoUrl: true
                             }
                         },
                         assessment: {
@@ -44,8 +46,10 @@ export const getGradeChangeRequests = async (req: Request, res: Response) => {
         const formattedRequests = (requests as any[]).map(request => ({
             id: request.id.toString(),
             professor: request.requester?.name || 'Inconnu',
+            professorPhotoUrl: request.requester?.profilePhotoUrl || null,
             professorInitials: (request.requester?.name || '??').split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2),
             student: request.grade?.student?.name || 'Inconnu',
+            studentPhotoUrl: request.grade?.student?.profilePhotoUrl || null,
             course: request.grade?.assessment?.course?.name || 'Inconnu',
             courseCode: request.grade?.assessment?.course?.code || '',
             oldGrade: request.grade?.score?.toString() || '0',
@@ -211,6 +215,7 @@ export const getCourseGrades = async (req: Request, res: Response) => {
                     select: {
                         id: true,
                         name: true,
+                        profilePhotoUrl: true,
                         grades: {
                             where: {
                                 assessment: {
@@ -266,6 +271,7 @@ export const getCourseGrades = async (req: Request, res: Response) => {
             return {
                 studentId: en.user.id,
                 studentName: en.user.name,
+                studentPhotoUrl: en.user.profilePhotoUrl,
                 grades: studentGrades,
                 pendingRequests
             }

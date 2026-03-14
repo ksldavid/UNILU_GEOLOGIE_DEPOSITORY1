@@ -856,6 +856,7 @@ export const getStudentProfile = async (req: AuthRequest, res: Response) => {
             academicLevel: academicLevel,
             academicYear: enrollment?.academicYear || '-',
             campus: 'Campus Kasapa',
+            profilePhotoUrl: student.profilePhotoUrl,
             faculty: `FACULTÉ DE SCIENCE ET TECHNOLOGIE / DÉPARTEMENT DE GÉOLOGIE - ${academicLevel.toUpperCase()}`
         });
     } catch (error) {

@@ -38,6 +38,7 @@ interface User {
   role: Role;
   status: Status;
   avatarColor: string;
+  profilePhotoUrl?: string | null;
   // Student props
   promotion?: string;
   enrolledCourses?: StudentCourse[];
@@ -145,6 +146,7 @@ export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
               role: role,
               status: 'active',
               avatarColor: color,
+              profilePhotoUrl: u.profilePhotoUrl,
               promotion: role === 'student' ? promotion : undefined,
               enrolledCourses: enrolledCourses,
               teachingCourses: teachingCourses,
@@ -668,8 +670,12 @@ Mot de passe: ${formData.password}
                 : 'hover:bg-white border-transparent hover:border-[#1B4332]/10'
                 }`}
             >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${user.avatarColor} ${selectedUser?.id === user.id ? 'bg-white/20 text-white' : ''}`}>
-                <span className="font-bold">{user.name.charAt(0)}</span>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${user.avatarColor} ${selectedUser?.id === user.id ? 'bg-white/20 text-white' : ''}`}>
+                {user.profilePhotoUrl ? (
+                  <img src={user.profilePhotoUrl} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-bold">{user.name.charAt(0)}</span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-0.5">
@@ -695,8 +701,12 @@ Mot de passe: ${formData.password}
           <div className="p-8 bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] text-white">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-[24px] flex items-center justify-center text-3xl font-bold border border-white/20 shadow-xl">
-                  {selectedUser.name.charAt(0)}
+                <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-[24px] flex items-center justify-center text-3xl font-bold border border-white/20 shadow-xl overflow-hidden">
+                  {selectedUser.profilePhotoUrl ? (
+                    <img src={selectedUser.profilePhotoUrl} alt={selectedUser.name} className="w-full h-full object-cover" />
+                  ) : (
+                    selectedUser.name.charAt(0)
+                  )}
                 </div>
                 <div>
                   <h2 className="text-3xl font-bold mb-2">{selectedUser.name}</h2>

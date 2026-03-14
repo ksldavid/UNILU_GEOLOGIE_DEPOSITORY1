@@ -7,7 +7,9 @@ interface GradeChangeRequest {
     id: string;
     professor: string;
     professorInitials: string;
+    professorPhotoUrl?: string | null;
     student: string;
+    studentPhotoUrl?: string | null;
     course: string;
     courseCode: string;
     oldGrade: string;
@@ -273,8 +275,12 @@ export function GradesManager() {
                             >
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-full bg-[#1B4332] text-white flex items-center justify-center font-bold">
-                                            {request.professorInitials}
+                                        <div className="w-12 h-12 rounded-full bg-[#1B4332] text-white flex items-center justify-center font-bold overflow-hidden">
+                                            {request.professorPhotoUrl ? (
+                                                <img src={request.professorPhotoUrl} alt={request.professor} className="w-full h-full object-cover" />
+                                            ) : (
+                                                request.professorInitials
+                                            )}
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-[#1B4332]">{request.professor}</h3>
@@ -521,9 +527,18 @@ export function GradesManager() {
 
                                             return (
                                                 <tr key={row.studentId} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                                                    <td className="p-4">
-                                                        <p className="font-bold text-[#1B4332]">{row.studentName}</p>
-                                                        <p className="text-[10px] text-[#52796F]">{row.studentId}</p>
+                                                    <td className="p-4 flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-[#1B4332]/10 flex items-center justify-center overflow-hidden shrink-0">
+                                                            {row.studentPhotoUrl ? (
+                                                                <img src={row.studentPhotoUrl} alt={row.studentName} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <span className="text-[10px] font-bold text-[#1B4332]">{row.studentName.charAt(0)}</span>
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-[#1B4332]">{row.studentName}</p>
+                                                            <p className="text-[10px] text-[#52796F]">{row.studentId}</p>
+                                                        </div>
                                                     </td>
                                                     {pvData.assessments.map((ass: any) => {
                                                         const pending = row.pendingRequests?.[ass.id];

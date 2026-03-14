@@ -88,6 +88,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
             select: {
                 id: true,
                 name: true,
+                profilePhotoUrl: true,
                 createdAt: true,
                 studentEnrollments: {
                     take: 1,
@@ -103,6 +104,7 @@ export const getRecentActivities = async (req: Request, res: Response) => {
                 action: 'Nouvelle inscription validée',
                 detail: s.studentEnrollments[0]?.academicLevel?.name || 'Géologie',
                 time: s.createdAt,
+                profilePhotoUrl: s.profilePhotoUrl,
                 type: 'STUDENT'
             })
         })
@@ -317,7 +319,8 @@ export const getCourseAttendance = async (req: Request, res: Response) => {
             },
             select: {
                 id: true,
-                name: true
+                name: true,
+                profilePhotoUrl: true
             },
             orderBy: { name: 'asc' }
         })
@@ -353,6 +356,7 @@ export const getCourseAttendance = async (req: Request, res: Response) => {
             return {
                 id: student.id,
                 name: student.name,
+                profilePhotoUrl: student.profilePhotoUrl,
                 attendance: total > 0 ? Math.round((present / total) * 100) : 0
             }
         }))
@@ -496,7 +500,7 @@ export const getTrafficInsights = async (req: Request, res: Response) => {
         // Récupérer les noms des utilisateurs depuis la DB
         const userData = await prisma.user.findMany({
             where: { id: { in: activeUserIds } },
-            select: { id: true, name: true }
+            select: { id: true, name: true, profilePhotoUrl: true }
         });
 
         // Fusionner les données

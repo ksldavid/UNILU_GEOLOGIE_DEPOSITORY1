@@ -12,6 +12,7 @@ interface StudentSummary {
     id: string;
     name: string;
     attendance: number;
+    profilePhotoUrl?: string | null;
 }
 
 interface SessionStudentStatus {
@@ -427,12 +428,19 @@ export function AttendanceManager() {
                             </div>
                             <div className="divide-y divide-[#1B4332]/5 max-h-[500px] overflow-y-auto">
                                 {filteredStudents.map(student => (
-                                    <div
-                                        key={student.id}
-                                        onClick={() => setSelectedStudent(student)}
-                                        className={`flex items-center justify-between p-4 cursor-pointer transition-all ${selectedStudent?.id === student.id ? 'bg-[#F1F8F4] border-l-4 border-[#1B4332]' : 'hover:bg-gray-50 border-l-4 border-transparent'}`}
-                                    >
-                                        <div className="flex-1 min-w-0">
+                                        <div
+                                            key={student.id}
+                                            onClick={() => setSelectedStudent(student)}
+                                            className={`flex items-center justify-between p-4 cursor-pointer transition-all ${selectedStudent?.id === student.id ? 'bg-[#F1F8F4] border-l-4 border-[#1B4332]' : 'hover:bg-gray-50 border-l-4 border-transparent'}`}
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-[#1B4332]/10 flex items-center justify-center mr-3 shrink-0 overflow-hidden">
+                                                {student.profilePhotoUrl ? (
+                                                    <img src={student.profilePhotoUrl} alt={student.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-xs font-bold text-[#1B4332]">{student.name.charAt(0)}</span>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
                                             <p className="font-bold text-[#1B4332] truncate text-sm">{student.name}</p>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <div className="flex-1 bg-gray-100 h-1.5 rounded-full overflow-hidden">

@@ -106,6 +106,14 @@ export const getTicketDetails = async (req: Request, res: Response) => {
             include: {
                 messages: {
                     orderBy: { createdAt: 'asc' }
+                },
+                user: {
+                    select: {
+                        name: true,
+                        email: true,
+                        profilePhotoUrl: true,
+                        systemRole: true
+                    }
                 }
             }
         })
@@ -212,6 +220,7 @@ export const getAllTickets = async (req: Request, res: Response) => {
                     select: {
                         name: true,
                         email: true,
+                        profilePhotoUrl: true,
                         systemRole: true
                     }
                 },

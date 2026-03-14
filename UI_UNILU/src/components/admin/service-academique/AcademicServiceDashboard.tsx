@@ -665,8 +665,12 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                             const { icon: Icon, color, bg } = getActivityStyle(activity.type);
                                             return (
                                                 <div key={activity.id} className="flex items-start gap-4 pb-4 border-b border-[#1B4332]/5 last:border-0 last:pb-0 group">
-                                                    <div className={`w-12 h-12 ${bg} rounded-[16px] flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                                                        <Icon className={`w-6 h-6 ${color}`} />
+                                                    <div className={`w-12 h-12 ${bg} rounded-[16px] flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform overflow-hidden`}>
+                                                        {activity.profilePhotoUrl ? (
+                                                            <img src={activity.profilePhotoUrl} alt={activity.user} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Icon className={`w-6 h-6 ${color}`} />
+                                                        )}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center justify-between mb-0.5">
