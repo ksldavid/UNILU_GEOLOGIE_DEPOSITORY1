@@ -74,6 +74,9 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   });
   const [isLaunchingAssignment, setIsLaunchingAssignment] = useState(false);
   const [selectedAssignmentForSubmissions, setSelectedAssignmentForSubmissions] = useState<any>(null);
+  const [missingStudentsFromCSV, setMissingStudentsFromCSV] = useState<any[]>([]);
+  const [unknownStudentsFromCSV, setUnknownStudentsFromCSV] = useState<string[]>([]);
+  const [showMissingGradesModal, setShowMissingGradesModal] = useState(false);
 
   const handleDownloadAllAsZip = async (assignment: any) => {
     if (!assignment.submissions || assignment.submissions.length === 0) {
@@ -397,7 +400,8 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         const lines = text.split(/\r?\n/);
         const newGrades = { ...tempGrades };
         let count = 0;
-        let errors = 0;
+        let unknownList: string[] = [];
+        const matchedStudentIds = new Set<string>();
 
         // On ignore la première ligne (header)
         for (let i = 1; i < lines.length; i++) {
@@ -408,22 +412,17 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           let parts = line.split(';');
           if (parts.length < 3) parts = line.split(',');
           
-          if (parts.length < 3) {
-            errors++;
-            continue;
-          }
+          if (parts.length < 3) continue;
 
           // Nettoyage agressif du matricule (retrait des guillemets et espaces)
           const matricule = parts[0].trim().replace(/^["']|["']$/g, '');
+          const studentName = parts[1]?.trim().replace(/^["']|["']$/g, '') || "Étudiant inconnu";
           let scoreStr = parts[2].trim().replace(/^["']|["']$/g, '').replace(',', '.');
           
           if (scoreStr === "" || scoreStr === '""' || scoreStr === "''") continue;
 
           const score = parseFloat(scoreStr);
-          if (isNaN(score)) {
-            errors++;
-            continue;
-          }
+          if (isNaN(score)) continue;
 
           // Recherche de l'étudiant avec une tolérance sur les zéros au début
           let student = students.find(s => s.matricule === matricule);
@@ -438,22 +437,31 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           }
 
           if (student) {
-            if (score > (selectedExam?.maxPoints || 20)) {
-              errors++;
-              continue;
-            }
+            if (score > (selectedExam?.maxPoints || 20)) continue;
             newGrades[student.id] = score.toString();
+            matchedStudentIds.add(student.id);
             count++;
           } else {
-            errors++;
-            console.warn(`Matricule non trouvé: ${matricule}`);
+            unknownList.push(`${studentName} (${matricule})`);
           }
         }
 
         setTempGrades(newGrades);
-        if (errors > 0) {
-          toast.warning(`${count} notes importées, mais ${errors} lignes ont été ignorées (erreur de format ou matricule inconnu).`);
-        } else {
+        setUnknownStudentsFromCSV(unknownList);
+        
+        // Identifier les étudiants du cours absents du CSV
+        const missing = students.filter(s => !matchedStudentIds.has(s.id));
+        setMissingStudentsFromCSV(missing);
+
+        if (unknownList.length > 0) {
+          alert(`${unknownList.length} étudiant(s) n'existent pas dans ce cours. Le système va continuer pour importer les autres points.`);
+        }
+
+        if (missing.length > 0) {
+          setShowMissingGradesModal(true);
+        }
+
+        if (count > 0) {
           toast.success(`${count} notes importées avec succès ! N'oubliez pas d'enregistrer.`);
         }
       } catch (err) {
@@ -831,6 +839,63 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal — étudiants du cours absents du fichier CSV */}
+      {showMissingGradesModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] p-8 max-w-2xl w-full shadow-2xl relative">
+            <button onClick={() => setShowMissingGradesModal(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+              <X className="w-6 h-6" />
+            </button>
+            <div className="mb-6">
+              <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mb-4">
+                <AlertTriangle className="w-6 h-6 text-amber-500" />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 mb-2">Étudiants manquants dans le fichier</h3>
+              <p className="text-gray-500 font-medium">
+                {missingStudentsFromCSV.length} étudiant(s) inscrit(s) à ce cours ne figurent pas dans votre fichier Excel.
+                Voulez-vous saisir leurs notes manuellement ?
+              </p>
+            </div>
+
+            <div className="max-h-[380px] overflow-y-auto space-y-3 mb-8 pr-1">
+              {missingStudentsFromCSV.map(student => (
+                <div key={student.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-white hover:shadow-sm transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-black text-sm shrink-0">
+                      {student.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 text-sm">{student.name}</p>
+                      <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{student.matricule}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="Note"
+                      className="w-20 p-2 bg-white border border-gray-200 rounded-xl font-black text-center focus:ring-2 focus:ring-orange-500/20 outline-none text-sm"
+                      min="0"
+                      max={selectedExam?.maxPoints || 20}
+                      value={tempGrades[student.id] || ""}
+                      onChange={(e) => setTempGrades(prev => ({ ...prev, [student.id]: e.target.value }))}
+                    />
+                    <span className="text-gray-300 font-bold text-sm">/ {selectedExam?.maxPoints || 20}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowMissingGradesModal(false)}
+              className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              Valider et continuer
+            </button>
           </div>
         </div>
       )}
@@ -1533,6 +1598,30 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
               <p className="mt-8 text-2xl font-black text-white uppercase tracking-widest">Déposez votre fichier ici</p>
               <div className="mt-4 px-6 py-2 bg-white/20 rounded-full border border-white/30">
                 <p className="text-white text-xs font-bold uppercase tracking-tighter">Mise à jour automatique des points de la promotion</p>
+              </div>
+            </div>
+          )}
+
+          {unknownStudentsFromCSV.length > 0 && (
+            <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-red-800 font-bold text-sm">
+                    {unknownStudentsFromCSV.length} étudiant(s) du fichier Excel n’appartiennent pas à ce cours.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {unknownStudentsFromCSV.map((name, i) => (
+                      <span key={i} className="text-xs bg-red-100 text-red-700 font-bold px-2 py-1 rounded-lg">{name}</span>
+                    ))}
+                  </div>
+                  <p className="text-red-500 text-xs mt-2 italic font-medium">
+                    Contactez le chef de département ou le service technique si vous pensez que c’est une erreur.
+                  </p>
+                </div>
+                <button onClick={() => setUnknownStudentsFromCSV([])} className="text-red-300 hover:text-red-500 transition-colors shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             </div>
           )}
