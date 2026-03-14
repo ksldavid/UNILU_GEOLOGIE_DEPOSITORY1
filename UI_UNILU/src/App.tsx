@@ -51,6 +51,7 @@ export interface Course {
   studentsCount?: number;
   isFinished?: boolean;
   progress?: number;
+  academicLevelId?: number;
 }
 
 export interface UserData {

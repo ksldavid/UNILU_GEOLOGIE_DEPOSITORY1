@@ -245,7 +245,7 @@ export const deleteAnnouncement = async (req: AuthRequest, res: Response) => {
 
         const existing = await prisma.announcement.findUnique({ where: { id: parseInt(id) } });
         if (!existing) return res.status(404).json({ message: 'Annonce non trouvée' });
-        if (existing.authorId !== userId && req.user?.role !== 'ADMIN') {
+        if (existing.authorId !== userId && req.user?.role !== 'ADMIN' && req.user?.role !== 'ACADEMIC_OFFICE') {
             return res.status(403).json({ message: 'Non autorisé à supprimer cette annonce' });
         }
 

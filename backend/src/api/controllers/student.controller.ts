@@ -985,12 +985,16 @@ export const getStudentCourseManagement = async (req: AuthRequest, res: Response
 
 export const submitAssignment = async (req: AuthRequest, res: Response) => {
     try {
-        const { assessmentId } = req.body;
+        const { assessmentId, preUploadedUrl, preUploadedPublicId, fileName: customFileName } = req.body;
         const userId = req.user?.userId;
         const file = req.file;
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
-        if (!file) return res.status(400).json({ message: 'Aucun fichier fourni' });
+        
+        // On accepte soit un fichier (upload classique), soit des données pré-uploadées (gros fichiers)
+        if (!file && !preUploadedUrl) {
+            return res.status(400).json({ message: 'Aucun fichier fourni' });
+        }
 
         // 1. Vérifier si l'évaluation existe et si la date limite n'est pas passée
         const assessment = await prisma.assessment.findUnique({
@@ -1018,8 +1022,28 @@ export const submitAssignment = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: 'Vous n\'êtes pas inscrit à ce cours.' });
         }
 
-        // 3. Upload vers Cloudinary
-        const uploadResult = await uploadToCloudinary(file.buffer, `assignments/${assessment.courseCode}/${assessmentId}/${userId}`, file.originalname);
+        // 3. Déterminer les infos d'upload (direct ou via serveur)
+        let finalUrl: string;
+        let finalPublicId: string;
+        let originalName: string;
+
+        if (preUploadedUrl && preUploadedPublicId) {
+            console.log(`[SubmitAssignment] Utilisation d'un upload direct pour le cours ${assessment.courseCode}`);
+            finalUrl = preUploadedUrl;
+            finalPublicId = preUploadedPublicId;
+            originalName = customFileName || "Soumission Directe";
+        } else if (file) {
+            const uploadResult = await uploadToCloudinary(
+                file.buffer, 
+                `assignments/${assessment.courseCode}/${assessmentId}/${userId}`, 
+                file.originalname
+            );
+            finalUrl = uploadResult.secure_url;
+            finalPublicId = uploadResult.public_id;
+            originalName = file.originalname;
+        } else {
+            return res.status(400).json({ message: 'Données de fichier manquantes' });
+        }
 
         // 4. Enregistrer ou mettre à jour la soumission
         const submission = await prisma.submission.upsert({
@@ -1030,17 +1054,17 @@ export const submitAssignment = async (req: AuthRequest, res: Response) => {
                 }
             },
             update: {
-                fileUrl: uploadResult.secure_url,
-                fileName: file.originalname,
-                publicId: uploadResult.public_id,
+                fileUrl: finalUrl,
+                fileName: originalName,
+                publicId: finalPublicId,
                 submittedAt: new Date()
             },
             create: {
                 assessmentId: parseInt(assessmentId),
                 studentId: userId,
-                fileUrl: uploadResult.secure_url,
-                fileName: file.originalname,
-                publicId: uploadResult.public_id
+                fileUrl: finalUrl,
+                fileName: originalName,
+                publicId: finalPublicId
             }
         });
 

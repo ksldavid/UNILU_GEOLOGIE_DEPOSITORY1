@@ -11,6 +11,8 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
+import { cloudinaryService } from "../../services/cloudinary";
+import { examScheduleService } from "../../services/exam-schedule";
 
 interface CourseManagementProps {
   course: Course;
@@ -319,15 +321,42 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
       return;
     }
     try {
+      // 1. Create the assessment in professor service
       await professorService.createAssessment({
         ...newExamData,
         courseCode: course.code
       });
-      alert("Évaluation créée avec succès !");
+
+      // 2. Synchronize with Exam & Interro schedule
+      const assessmentDate = new Date(newExamData.date);
+      // Set a default time (8:00 AM) if not provided, to ensure it shows up correctly in planning
+      assessmentDate.setHours(8, 0, 0, 0);
+
+      // Map assessment type to schedule type (EXAM, INTERROGATION)
+      // Note: TP/TD are mapped to INTERROGATION for the schedule view
+      const scheduleType = newExamData.type === 'EXAM' ? 'EXAM' : 'INTERROGATION';
+
+      try {
+        await examScheduleService.create({
+          courseCode: course.code,
+          academicLevelId: course.academicLevelId || 0,
+          type: scheduleType,
+          date: assessmentDate.toISOString(),
+          month: assessmentDate.getMonth() + 1,
+          year: assessmentDate.getFullYear(),
+          isPublished: true, // Automatically published since it's created by the professor
+          duration: 120 // Default duration
+        });
+      } catch (syncError) {
+        console.error("Schedule sync failed:", syncError);
+        // We don't block the assessment creation if sync fails, but we log it
+      }
+
+      alert("Évaluation créée et ajoutée à l'horaire avec succès !");
       setNewExamData({
         title: "",
         type: "INTERROGATION",
-        maxPoints: "20",
+        maxPoints: "10",
         date: new Date().toISOString().split('T')[0],
         weight: "1"
       });
@@ -491,7 +520,24 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         courseCode: course.code,
         weight: 1
       });
-      alert(`Travail lancé avec succès ! Date limite : ${new Date(dueDateTime).toLocaleString('fr-FR', { hour12: false })}`);
+
+      // Synchronize with Exam & Interro schedule as well
+      try {
+        await examScheduleService.create({
+          courseCode: course.code,
+          academicLevelId: course.academicLevelId || 0,
+          type: 'INTERROGATION', // TPs are grouped with interrogations in the planning
+          date: new Date().toISOString(), // Created now
+          month: new Date().getMonth() + 1,
+          year: new Date().getFullYear(),
+          isPublished: true,
+          duration: 60
+        });
+      } catch (syncError) {
+        console.warn("Schedule sync failed for TP:", syncError);
+      }
+
+      alert(`Travail lancé avec succès et ajouté à l'horaire ! Date limite : ${new Date(dueDateTime).toLocaleString('fr-FR', { hour12: false })}`);
       setAssignmentData({
         title: "",
         instructions: "",
@@ -570,22 +616,38 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
       setUploadProgress(0);
       setUploadSuccess(false);
 
-      try {
-        // Simuler une progression visuelle rapide avant l'appel API permanent
-        const progressInterval = setInterval(() => {
-          setUploadProgress(prev => (prev < 90 ? prev + 10 : prev));
-        }, 200);
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => (prev < 85 ? prev + 5 : prev));
+      }, 300);
 
-        await professorService.uploadResource(course.code, pendingFile.name, pendingFile);
+      try {
+        const FILE_SIZE_LIMIT = 4 * 1024 * 1024; // 4 MB
+
+        if (pendingFile.size > FILE_SIZE_LIMIT) {
+          // Fichier trop grand pour Vercel → Upload direct vers Cloudinary
+          console.log(`☁️ Fichier volumineux (${(pendingFile.size / 1024 / 1024).toFixed(1)} MB), upload direct vers Cloudinary...`);
+          const folder = `courses/${course.code}/resources`;
+          const cloudResult = await cloudinaryService.uploadDirect(pendingFile, folder);
+          // Enregistrer seulement l'URL en base via le backend
+          await professorService.uploadResource(course.code, pendingFile.name, undefined, {
+            url: cloudResult.secure_url,
+            publicId: cloudResult.public_id
+          });
+        } else {
+          // Fichier petit → upload classique via le backend
+          await professorService.uploadResource(course.code, pendingFile.name, pendingFile);
+        }
 
         clearInterval(progressInterval);
         setUploadProgress(100);
         setUploadSuccess(true);
-        fetchResources(); // Rafraîchir la liste
+        fetchResources();
+        toast.success('Document uploadé avec succès !');
         setTimeout(() => setUploadSuccess(false), 3000);
       } catch (error: any) {
+        clearInterval(progressInterval);
         console.error(error);
-        alert(error.message || "Erreur lors de l'envoi du document");
+        toast.error(error.message || "Erreur lors de l'envoi du document");
       } finally {
         setIsUploading(false);
         setPendingFile(null);

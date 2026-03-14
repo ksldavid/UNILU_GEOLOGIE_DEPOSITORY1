@@ -1027,43 +1027,110 @@ export const createAssessment = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        // --- ENVOI DES NOTIFICATIONS PUSH POUR LES DEVOIRS ET TESTS ---
-        const notifyTypes = ['ASSIGNMENT', 'HOMEWORK', 'TP', 'INTERROGATION', 'QUIZ'];
+        // --- ENVOI DES NOTIFICATIONS PUSH ET CRÉATION D'ANNONCE ---
+        const notifyTypes = ['ASSIGNMENT', 'HOMEWORK', 'TP', 'INTERROGATION', 'QUIZ', 'EXAM'];
         if (notifyTypes.includes(type)) {
             console.log(`[Push Assessment] Déclenchement pour type: ${type}, cours: ${courseCode}`);
             try {
-                // Récupérer les tokens des étudiants inscrits
+                const course = await prisma.course.findUnique({
+                    where: { code: courseCode },
+                    select: { name: true, academicLevels: { select: { id: true } } }
+                });
+
+                const profName = user?.name || "Le professeur";
+                const eventDate = new Date(date).toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                const limitDate = dueDate ? new Date(dueDate).toLocaleString('fr-FR', {
+                    day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
+                }) : "Non spécifiée";
+
+                let notificationTitle = `📝 Nouveau Devoir : ${course?.name || courseCode}`;
+                let notificationBody = `${profName} a mis en ligne le devoir : "${title}". Vous avez jusqu'au ${limitDate} pour soumettre votre travail.`;
+                let announcementContent = notificationBody;
+
+                if (type === 'INTERROGATION' || type === 'QUIZ') {
+                    notificationTitle = `📅 Nouvelle Interrogation : ${course?.name || courseCode}`;
+                    notificationBody = `${profName} a planifié une interrogation pour le cours "${course?.name || courseCode}" le ${eventDate}.`;
+                    announcementContent = notificationBody;
+                } else if (type === 'EXAM') {
+                    notificationTitle = `🎓 Nouvel Examen : ${course?.name || courseCode}`;
+                    notificationBody = `${profName} a planifié l'examen final de "${course?.name || courseCode}" pour le ${eventDate}.`;
+                    announcementContent = notificationBody;
+                } else if (type === 'TP' || type === 'TD') {
+                    notificationTitle = `📝 Nouveau Travail : ${course?.name || courseCode}`;
+                    notificationBody = `${profName} a publié le ${type} : "${title}". Prévu le ${eventDate}. Date limite de rendu : ${limitDate}.`;
+                    announcementContent = notificationBody;
+                }
+
+                // 1. Créer une annonce système
+                await prisma.announcement.create({
+                    data: {
+                        title: notificationTitle,
+                        content: announcementContent,
+                        type: 'GENERAL',
+                        target: 'COURSE_STUDENTS',
+                        courseCode: courseCode,
+                        authorId: userId,
+                        academicLevelId: course?.academicLevels[0]?.id || null
+                    }
+                });
+
+                // 2. Synchroniser avec l'horaire d'examen/interro si c'est une interrogation ou un examen
+                if (type === 'INTERROGATION' || type === 'EXAM') {
+                    try {
+                        const assessmentDate = new Date(date);
+                        // On vérifie si un planning existe déjà pour ce jour/cours pour éviter les doublons
+                        const existingSchedule = await prisma.examSchedule.findFirst({
+                            where: {
+                                courseCode,
+                                type: type,
+                                date: assessmentDate
+                            }
+                        });
+
+                        if (!existingSchedule) {
+                            await prisma.examSchedule.create({
+                                data: {
+                                    courseCode,
+                                    academicLevelId: course?.academicLevels[0]?.id || 0,
+                                    type: type as any,
+                                    date: assessmentDate,
+                                    month: assessmentDate.getMonth() + 1,
+                                    year: assessmentDate.getFullYear(),
+                                    creatorId: userId,
+                                    isPublished: true,
+                                    duration: 120
+                                }
+                            });
+                        }
+                    } catch (syncError) {
+                        console.error('[Assessment Sync] Erreur synchronisation horaire:', syncError);
+                    }
+                }
+
+                // 3. Envoyer les push
                 const studentsWithTokens = await prisma.user.findMany({
                     where: {
-                        studentCourseEnrollments: {
-                            some: { courseCode, isActive: true }
-                        },
+                        studentCourseEnrollments: { some: { courseCode, isActive: true } },
                         pushToken: { not: null }
                     },
-                    select: { pushToken: true, name: true }
+                    select: { pushToken: true }
                 });
 
                 const tokens = studentsWithTokens.map(s => s.pushToken as string);
-                console.log(`[Push Assessment] ${tokens.length} étudiants avec tokens trouvés.`);
-
                 if (tokens.length > 0) {
-                    const course = await prisma.course.findUnique({
-                        where: { code: courseCode },
-                        select: { name: true }
-                    });
-
-                    const limitDate = dueDate ? new Date(dueDate).toLocaleString('fr-FR', {
-                        day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
-                    }) : "Non spécifiée";
-
                     await sendPushNotifications(tokens, {
-                        title: `📝 Nouveau Devoir : ${course?.name || courseCode}`,
-                        body: `Le professeur a mis en ligne le devoir : "${title}". Vous avez jusqu'au ${limitDate} pour soumettre votre travail.`,
+                        title: notificationTitle,
+                        body: notificationBody,
                         data: { type: 'NEW_ASSIGNMENT', assessmentId: assessment.id, courseCode }
                     });
                 }
-            } catch (pushError) {
-                console.error('[Push Assignment] Erreur:', pushError);
+            } catch (error) {
+                console.error('[Push/Announcement Assessment] Erreur:', error);
             }
         }
 
@@ -1152,12 +1219,10 @@ export const saveGrades = async (req: AuthRequest, res: Response) => {
 
 export const uploadCourseResource = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode, title } = req.body;
+        const { courseCode, title, preUploadedUrl, preUploadedPublicId } = req.body;
         const userId = req.user?.userId;
-        const file = req.file;
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
-        if (!file) return res.status(400).json({ message: 'Aucun fichier fourni' });
 
         // Vérifier si le professeur enseigne ce cours
         const enrollment = await prisma.courseEnrollment.findFirst({
@@ -1168,16 +1233,23 @@ export const uploadCourseResource = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à ajouter des ressources pour ce cours." });
         }
 
-        // Upload vers Cloudinary en mode RAW pour les documents
-        const uploadResult = await uploadToCloudinary(file.buffer, `courses/${courseCode}/resources`, file.originalname);
-
-        // Upload réussi - log minimal
+        let uploadResult;
+        
+        // Si le fichier a déjà été uploadé directement depuis le frontend (pour contourner Vercel 4.5MB)
+        if (preUploadedUrl && preUploadedPublicId) {
+            uploadResult = { secure_url: preUploadedUrl, public_id: preUploadedPublicId };
+        } else {
+            // Sinon on utilise l'upload classique via le buffer (limité à 4.5MB par Vercel)
+            const file = req.file;
+            if (!file) return res.status(400).json({ message: 'Aucun fichier fourni' });
+            uploadResult = await uploadToCloudinary(file.buffer, `courses/${courseCode}/resources`, file.originalname);
+        }
 
         // Enregistrer dans la DB
         const resource = await prisma.courseResource.create({
             data: {
                 courseCode,
-                title: title || file.originalname,
+                title: title || (req.file?.originalname || "Document sans titre"),
                 url: uploadResult.secure_url,
                 publicId: uploadResult.public_id
             }

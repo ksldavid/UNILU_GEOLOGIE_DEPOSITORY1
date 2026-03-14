@@ -81,10 +81,18 @@ export const studentService = {
         return handleResponse(response, 'Erreur lors de la mise à jour du cours');
     },
 
-    async submitAssignment(assessmentId: string, file: File) {
+    async submitAssignment(assessmentId: string, file?: File, preUploadedData?: { url: string, publicId: string, fileName: string }) {
         const formData = new FormData();
         formData.append('assessmentId', assessmentId);
-        formData.append('file', file);
+        
+        if (preUploadedData) {
+            formData.append('preUploadedUrl', preUploadedData.url);
+            formData.append('preUploadedPublicId', preUploadedData.publicId);
+            formData.append('fileName', preUploadedData.fileName);
+        } else if (file) {
+            formData.append('file', file);
+            formData.append('fileName', file.name);
+        }
 
         const response = await fetch(`${STUDENT_API_URL}/submit-assignment`, {
             method: 'POST',

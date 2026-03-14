@@ -240,3 +240,36 @@ export const deleteProfilePhoto = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 };
+
+/**
+ * Génère une signature pour l'upload direct vers Cloudinary depuis le frontend.
+ * Cela permet de contourner la limite de 4.5 MB des Serverless Functions de Vercel.
+ */
+export const getCloudinarySignature = async (req: AuthRequest, res: Response) => {
+    try {
+        const timestamp = Math.round(new Date().getTime() / 1000);
+        const { folder } = req.query;
+
+        if (!folder) {
+            return res.status(400).json({ message: "Le dossier (folder) est requis." });
+        }
+
+        const signature = cloudinary.utils.api_sign_request(
+            {
+                timestamp: timestamp,
+                folder: folder as string,
+            },
+            process.env.CLOUDINARY_API_SECRET!
+        );
+
+        res.json({
+            signature,
+            timestamp,
+            apiKey: process.env.CLOUDINARY_API_KEY,
+            cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+        });
+    } catch (error) {
+        console.error('Error generating Cloudinary signature:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la génération de la signature.' });
+    }
+}

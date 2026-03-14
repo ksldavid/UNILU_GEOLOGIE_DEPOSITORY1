@@ -52,6 +52,43 @@ export const createExamSchedule = async (req: AuthRequest, res: Response) => {
             }
         });
 
+        // --- NEW: Sync with Assessment if it's an Interrogation ---
+        // (Exams usually have a different workflow for publishing results, 
+        // but Interrogations can be auto-created as Assessments for grading)
+        if (type === 'INTERROGATION') {
+            try {
+                // Check if an assessment already exists for this course and date
+                const assessmentDate = new Date(date);
+                const existingAssessment = await prisma.assessment.findFirst({
+                    where: {
+                        courseCode,
+                        type: 'INTERROGATION',
+                        date: {
+                            gte: new Date(assessmentDate.setHours(0, 0, 0, 0)),
+                            lte: new Date(assessmentDate.setHours(23, 59, 59, 999))
+                        }
+                    }
+                });
+
+                if (!existingAssessment) {
+                    await prisma.assessment.create({
+                        data: {
+                            courseCode,
+                            creatorId,
+                            title: `Interrogation de ${course.name}`,
+                            type: 'INTERROGATION',
+                            maxPoints: 10, // Default to 10 as requested
+                            date: new Date(date),
+                            weight: 1.0,
+                            isPublished: false
+                        }
+                    });
+                }
+            } catch (syncError) {
+                console.error('[Schedule Sync] Erreur création épreuve auto:', syncError);
+            }
+        }
+
         res.status(201).json(newSchedule);
     } catch (error) {
         console.error('Erreur createExamSchedule:', error);

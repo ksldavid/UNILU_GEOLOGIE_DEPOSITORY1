@@ -55,6 +55,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
         courseCode: "",
+        title: "",
         type: 'INTERROGATION' as 'EXAM' | 'INTERROGATION',
         dateDay: new Date().getDate(),
         dateTime: "08:00",
@@ -210,6 +211,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
             // Determine if publishing (always true for Professor for now, or use a param)
             const isPublished = (e.nativeEvent as any).submitter?.name === 'publish';
 
+            // 1. Create the schedule entry
             await examScheduleService.create({
                 courseCode: formData.courseCode,
                 academicLevelId: mode === 'PROFESSOR' ? course.academicLevelId : formData.academicLevelId,
@@ -222,7 +224,24 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                 duration: formData.duration
             });
 
-            toast.success(isPublished ? "Programme publié !" : "Brouillon enregistré !");
+            // 2. If Professor creation, also create the "Epreuve" (Assessment) for grade entry
+            if (mode === 'PROFESSOR') {
+                try {
+                    await professorService.createAssessment({
+                        title: formData.title || `Interrogation de ${course?.name || course.code}`,
+                        type: 'INTERROGATION',
+                        maxPoints: "10", // Defaulting to 10
+                        date: fullDate.toISOString().split('T')[0],
+                        courseCode: formData.courseCode,
+                        weight: "1"
+                    });
+                } catch (assessmentError) {
+                    console.error("Failed to auto-create assessment:", assessmentError);
+                    // Don't toast error here to not confuse user if schedule was OK
+                }
+            }
+
+            toast.success(isPublished ? (mode === 'PROFESSOR' ? "Interrogation planifiée et épreuve créée !" : "Programme publié !") : "Brouillon enregistré !");
             setShowForm(false);
             fetchSchedules();
         } catch (error: any) {
@@ -802,6 +821,7 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                                 onChange={(e) => setFormData({ ...formData, courseCode: e.target.value })}
                                                 className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
                                             >
+                                                <option value="" className="text-black">Choisir un cours...</option>
                                                 {availableCourses
                                                     .filter(c => formData.type === 'EXAM' ? c.isCompleted : true)
                                                     .map(c => (
@@ -811,6 +831,20 @@ export function ExamInterroScheduler({ mode }: ExamInterroSchedulerProps) {
                                                     ))}
                                             </select>
                                         </div>
+
+                                        {mode === 'PROFESSOR' && (
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Titre de l'évaluation</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="Ex: Interrogation 1, TP de mi-parcours..."
+                                                    value={formData.title}
+                                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                                    className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        )}
 
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Type d'évaluation</label>

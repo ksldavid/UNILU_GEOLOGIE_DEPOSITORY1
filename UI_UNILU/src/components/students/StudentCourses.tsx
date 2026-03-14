@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { BookOpen, Clock, MapPin, User, FileText, Download, ArrowLeft, Send, CheckCircle2, AlertCircle, ChevronRight, UploadCloud, Loader2, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import { studentService } from "../../services/student";
+import { cloudinaryService } from "../../services/cloudinary";
 import { Skeleton } from "../Skeleton";
+import { toast } from 'sonner';
 
 export function StudentCourses() {
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
@@ -66,14 +68,31 @@ export function StudentCourses() {
 
     setIsSubmitting(true);
     try {
-      await studentService.submitAssignment(activeAssignmentId.toString(), file);
-      alert("Travail déposé avec succès !");
+      const FILE_SIZE_LIMIT = 4 * 1024 * 1024; // 4 MB
+
+      if (file.size > FILE_SIZE_LIMIT) {
+        // Fichier volumineux → Upload direct Cloudinary
+        console.log(`☁️ Soumission volumineuse (${(file.size / 1024 / 1024).toFixed(1)} MB), upload direct...`);
+        const folder = `assignments/${selectedCourse.code}/${activeAssignmentId}/${sessionStorage.getItem('userId')}`;
+        const cloudResult = await cloudinaryService.uploadDirect(file, folder);
+        
+        await studentService.submitAssignment(activeAssignmentId.toString(), undefined, {
+          url: cloudResult.secure_url,
+          publicId: cloudResult.public_id,
+          fileName: file.name
+        });
+      } else {
+        // Fichier normal
+        await studentService.submitAssignment(activeAssignmentId.toString(), file);
+      }
+
+      toast.success("Travail déposé avec succès !");
       // Refresh details to show submission status
       const details = await studentService.getCourseDetails(selectedCourse.code);
       setSelectedCourse(details);
     } catch (error: any) {
       console.error(error);
-      alert(error.message || "Erreur lors du dépôt");
+      toast.error(error.message || "Erreur lors du dépôt");
     } finally {
       setIsSubmitting(false);
       setActiveAssignmentId(null);

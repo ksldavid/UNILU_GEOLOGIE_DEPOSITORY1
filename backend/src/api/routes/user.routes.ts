@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import multer from 'multer'
-import { getUsers, updateUser, updatePushToken, uploadProfilePhoto, deleteProfilePhoto } from '../controllers/user.controller'
+import { getUsers, updateUser, updatePushToken, uploadProfilePhoto, deleteProfilePhoto, getCloudinarySignature } from '../controllers/user.controller'
 import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 
 const router = Router()
@@ -8,6 +8,9 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 // Toutes les routes utilisateurs nécessitent une authentification
 router.use(authenticateToken)
+
+// Signature Cloudinary pour upload direct
+router.get('/cloudinary-signature', getCloudinarySignature)
 
 // Notification Push Token
 router.post('/push-token', updatePushToken)
