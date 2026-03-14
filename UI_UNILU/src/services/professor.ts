@@ -196,15 +196,19 @@ export const professorService = {
         return handleResponse(response, "Erreur lors de la publication des notes");
     },
 
-    async uploadResource(courseCode: string, title: string, file: File) {
+    async uploadResource(courseCode: string, title: string, file?: File, preUploadedData?: { url: string, publicId: string }) {
         const formData = new FormData();
         formData.append('courseCode', courseCode);
         formData.append('title', title);
-        formData.append('file', file);
+        
+        if (preUploadedData) {
+            formData.append('preUploadedUrl', preUploadedData.url);
+            formData.append('preUploadedPublicId', preUploadedData.publicId);
+        } else if (file) {
+            formData.append('file', file);
+        }
 
         const token = sessionStorage.getItem('token');
-        console.log('📤 [Professor Service] Upload resource, token:', token ? 'Présent' : 'Absent');
-
         const response = await fetch(`${PROFESSOR_API_URL}/upload-resource`, {
             method: 'POST',
             headers: {
