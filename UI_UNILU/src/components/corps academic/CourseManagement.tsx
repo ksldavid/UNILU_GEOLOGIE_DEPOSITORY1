@@ -1478,95 +1478,104 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
     return (
       <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in slide-in-from-right-8 duration-500">
         <GlobalComponents />
-        <button onClick={() => setActiveSubView('manage-exams')} className="flex items-center gap-2 text-gray-500 hover:text-orange-600 transition-colors font-bold">
-          <ArrowLeft className="w-5 h-5" /> Retour à la liste
+        <button 
+          onClick={() => setActiveSubView('manage-exams')} 
+          className="group flex items-center gap-3 text-gray-400 hover:text-orange-600 transition-all font-bold text-[10px] uppercase tracking-[0.2em] mb-4"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-white border border-gray-100 flex items-center justify-center group-hover:bg-orange-50 group-hover:border-orange-200 group-hover:scale-110 shadow-sm transition-all text-gray-400 group-hover:text-orange-600">
+            <ArrowLeft className="w-5 h-5" />
+          </div>
+          Retour à la liste
         </button>
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="px-3 py-1 bg-orange-100 text-orange-600 rounded-lg text-xs font-black uppercase tracking-widest">
-                {selectedExam?.type || 'Évaluation'}
-              </span>
-              <span className="text-gray-400 font-bold text-sm">• {selectedExam?.date ? new Date(selectedExam.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}</span>
-            </div>
-            <h1 className="text-4xl font-black text-gray-900 tracking-tight">{selectedExam?.title}</h1>
-          </div>
-
-          <div className="flex flex-wrap gap-4">
-            {/* Stats Summary Panel */}
-            <div className="flex bg-gray-50 rounded-2xl px-6 py-3 border border-gray-100 items-center gap-6 mr-auto">
-              <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Saisies</p>
-                <p className="text-sm font-black text-gray-900">{Object.keys(tempGrades).length} / {students.length}</p>
+        <div className="bg-white/50 backdrop-blur-sm border border-gray-100 rounded-[40px] p-8 shadow-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="px-4 py-1.5 bg-orange-50 text-orange-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-orange-100 shadow-sm">
+                  {selectedExam?.type || 'Évaluation'}
+                </span>
+                <div className="flex items-center gap-2 text-gray-400 font-bold text-[11px] uppercase tracking-wider">
+                  <Calendar className="w-3.5 h-3.5" />
+                  {selectedExam?.date ? new Date(selectedExam.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
+                </div>
               </div>
-              <div className="w-px h-8 bg-gray-200"></div>
-              <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Moyenne</p>
-                <p className="text-sm font-black text-indigo-600">
-                  {Object.values(tempGrades).length > 0 
-                    ? (Object.values(tempGrades).reduce((a, b) => a + parseFloat(b || '0'), 0) / Object.values(tempGrades).length).toFixed(2) 
-                    : "0.00"}
-                </p>
+              <h1 className="text-5xl font-black text-gray-900 tracking-tight leading-[1.1] max-w-2xl">{selectedExam?.title}</h1>
+              
+              <div className="flex items-center gap-4 pt-2">
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm">
+                  <div>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Saisies de notes</p>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-xl font-black text-gray-900">{Object.keys(tempGrades).length}</span>
+                      <span className="text-xs font-bold text-gray-300">/ {students.length}</span>
+                    </div>
+                  </div>
+                  <div className="w-px h-8 bg-gray-100"></div>
+                  <div>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Moyenne promo</p>
+                    <span className="text-xl font-black text-indigo-600">
+                      {Object.values(tempGrades).length > 0 
+                        ? (Object.values(tempGrades).reduce((a, b) => a + parseFloat(b || '0'), 0) / Object.values(tempGrades).length).toFixed(2) 
+                        : "0.00"}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  if (window.confirm("Voulez-vous attribuer 0 à tous les étudiants qui n'ont pas encore de note ?")) {
-                    const newGrades = { ...tempGrades };
-                    students.forEach(s => {
-                      if (!newGrades[s.id]) newGrades[s.id] = "0";
-                    });
-                    setTempGrades(newGrades);
-                  }
-                }}
-                className="bg-white border border-gray-100 text-[10px] text-gray-500 font-black uppercase tracking-wider px-4 py-4 rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all"
-              >
-                Mettre 0 aux vides
-              </button>
-              <button
-                onClick={handleDownloadCSVTemplate}
-                className="bg-white border border-gray-200 text-gray-700 font-bold px-4 py-4 rounded-2xl hover:bg-gray-50 transition-all flex items-center gap-2"
-                title="Télécharger le template pour Excel"
-              >
-                <FileDown className="w-5 h-5 text-blue-600" />
-                <span className="hidden sm:inline text-xs uppercase tracking-tight">Template</span>
-              </button>
-              <button
-                onClick={() => csvImportRef.current?.click()}
-                className="bg-white border border-gray-200 text-gray-700 font-bold px-4 py-4 rounded-2xl hover:bg-gray-50 transition-all flex items-center gap-2"
-                title="Importer des points depuis un fichier CSV"
-              >
-                <FileUp className="w-5 h-5 text-emerald-600" />
-                <span className="hidden sm:inline text-xs uppercase tracking-tight">Importer</span>
-              </button>
-              <input 
-                type="file" 
-                ref={csvImportRef} 
-                className="hidden" 
-                accept=".csv" 
-                onChange={handleImportCSV} 
-              />
+            <div className="flex flex-col gap-4 min-w-[320px]">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDownloadCSVTemplate}
+                  className="flex-1 bg-white border border-gray-200 text-gray-700 font-bold px-4 py-4 rounded-[20px] hover:bg-gray-50 transition-all flex items-center justify-center gap-2 group"
+                  title="Télécharger le template pour Excel"
+                >
+                  <FileDown className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Template</span>
+                </button>
+                <button
+                  onClick={() => csvImportRef.current?.click()}
+                  className="flex-1 bg-white border border-gray-200 text-gray-700 font-bold px-4 py-4 rounded-[20px] hover:bg-gray-50 transition-all flex items-center justify-center gap-2 group"
+                  title="Importer des points depuis un fichier CSV"
+                >
+                  <FileUp className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Importer</span>
+                </button>
+                <input 
+                  type="file" 
+                  ref={csvImportRef} 
+                  className="hidden" 
+                  accept=".csv" 
+                  onChange={handleImportCSV} 
+                />
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSaveGrades}
+                  disabled={isSavingGrades}
+                  className="flex-[1.5] bg-indigo-600 text-white font-black px-6 py-5 rounded-[24px] hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]"
+                >
+                  {isSavingGrades ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  <span className="uppercase tracking-widest text-xs">Enregistrer</span>
+                </button>
+                <button
+                  onClick={handlePublishAllGrades}
+                  disabled={selectedExam?.isPublished}
+                  className={`flex-1 px-6 py-5 rounded-[24px] font-black flex items-center justify-center gap-3 transition-all border transition-all active:scale-[0.98] ${
+                    selectedExam?.isPublished 
+                    ? 'bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed' 
+                    : 'bg-orange-50 text-orange-700 border-orange-100 hover:bg-orange-100 shadow-sm'
+                  }`}
+                >
+                  {selectedExam?.isPublished ? <CheckCircle2 className="w-5 h-5" /> : <Send className="w-5 h-5" />}
+                  <span className="uppercase tracking-widest text-xs">
+                    {selectedExam?.isPublished ? 'Publié' : 'Publier'}
+                  </span>
+                </button>
+              </div>
             </div>
-            
-            <button
-              onClick={handleSaveGrades}
-              disabled={isSavingGrades}
-              className="bg-indigo-600 text-white font-black px-8 py-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 flex items-center gap-2 disabled:opacity-50"
-            >
-              {isSavingGrades ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              Enregistrer
-            </button>
-            <button
-              onClick={handlePublishAllGrades}
-              disabled={selectedExam?.isPublished}
-              className="bg-orange-50 text-orange-700 font-black px-8 py-4 rounded-2xl hover:bg-orange-100 transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
-            >
-              <CheckCircle2 className="w-5 h-5" />
-              {selectedExam?.isPublished ? 'Déjà publié' : 'Publier'}
-            </button>
           </div>
         </div>
 
@@ -1626,39 +1635,21 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
             </div>
           )}
 
-          {unknownStudentsFromCSV.length > 0 && (
-            <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-red-800 font-bold text-sm">
-                    {unknownStudentsFromCSV.length} étudiant(s) du fichier Excel n’appartiennent pas à ce cours.
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {unknownStudentsFromCSV.map((name, i) => (
-                      <span key={i} className="text-xs bg-red-100 text-red-700 font-bold px-2 py-1 rounded-lg">{name}</span>
-                    ))}
-                  </div>
-                  <p className="text-red-500 text-xs mt-2 italic font-medium">
-                    Contactez le chef de département ou le service technique si vous pensez que c’est une erreur.
-                  </p>
-                </div>
-                <button onClick={() => setUnknownStudentsFromCSV([])} className="text-red-300 hover:text-red-500 transition-colors shrink-0">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
+
           
-          <div className="p-6 border-b border-gray-50 flex gap-4 bg-gray-50/30">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <div className="p-8 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-white/50">
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">Liste des étudiants</h2>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Saisie manuelle ou vérification des points</p>
+            </div>
+            <div className="flex-1 max-w-md relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
               <input
                 type="text"
-                placeholder="Rechercher un étudiant..."
+                placeholder="Rechercher par nom ou matricule..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500/20 transition-all outline-none"
+                className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500/40 transition-all outline-none text-sm font-semibold shadow-sm"
               />
             </div>
           </div>
