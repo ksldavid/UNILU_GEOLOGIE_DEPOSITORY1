@@ -377,10 +377,11 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
             continue;
           }
 
-          const matricule = parts[0].trim().replace(/^"|"$/g, '');
-          let scoreStr = parts[2].trim().replace(/^"|"$/g, '').replace(',', '.');
+          // Nettoyage agressif du matricule (retrait des guillemets et espaces)
+          const matricule = parts[0].trim().replace(/^["']|["']$/g, '');
+          let scoreStr = parts[2].trim().replace(/^["']|["']$/g, '').replace(',', '.');
           
-          if (scoreStr === "" || scoreStr === '""') continue;
+          if (scoreStr === "" || scoreStr === '""' || scoreStr === "''") continue;
 
           const score = parseFloat(scoreStr);
           if (isNaN(score)) {
@@ -388,7 +389,18 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
             continue;
           }
 
-          const student = students.find(s => s.matricule === matricule);
+          // Recherche de l'étudiant avec une tolérance sur les zéros au début
+          let student = students.find(s => s.matricule === matricule);
+          
+          if (!student) {
+            // Deuxième essai : on compare les versions numériques si possible
+            const cleanMatricule = matricule.replace(/^0+/, ''); // enlève les zéros au début
+            student = students.find(s => {
+              const cleanS = (s.matricule || "").replace(/^0+/, '');
+              return cleanS === cleanMatricule && cleanMatricule !== "";
+            });
+          }
+
           if (student) {
             if (score > (selectedExam?.maxPoints || 20)) {
               errors++;
@@ -398,6 +410,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
             count++;
           } else {
             errors++;
+            console.warn(`Matricule non trouvé: ${matricule}`);
           }
         }
 
@@ -1374,7 +1387,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
               <span className="px-3 py-1 bg-orange-100 text-orange-600 rounded-lg text-xs font-black uppercase tracking-widest">
                 {selectedExam?.type || 'Évaluation'}
               </span>
-              <span className="text-gray-400 font-bold text-sm">• {selectedExam?.date}</span>
+              <span className="text-gray-400 font-bold text-sm">• {selectedExam?.date ? new Date(selectedExam.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}</span>
             </div>
             <h1 className="text-4xl font-black text-gray-900 tracking-tight">{selectedExam?.title}</h1>
           </div>
