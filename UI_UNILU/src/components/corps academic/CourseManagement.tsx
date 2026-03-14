@@ -214,7 +214,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
     }
   }, [activeSubView, course.code]);
 
-  // Global drag events to prevent browser from opening the file and show dropzone
+  // Global drag events — empêche le navigateur d'ouvrir le fichier, et gère le drop partout sur la page
   useEffect(() => {
     const handleGlobalDragOver = (e: DragEvent) => {
       if (activeSubView === 'exam-details') {
@@ -222,22 +222,33 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         setIsDragging(true);
       }
     };
+
+    const handleGlobalDragLeave = (e: DragEvent) => {
+      // Si on quitte complètement la fenêtre du navigateur
+      if (e.clientX === 0 && e.clientY === 0) {
+        setIsDragging(false);
+      }
+    };
     
     const handleGlobalDrop = (e: DragEvent) => {
       if (activeSubView === 'exam-details') {
         e.preventDefault();
         setIsDragging(false);
+        const file = e.dataTransfer?.files?.[0];
+        if (file) handleImportCSV(file);
       }
     };
 
     window.addEventListener('dragover', handleGlobalDragOver);
+    window.addEventListener('dragleave', handleGlobalDragLeave);
     window.addEventListener('drop', handleGlobalDrop);
     
     return () => {
       window.removeEventListener('dragover', handleGlobalDragOver);
+      window.removeEventListener('dragleave', handleGlobalDragLeave);
       window.removeEventListener('drop', handleGlobalDrop);
     };
-  }, [activeSubView]);
+  }, [activeSubView, students, selectedExam, tempGrades]);
 
   useEffect(() => {
     if (selectedExam && selectedExam.grades) {
