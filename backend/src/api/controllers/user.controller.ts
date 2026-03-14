@@ -164,11 +164,10 @@ export const uploadProfilePhoto = async (req: AuthRequest, res: Response) => {
                         width: 400,
                         height: 400,
                         crop: 'fill',
-                        gravity: 'face',    // Cadrage automatique centré sur le visage
+                        gravity: 'face',   // Cadrage centré sur le visage (gratuit)
                         quality: 82,
-                        fetch_format: 'webp' // Convertit en WebP (format léger)
-                    }],
-                    detection: 'face'  // Détection de visage Cloudinary
+                        fetch_format: 'webp'
+                    }]
                 },
                 (error, result) => {
                     if (error) return reject(error);
@@ -178,22 +177,9 @@ export const uploadProfilePhoto = async (req: AuthRequest, res: Response) => {
             stream.end(req.file!.buffer);
         });
 
-        // Vérifier la détection de visage (uniquement si Cloudinary renvoie les données)
-        const faceData = uploadResult?.info?.detection?.face?.data || [];
-        const hasFaceDetectionData = uploadResult?.info?.detection != null;
-
-        if (hasFaceDetectionData && faceData.length === 0) {
-            // Supprimer l'image uploadée invalide
-            await cloudinary.uploader.destroy(uploadResult.public_id).catch(() => {});
-            return res.status(400).json({
-                message: 'Photo rejetée.',
-                rejectionReasons: [
-                    '❌ Aucun visage détecté sur la photo',
-                    'Assurez-vous que votre visage est bien visible et centré',
-                    'La photo doit être prise dans un endroit bien éclairé'
-                ]
-            });
-        }
+        // Note: la détection de visage via Cloudinary est un add-on payant.
+        // On accepte la photo sans validation de visage côté serveur.
+        // La validation des règles se fait côté mobile (guide utilisateur).
 
         // Supprimer l'ancienne photo Cloudinary
         if (user?.profilePhotoPublicId) {
