@@ -179,7 +179,7 @@ export default function App() {
     }
 
     if (currentScreen === 'home') {
-      return <HomeScreen onLogout={handleLogout} onOpenScanner={goToScanner} onOpenProfilePhoto={goToProfilePhoto} />;
+      return <HomeScreen onLogout={handleLogout} onOpenScanner={goToScanner} onOpenProfilePhoto={goToProfilePhoto} overridePhotoUrl={currentPhotoUrl} />;
     }
 
     if (currentScreen === 'profile-photo') {

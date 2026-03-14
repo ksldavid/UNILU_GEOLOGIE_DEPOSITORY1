@@ -79,9 +79,10 @@ interface HomeScreenProps {
     onLogout: () => void;
     onOpenScanner: () => void;
     onOpenProfilePhoto: (currentUrl: string | null) => void;
+    overridePhotoUrl?: string | null;  // URL de photo mise à jour sans re-fetch
 }
 
-export function HomeScreen({ onLogout, onOpenScanner, onOpenProfilePhoto }: HomeScreenProps) {
+export function HomeScreen({ onLogout, onOpenScanner, onOpenProfilePhoto, overridePhotoUrl }: HomeScreenProps) {
     const insets = useSafeAreaInsets();
     const [dashboardData, setDashboardData] = useState<any>(null);
     const [offlineScansCount, setOfflineScansCount] = useState(0);
@@ -1449,11 +1450,11 @@ export function HomeScreen({ onLogout, onOpenScanner, onOpenProfilePhoto }: Home
                     </TouchableOpacity>
                     <TouchableOpacity 
                         style={styles.profileAvatarBig}
-                        onPress={() => onOpenProfilePhoto(profileData?.profilePhotoUrl || null)}
+                        onPress={() => onOpenProfilePhoto(overridePhotoUrl ?? profileData?.profilePhotoUrl ?? null)}
                     >
-                        {profileData?.profilePhotoUrl ? (
+                        {(overridePhotoUrl || profileData?.profilePhotoUrl) ? (
                             <Image 
-                                source={{ uri: profileData.profilePhotoUrl }} 
+                                source={{ uri: overridePhotoUrl || profileData.profilePhotoUrl }} 
                                 style={styles.profileAvatarImage} 
                             />
                         ) : (
