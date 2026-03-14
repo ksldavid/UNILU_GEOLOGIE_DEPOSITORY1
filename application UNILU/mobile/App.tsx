@@ -5,6 +5,7 @@ import { HomeScreen } from './screens/HomeScreen';
 import { ScannerScreen } from './screens/ScannerScreen';
 import { SplashScreen } from './screens/SplashScreen';
 import { TermsScreen } from './screens/TermsScreen';
+import { ProfilePhotoScreen } from './screens/ProfilePhotoScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationService } from './services/notification';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,6 +15,7 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const [isLoading, setIsLoading] = useState(true);
   const [deepLinkToken, setDeepLinkToken] = useState<string | null>(null);
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | null>(null);
 
   // 🆕 Gérer les deep links (QR code scanné avec l'appareil photo)
   useEffect(() => {
@@ -150,6 +152,15 @@ export default function App() {
     setCurrentScreen('home');
   };
 
+  const goToProfilePhoto = (url: string | null) => {
+    setCurrentPhotoUrl(url);
+    setCurrentScreen('profile-photo');
+  };
+
+  const goBackFromProfilePhoto = () => {
+    setCurrentScreen('home');
+  };
+
   const handleSplashComplete = () => {
     checkAuthStatus();
   };
@@ -168,7 +179,17 @@ export default function App() {
     }
 
     if (currentScreen === 'home') {
-      return <HomeScreen onLogout={handleLogout} onOpenScanner={goToScanner} />;
+      return <HomeScreen onLogout={handleLogout} onOpenScanner={goToScanner} onOpenProfilePhoto={goToProfilePhoto} />;
+    }
+
+    if (currentScreen === 'profile-photo') {
+      return (
+        <ProfilePhotoScreen 
+          navigation={{ goBack: goBackFromProfilePhoto }} 
+          currentPhotoUrl={currentPhotoUrl}
+          onPhotoUpdated={(url) => setCurrentPhotoUrl(url)}
+        />
+      );
     }
 
     if (currentScreen === 'scanner') {

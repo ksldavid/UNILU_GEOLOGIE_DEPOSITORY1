@@ -1,11 +1,11 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated, Easing, Alert, ActivityIndicator } from 'react-native';
-import { ChevronLeft, ZoomIn, ZoomOut, X } from 'lucide-react-native';
+import { ChevronLeft, ZoomIn, ZoomOut, X, WifiOff } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import { attendanceService } from '../services/attendance';
+import { attendanceService, getOfflineTokenStatus, refreshOfflineToken } from '../services/attendance';
 
 const { width, height } = Dimensions.get('window');
 const SCAN_SIZE = width * 0.7;
@@ -20,6 +20,8 @@ export function ScannerScreen({ navigation, deepLinkToken }: any) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [isOfflineSave, setIsOfflineSave] = useState(false);
+    const [offlineTokenStatus, setOfflineTokenStatus] = useState<'ok' | 'warning' | 'expired' | null>(null);
     const scanLineAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -66,10 +68,13 @@ export function ScannerScreen({ navigation, deepLinkToken }: any) {
             ])
         ).start();
 
-        // Demander toutes les permissions au chargement
+        // Demander toutes les permissions + vérifier le token offline au chargement
         (async () => {
             await requestPermission();
             await requestLocationPermission();
+            // Vérifier le statut du token offline
+            const status = await getOfflineTokenStatus();
+            setOfflineTokenStatus(status);
         })();
     }, []);
 
@@ -179,27 +184,67 @@ export function ScannerScreen({ navigation, deepLinkToken }: any) {
             } catch (error: any) {
                 // Erreur (ex: trop loin, déjà fait, etc.)
                 // Si erreur réseau, on propose de sauvegarder hors-ligne
-                if (error.message.includes('network') || error.message.includes('fetch')) {
-                    Alert.alert(
-                        "Mode Hors-ligne",
-                        "Vous semblez être hors-ligne. Voulez-vous enregistrer votre présence localement pour une synchronisation ultérieure ?",
-                        [
-                            { text: "Annuler", onPress: () => setIsProcessing(false) },
-                            {
-                                text: "Enregistrer",
-                                onPress: async () => {
-                                    setIsProcessing(false);
-                                    await attendanceService.saveOfflineScan(qrToken, location.coords.latitude, location.coords.longitude);
-                                    setScanned(true);
-                                    setShowSuccess(true);
-                                    // On peut ajuster le texte ici si besoin
+                const isNetworkError = 
+                    error.status === 0 || 
+                    error.message.includes('network') || 
+                    error.message.includes('fetch') || 
+                    error.message.includes('connexion') ||
+                    error.message.includes('serveur');
+
+                if (isNetworkError) {
+                    // Vérifier si le token offline est disponible
+                    const tokenStatus = await getOfflineTokenStatus();
+                    setOfflineTokenStatus(tokenStatus);
+
+                    if (tokenStatus === 'expired') {
+                        // Pas de token valide → impossible de sauvegarder hors-ligne
+                        Alert.alert(
+                            "🔴 Clé de sécurité expirée",
+                            "Votre clé de sécurité hors-ligne est expirée. Vous devez vous connecter à internet pour pouvoir prendre votre présence.",
+                            [{ text: "OK", onPress: () => { setIsProcessing(false); setScanned(false); } }]
+                        );
+                    } else {
+                        // Token valide → proposer la sauvegarde hors-ligne
+                        Alert.alert(
+                            "Mode Hors-ligne",
+                            "Vous êtes hors-ligne. Votre présence sera sauvegardée et synchronisée automatiquement dès que vous aurez internet (valable uniquement aujourd'hui).",
+                            [
+                                {
+                                    text: "Annuler",
+                                    onPress: () => { setIsProcessing(false); setScanned(false); }
+                                },
+                                {
+                                    text: "Enregistrer hors-ligne",
+                                    style: "default",
+                                    onPress: async () => {
+                                        try {
+                                            await attendanceService.saveOfflineScan(qrToken, location.coords.latitude, location.coords.longitude);
+                                            setSuccessMessage("Présence sauvegardée hors-ligne.\nElle sera envoyée au serveur dès que vous aurez internet (valable aujourd'hui uniquement).");
+                                            setIsOfflineSave(true);
+                                            setIsProcessing(false);
+                                            setScanned(true);
+                                            setShowSuccess(true);
+
+                                            fadeAnim.setValue(0);
+                                            Animated.timing(fadeAnim, {
+                                                toValue: 1,
+                                                duration: 400,
+                                                useNativeDriver: true,
+                                            }).start();
+
+                                            setTimeout(() => { navigation.goBack(); }, 4000);
+                                        } catch (saveError: any) {
+                                            Alert.alert("Erreur", saveError.message || "Impossible de sauvegarder localement.");
+                                            setIsProcessing(false);
+                                            setScanned(false);
+                                        }
+                                    }
                                 }
-                            }
-                        ]
-                    );
+                            ]
+                        );
+                    }
                 } else {
                     setScanError(error.message);
-                    // On ne réinitialise PAS setIsProcessing ici, mais dans le callback de l'alerte
                     Alert.alert(
                         "Échec du scan",
                         error.message,
@@ -271,6 +316,20 @@ export function ScannerScreen({ navigation, deepLinkToken }: any) {
 
                     {/* UI Layer (Interactive) */}
                     <SafeAreaView style={styles.uiLayer}>
+                        {/* 🔴 Bannière d'urgence token offline */}
+                        {(offlineTokenStatus === 'expired' || offlineTokenStatus === 'warning') && (
+                            <View style={[
+                                styles.urgentBanner,
+                                offlineTokenStatus === 'expired' ? styles.urgentBannerRed : styles.urgentBannerOrange
+                            ]}>
+                                <WifiOff color="white" size={16} />
+                                <Text style={styles.urgentBannerText}>
+                                    {offlineTokenStatus === 'expired'
+                                        ? '🔴 URGENT : Votre clé hors-ligne est expirée ! Connectez-vous dès que possible, sinon la prise de présence hors-ligne sera impossible.'
+                                        : '⚠️ Votre clé hors-ligne expire bientôt. Connectez-vous pour la renouveler.'}
+                                </Text>
+                            </View>
+                        )}
                         <View style={styles.topBar}>
                             <TouchableOpacity onPress={handleCancel} style={styles.iconButton} activeOpacity={0.7}>
                                 <ChevronLeft color="white" size={28} />
@@ -325,12 +384,14 @@ export function ScannerScreen({ navigation, deepLinkToken }: any) {
             )}
 
             {showSuccess && (
-                <Animated.View style={[styles.successOverlay, { opacity: fadeAnim }]}>
+                <Animated.View style={[styles.successOverlay, { opacity: fadeAnim }, isOfflineSave && { backgroundColor: '#fffbeb' }]}>
                     <View style={styles.successCard}>
-                        <View style={styles.successIconCircle}>
-                            <Text style={styles.successEmoji}>✅</Text>
+                        <View style={[styles.successIconCircle, isOfflineSave && { backgroundColor: '#fef3c7' }]}>
+                            <Text style={styles.successEmoji}>{isOfflineSave ? '📦' : '✅'}</Text>
                         </View>
-                        <Text style={styles.successText}>Présence Enregistrée</Text>
+                        <Text style={[styles.successText, isOfflineSave && { color: '#d97706' }]}>
+                            {isOfflineSave ? 'Sauvegarde Totale' : 'Présence Enregistrée'}
+                        </Text>
                         <Text style={styles.successSubtext}>
                             {successMessage || "Votre passage a été validé avec succès."}
                         </Text>
@@ -549,5 +610,26 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 14,
         fontWeight: '700',
-    }
+    },
+    urgentBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        gap: 8,
+        zIndex: 50,
+    },
+    urgentBannerRed: {
+        backgroundColor: 'rgba(220, 38, 38, 0.92)',
+    },
+    urgentBannerOrange: {
+        backgroundColor: 'rgba(217, 119, 6, 0.92)',
+    },
+    urgentBannerText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: '700',
+        flex: 1,
+        flexWrap: 'wrap',
+    },
 });

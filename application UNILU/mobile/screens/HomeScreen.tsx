@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, SafeAreaView, StatusBar, ScrollView, Dimensions, Platform, RefreshControl, ActivityIndicator, Modal, FlatList, BackHandler, ToastAndroid } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Animated } from 'react-native';
-import { QrCode, Search, LogOut, Bell, ChevronRight, ArrowLeft, BookOpen, Wifi, WifiOff, Calendar, GraduationCap, User as UserIcon, Home, CheckCircle, ExternalLink, ArrowRight, ImagePlus, Megaphone, Trash2, Send, Plus, AlertCircle } from 'lucide-react-native';
+import { QrCode, Search, LogOut, Bell, ChevronRight, ArrowLeft, BookOpen, Wifi, WifiOff, Calendar, GraduationCap, User as UserIcon, Home, CheckCircle, ExternalLink, ArrowRight, ImagePlus, Megaphone, Trash2, Send, Plus, AlertCircle, Camera } from 'lucide-react-native';
 import { Linking, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
@@ -13,6 +13,7 @@ import { notificationService } from '../services/notification';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import { GlobalAttendanceScreen } from './GlobalAttendanceScreen';
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -77,9 +78,10 @@ const getAttendanceColor = (percentage: number) => {
 interface HomeScreenProps {
     onLogout: () => void;
     onOpenScanner: () => void;
+    onOpenProfilePhoto: (currentUrl: string | null) => void;
 }
 
-export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
+export function HomeScreen({ onLogout, onOpenScanner, onOpenProfilePhoto }: HomeScreenProps) {
     const insets = useSafeAreaInsets();
     const [dashboardData, setDashboardData] = useState<any>(null);
     const [offlineScansCount, setOfflineScansCount] = useState(0);
@@ -109,6 +111,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [activeTab, setActiveTab] = useState('home');
     const [isConnected, setIsConnected] = useState(true);
+    const [showGlobalAttendance, setShowGlobalAttendance] = useState(false);
     const [readNotifications, setReadNotifications] = useState<Set<string>>(new Set());
     const [offlineScans, setOfflineScans] = useState<any[]>([]);
     const [coursesData, setCoursesData] = useState<any[]>([]);
@@ -140,6 +143,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
 
     const [isUnenrolling, setIsUnenrolling] = useState(false);
     const [unenrollPassword, setUnenrollPassword] = useState('');
+    const [showUnenrollAuth, setShowUnenrollAuth] = useState(false);
     const [availableCourses, setAvailableCourses] = useState<any[]>([]);
     const [isEnrolling, setIsEnrolling] = useState(false);
     const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
@@ -337,6 +341,10 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
     }, []);
 
     useEffect(() => {
+        scrollY.setValue(0);
+    }, [activeTab]);
+
+    useEffect(() => {
         notificationService.init();
 
         // 1. Synchroniser d'abord
@@ -444,13 +452,13 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
     };
 
     const headerHeight = scrollY.interpolate({
-        inputRange: [0, 100],
-        outputRange: [Platform.OS === 'ios' ? 210 : 180, Platform.OS === 'ios' ? 140 : 110],
+        inputRange: [0, 120],
+        outputRange: [Platform.OS === 'ios' ? 210 : 190, 0],
         extrapolate: 'clamp',
     });
 
     const headerTextOpacity = scrollY.interpolate({
-        inputRange: [0, 50],
+        inputRange: [0, 60],
         outputRange: [1, 0],
         extrapolate: 'clamp',
     });
@@ -506,6 +514,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
         }).start(() => {
             setSelectedCourse(null);
             setIsUnenrolling(false);
+            setShowUnenrollAuth(false);
             setUnenrollPassword('');
         });
     };
@@ -683,7 +692,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                         onRefresh={onRefresh}
                         tintColor="#0d9488"
                         colors={["#0d9488"]}
-                        progressViewOffset={Platform.OS === 'ios' ? 0 : 180}
+                        progressViewOffset={Platform.OS === 'ios' ? 0 : 120}
                     />
                 }
             >
@@ -740,9 +749,13 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                     </View>
                 </TouchableOpacity>
 
-                {/* Carte de Présence Globale - Style Site Web */}
+                {/* Carte de Présence Globale - Cliquable */}
                 {dashboardData?.stats ? (
-                    <View style={styles.globalAttendanceCard}>
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => setShowGlobalAttendance(true)}
+                        style={styles.globalAttendanceCard}
+                    >
                         <LinearGradient
                             colors={['#0d9488', '#0f766e']}
                             start={{ x: 0, y: 0 }}
@@ -762,7 +775,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                 </View>
                             </View>
                         </LinearGradient>
-                    </View>
+                    </TouchableOpacity>
                 ) : isLoadingData ? (
                     <View style={[styles.globalAttendanceCard, { backgroundColor: '#f1f5f9', height: 100, justifyContent: 'center', alignItems: 'center' }]}>
                         <ActivityIndicator color="#0d9488" />
@@ -779,10 +792,12 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                             </View>
                         ))
                     ) : (dashboardData?.stats?.courses || []).length > 0 ? (
-                        dashboardData.stats.courses.map((stat: CourseStats) => {
+                        [...(dashboardData?.stats?.courses || [])]
+                            .sort((a, b) => (b.percentage || 0) - (a.percentage || 0))
+                            .map((stat: CourseStats) => {
                             const isFinished = stat.status === 'FINISHED';
-                            const displayPct = isFinished ? 100 : (stat.percentage ?? 0);
-                            const circleColor = isFinished ? '#10b981' : getAttendanceColor(stat.percentage);
+                            const displayPct = stat.percentage ?? 0;
+                            const circleColor = getAttendanceColor(displayPct);
                             return (
                                 <TouchableOpacity
                                     key={stat.id}
@@ -971,52 +986,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                     })()}
                 </View>
 
-                {/* Bloc Notifications */}
-                <View style={[styles.card, styles.notificationsCard]}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.cardTitleRow}>
-                            <View style={styles.bellIconContainer}>
-                                <Bell size={18} color="#0d9488" />
-                            </View>
-                            <Text style={styles.cardTitle}>Annonces Faculté</Text>
-                        </View>
-                        <View style={styles.cardHeaderRight}>
-                            <TouchableOpacity onPress={openFullAnnouncements} style={{ marginRight: 8 }}>
-                                <Text style={styles.seeAllText}>Tout voir</Text>
-                            </TouchableOpacity>
-                            {unreadCount > 0 && (
-                                <View style={styles.newBadge}>
-                                    <Text style={styles.newBadgeText}>{unreadCount} news</Text>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-
-                    <View style={styles.notificationsList}>
-                        {(dashboardData?.announcements || []).slice(0, 5).map((notif: any) => (
-                            <TouchableOpacity
-                                key={notif.id}
-                                style={[
-                                    styles.notifItem,
-                                    { backgroundColor: '#f8fafc' },
-                                    readNotifications.has(notif.id) && styles.notifItemRead
-                                ]}
-                                onPress={() => openNotification(notif)}
-                            >
-                                {!readNotifications.has(notif.id) && <View style={styles.notifStatusDot} />}
-                                <View style={styles.notifContent}>
-                                    <Text style={[styles.notifTitle, readNotifications.has(notif.id) && styles.notifTitleRead]} numberOfLines={1}>{notif.title}</Text>
-                                    <Text style={styles.notifDesc} numberOfLines={2}>{notif.content}</Text>
-                                    <Text style={styles.notifDate}>{new Date(notif.date).toLocaleDateString()}</Text>
-                                </View>
-                                <ChevronRight size={18} color="#cbd5e1" />
-                            </TouchableOpacity>
-                        ))}
-                        {(dashboardData?.announcements || []).length === 0 && (
-                            <Text style={styles.noNotifText}>Aucune annonce pour le moment</Text>
-                        )}
-                    </View>
-                </View>
+                {/* Annonces déplacées dans l'onglet dédié */}
             </Animated.ScrollView>
         );
     };
@@ -1024,7 +994,15 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
     const renderCoursesTab = () => {
         if (activeTab !== 'courses') return null;
         return (
-            <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabScrollPadding}>
+            <Animated.ScrollView 
+                style={styles.tabContent} 
+                contentContainerStyle={styles.tabScrollPadding}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: false }
+                )}
+                scrollEventThrottle={16}
+            >
                 <Text style={styles.tabTitle}>Mes Cours</Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Text style={styles.tabSubtitle}>Liste complète de vos matières</Text>
@@ -1051,9 +1029,11 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                         </View>
                     ))
                 ) : coursesData.length > 0 ? (
-                    coursesData.map((course: CourseStats) => {
+                    [...coursesData]
+                        .sort((a, b) => (b.percentage || 0) - (a.percentage || 0))
+                        .map((course: CourseStats) => {
                         const isFinished = course.status === 'FINISHED';
-                        const displayPct = isFinished ? 100 : (course.percentage ?? 0);
+                        const progression = isFinished ? 100 : (course.courseProgress ?? 0);
                         return (
                             <TouchableOpacity
                                 key={course.id}
@@ -1065,22 +1045,25 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                             >
                                 <View style={[styles.courseColorBar, { backgroundColor: isFinished ? '#10b981' : '#0d9488' }]} />
                                 <View style={styles.courseRowInfo}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                        <Text style={styles.courseRowName}>{course.name}</Text>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <Text style={[styles.courseRowName, { flex: 1, marginRight: 8 }]}>{course.name}</Text>
                                         {isFinished && (
-                                            <View style={{ backgroundColor: '#d1fae5', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 }}>
-                                                <Text style={{ color: '#065f46', fontSize: 9, fontWeight: '900' }}>✓ TERMINÉ</Text>
+                                            <View style={{ backgroundColor: '#d1fae5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                                                <Text style={{ color: '#065f46', fontSize: 8, fontWeight: '900' }}>TERMINÉ</Text>
                                             </View>
                                         )}
                                     </View>
-                                    <Text style={styles.courseRowMeta}>
-                                        {course.attendedCount ?? 0}/{course.totalCount ?? 0} présences •{' '}
-                                        <Text style={{ color: isFinished ? '#10b981' : getAttendanceColor(course.percentage), fontWeight: 'bold' }}>
-                                            {displayPct}%
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Text style={styles.courseRowMeta}>
+                                            {course.attendedCount ?? 0}/{course.totalCount ?? 0} présences
                                         </Text>
-                                    </Text>
+                                        <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#cbd5e1' }} />
+                                        <Text style={[styles.courseRowMeta, { color: '#0d9488', fontWeight: '600' }]}>
+                                            {progression}% progression
+                                        </Text>
+                                    </View>
                                 </View>
-                                <ChevronRight size={20} color={isFinished ? '#10b981' : '#cbd5e1'} />
+                                <ChevronRight size={18} color={isFinished ? '#10b981' : '#cbd5e1'} />
                             </TouchableOpacity>
                         );
                     })
@@ -1088,14 +1071,93 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                     renderEmptyState("Aucun cours inscrit")
                 )}
 
-            </ScrollView>
+            </Animated.ScrollView>
+        );
+    };
+
+    const renderAnnouncementsTab = () => {
+        if (activeTab !== 'announcements') return null;
+        const announcements = dashboardData?.announcements || [];
+        return (
+            <Animated.ScrollView
+                style={styles.tabContent}
+                contentContainerStyle={[styles.tabScrollPadding, { paddingBottom: 40 }]}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Header */}
+                <View style={styles.announcementsHeader}>
+                    <View style={styles.announcementsIconBig}>
+                        <Megaphone size={26} color="#0d9488" />
+                        {unreadCount > 0 && (
+                            <View style={styles.announcementsBadge}>
+                                <Text style={styles.announcementsBadgeText}>{unreadCount}</Text>
+                            </View>
+                        )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.tabTitle}>Annonces</Text>
+                        <Text style={styles.tabSubtitle}>Communications officielles de la faculté</Text>
+                    </View>
+                    {unreadCount > 0 && (
+                        <TouchableOpacity onPress={markAllAsRead} style={styles.markAllReadButton}>
+                            <Text style={styles.markReadText}>Tout lire</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Liste annonces */}
+                {announcements.length === 0 ? (
+                    <View style={styles.emptyAnnouncementsState}>
+                        <Megaphone size={52} color="#cbd5e1" strokeWidth={1} />
+                        <Text style={styles.emptyAnnouncementsText}>Aucune annonce pour le moment</Text>
+                        <Text style={styles.emptyAnnouncementsSubText}>Les communications de la faculté apparaîtront ici</Text>
+                    </View>
+                ) : (
+                    announcements.map((notif: any) => (
+                        <TouchableOpacity
+                            key={notif.id}
+                            style={[
+                                styles.fullNotifItem,
+                                readNotifications.has(notif.id) && styles.notifItemRead
+                            ]}
+                            onPress={() => openNotification(notif)}
+                            activeOpacity={0.75}
+                        >
+                            <View style={styles.fullNotifIcon}>
+                                <Bell size={20} color={readNotifications.has(notif.id) ? '#94a3b8' : '#0d9488'} />
+                                {!readNotifications.has(notif.id) && <View style={styles.fullNotifDot} />}
+                            </View>
+                            <View style={styles.fullNotifContent}>
+                                <Text style={[styles.fullNotifTitle, readNotifications.has(notif.id) && styles.fullNotifTitleRead]}>{notif.title}</Text>
+                                {notif.author && (
+                                    <View style={styles.authorBadge}>
+                                        <UserIcon size={10} color="#0d9488" />
+                                        <Text style={styles.authorBadgeText}>{notif.author}</Text>
+                                    </View>
+                                )}
+                                <Text style={styles.fullNotifDesc} numberOfLines={2}>{notif.content}</Text>
+                                <Text style={styles.fullNotifDate}>{new Date(notif.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</Text>
+                            </View>
+                            <ChevronRight size={18} color="#cbd5e1" />
+                        </TouchableOpacity>
+                    ))
+                )}
+            </Animated.ScrollView>
         );
     };
 
     const renderCalendarTab = () => {
         if (activeTab !== 'calendar') return null;
         return (
-            <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabScrollPadding}>
+            <Animated.ScrollView 
+                style={styles.tabContent} 
+                contentContainerStyle={styles.tabScrollPadding}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: false }
+                )}
+                scrollEventThrottle={16}
+            >
                 <Text style={styles.tabTitle}>Emploi du Temps</Text>
                 <Text style={styles.tabSubtitle}>Votre programme hebdomadaire</Text>
 
@@ -1168,7 +1230,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                 ) : (
                     renderEmptyState("Horaire non disponible")
                 )}
-            </ScrollView>
+            </Animated.ScrollView>
         );
     };
 
@@ -1356,7 +1418,15 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
             editWhatsapp !== (profileData?.whatsapp || '');
 
         return (
-            <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabScrollPadding}>
+            <Animated.ScrollView 
+                style={styles.tabContent} 
+                contentContainerStyle={styles.tabScrollPadding}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: false }
+                )}
+                scrollEventThrottle={16}
+            >
                 <View style={styles.profileHeader}>
                     <TouchableOpacity
                         style={styles.profileEditToggle}
@@ -1377,9 +1447,22 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                             {isEditingProfile ? "Annuler" : "Modifier"}
                         </Text>
                     </TouchableOpacity>
-                    <View style={styles.profileAvatarBig}>
-                        <UserIcon size={40} color="white" />
-                    </View>
+                    <TouchableOpacity 
+                        style={styles.profileAvatarBig}
+                        onPress={() => onOpenProfilePhoto(profileData?.profilePhotoUrl || null)}
+                    >
+                        {profileData?.profilePhotoUrl ? (
+                            <Image 
+                                source={{ uri: profileData.profilePhotoUrl }} 
+                                style={styles.profileAvatarImage} 
+                            />
+                        ) : (
+                            <UserIcon size={40} color="white" />
+                        )}
+                        <View style={styles.editPhotoBadge}>
+                            <Camera size={12} color="white" />
+                        </View>
+                    </TouchableOpacity>
                     <Text style={styles.profileName}>{profileData?.name || '...'}</Text>
                     <Text style={styles.profileClass}>{profileData?.academicLevel || '...'}</Text>
                 </View>
@@ -1573,7 +1656,7 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                         </View>
                     </View>
                 </Modal>
-            </ScrollView>
+            </Animated.ScrollView>
         );
     };
 
@@ -1581,45 +1664,48 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
 
-            <Animated.View style={[styles.header, { height: headerHeight }]}>
-                <LinearGradient
-                    colors={['#0f766e', '#115e59']}
-                    style={StyleSheet.absoluteFill}
-                />
-                <SafeAreaView>
-                    <View style={styles.headerContent}>
-                        <Animated.View style={[styles.userInfo, { opacity: headerTextOpacity }]}>
-                            <View style={styles.connectionBadgeRow}>
-                                <Text style={styles.greeting}>Bonjour,</Text>
-                                <View style={[styles.connectionIndicator, { backgroundColor: isConnected ? '#10b981' : '#ef4444' }]}>
-                                    {isConnected ? <Wifi size={10} color="white" /> : <WifiOff size={10} color="white" />}
-                                    <Text style={styles.connectionText}>{isConnected ? 'En ligne' : 'Hors-ligne'}</Text>
+            {activeTab === 'home' && (
+                <Animated.View style={[styles.header, { height: headerHeight }]}>
+                    <LinearGradient
+                        colors={['#0f766e', '#115e59']}
+                        style={StyleSheet.absoluteFill}
+                    />
+                    <SafeAreaView>
+                        <View style={styles.headerContent}>
+                            <Animated.View style={[styles.userInfo, { opacity: headerTextOpacity }]}>
+                                <View style={styles.connectionBadgeRow}>
+                                    <Text style={styles.greeting}>Bonjour,</Text>
+                                    <View style={[styles.connectionIndicator, { backgroundColor: isConnected ? '#10b981' : '#ef4444' }]}>
+                                        {isConnected ? <Wifi size={10} color="white" /> : <WifiOff size={10} color="white" />}
+                                        <Text style={styles.connectionText}>{isConnected ? 'En ligne' : 'Hors-ligne'}</Text>
+                                    </View>
+                                </View>
+                                <Text style={styles.userName} numberOfLines={2} adjustsFontSizeToFit>{dashboardData?.student?.name || 'Étudiant'}</Text>
+                                <Text style={styles.userClass}>{dashboardData?.student?.level || 'Chargement...'}</Text>
+                            </Animated.View>
+
+                            <View style={styles.headerActions}>
+                                <View style={styles.searchBar}>
+                                    <Search size={18} color="rgba(255,255,255,0.6)" />
+                                    <TextInput
+                                        style={styles.searchInput}
+                                        placeholder="Rechercher"
+                                        placeholderTextColor="rgba(255,255,255,0.4)"
+                                        value={searchText}
+                                        onChangeText={setSearchText}
+                                        autoCapitalize="none"
+                                    />
                                 </View>
                             </View>
-                            <Text style={styles.userName} numberOfLines={2} adjustsFontSizeToFit>{dashboardData?.student?.name || 'Étudiant'}</Text>
-                            <Text style={styles.userClass}>{dashboardData?.student?.level || 'Chargement...'}</Text>
-                        </Animated.View>
-
-                        <View style={styles.headerActions}>
-                            <View style={styles.searchBar}>
-                                <Search size={18} color="rgba(255,255,255,0.6)" />
-                                <TextInput
-                                    style={styles.searchInput}
-                                    placeholder="Rechercher"
-                                    placeholderTextColor="rgba(255,255,255,0.4)"
-                                    value={searchText}
-                                    onChangeText={setSearchText}
-                                    autoCapitalize="none"
-                                />
-                            </View>
                         </View>
-                    </View>
-                </SafeAreaView>
-            </Animated.View>
+                    </SafeAreaView>
+                </Animated.View>
+            )}
 
             <View style={styles.mainContent}>
                 {renderHomeContent()}
                 {renderCoursesTab()}
+                {renderAnnouncementsTab()}
                 {renderCalendarTab()}
                 {renderProfileTab()}
             </View>
@@ -1716,25 +1802,18 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                             <Trash2 size={20} color="#ef4444" />
                                             <Text style={styles.unenrollTriggerText}>Se désinscrire du cours</Text>
                                         </TouchableOpacity>
-                                    ) : (
+                                    ) : !showUnenrollAuth ? (
                                         <LinearGradient colors={['#fff', '#fff1f2']} style={styles.unenrollConfirmCard}>
                                             <View style={styles.cautionIconContainer}>
                                                 <AlertCircle size={24} color="#ef4444" />
-                                                <Text style={styles.cautionTitle}>Attention !</Text>
+                                                <Text style={styles.cautionTitle}>Désinscription</Text>
                                             </View>
                                             <Text style={styles.cautionText}>
-                                                En vous désinscrivant :
-                                                {'\n'}• Vous ne pourrez plus prendre la présence.
-                                                {'\n'}• Vos statistiques ne seront plus incluses.
-                                                {'\n'}• Plus aucune notification pour ce cours.
+                                                Cette action entraînera :
+                                                {'\n'}• La suppression de vos statistiques de présence.
+                                                {'\n'}• Le retrait immédiat du cours de votre planning.
+                                                {'\n'}• L'impossibilité de scanner votre présence.
                                             </Text>
-                                            <TextInput
-                                                style={styles.cautionInput}
-                                                placeholder="Saisissez votre mot de passe UNILUHUB"
-                                                secureTextEntry
-                                                value={unenrollPassword}
-                                                onChangeText={setUnenrollPassword}
-                                            />
                                             <View style={styles.cautionActions}>
                                                 <TouchableOpacity
                                                     style={styles.cautionCancel}
@@ -1743,11 +1822,43 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
                                                     <Text style={styles.cautionCancelText}>Annuler</Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity
+                                                    style={[styles.cautionConfirm, { backgroundColor: '#ef4444' }]}
+                                                    onPress={() => setShowUnenrollAuth(true)}
+                                                >
+                                                    <Text style={styles.cautionConfirmText}>Continuer</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </LinearGradient>
+                                    ) : (
+                                        <LinearGradient colors={['#fff', '#f0fdfa']} style={styles.unenrollConfirmCard}>
+                                            <View style={styles.cautionIconContainer}>
+                                                <GraduationCap size={24} color="#0d9488" />
+                                                <Text style={[styles.cautionTitle, { color: '#0d9488' }]}>Vérification</Text>
+                                            </View>
+                                            <Text style={[styles.cautionText, { color: '#64748b' }]}>
+                                                Pour confirmer votre désinscription de ce cours, veuillez saisir votre mot de passe étudiant.
+                                            </Text>
+                                            <TextInput
+                                                style={[styles.cautionInput, { borderColor: '#ccfbf1' }]}
+                                                placeholder="Saisissez votre mot de passe"
+                                                secureTextEntry
+                                                value={unenrollPassword}
+                                                onChangeText={setUnenrollPassword}
+                                                autoFocus
+                                            />
+                                            <View style={styles.cautionActions}>
+                                                <TouchableOpacity
+                                                    style={styles.cautionCancel}
+                                                    onPress={() => setShowUnenrollAuth(false)}
+                                                >
+                                                    <Text style={styles.cautionCancelText}>Retour</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
                                                     style={[styles.cautionConfirm, !unenrollPassword && { opacity: 0.5 }]}
                                                     onPress={handleUnenroll}
                                                     disabled={!unenrollPassword || isEnrolling}
                                                 >
-                                                    {isEnrolling ? <ActivityIndicator color="white" size="small" /> : <Text style={styles.cautionConfirmText}>Confirmer</Text>}
+                                                    {isEnrolling ? <ActivityIndicator color="white" size="small" /> : <Text style={styles.cautionConfirmText}>Désinscrire</Text>}
                                                 </TouchableOpacity>
                                             </View>
                                         </LinearGradient>
@@ -1866,101 +1977,46 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
             {/* Bottom Tab Bar */}
             <View style={[styles.tabBarContainer, { paddingBottom: Math.max(insets.bottom, 15) }]}>
                 <View style={styles.tabBar}>
-                    <TouchableOpacity
-                        style={styles.tabItem}
-                        onPress={() => setActiveTab('home')}
-                    >
-                        <Home size={24} color={activeTab === 'home' ? '#0d9488' : '#94a3b8'} />
+                    <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('home')}>
+                        <Home size={22} color={activeTab === 'home' ? '#0d9488' : '#94a3b8'} />
                         <Text style={[styles.tabLabel, activeTab === 'home' && styles.tabLabelActive]}>Accueil</Text>
                         {activeTab === 'home' && <View style={styles.tabIndicator} />}
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.tabItem}
-                        onPress={() => setActiveTab('courses')}
-                    >
-                        <BookOpen size={24} color={activeTab === 'courses' ? '#0d9488' : '#94a3b8'} />
+                    <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('courses')}>
+                        <BookOpen size={22} color={activeTab === 'courses' ? '#0d9488' : '#94a3b8'} />
                         <Text style={[styles.tabLabel, activeTab === 'courses' && styles.tabLabelActive]}>Cours</Text>
                         {activeTab === 'courses' && <View style={styles.tabIndicator} />}
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.tabItem}
-                        onPress={() => setActiveTab('calendar')}
-                    >
-                        <Calendar size={24} color={activeTab === 'calendar' ? '#0d9488' : '#94a3b8'} />
+                    {/* Onglet Annonces avec badge */}
+                    <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('announcements')}>
+                        <View style={{ position: 'relative' }}>
+                            <Megaphone size={22} color={activeTab === 'announcements' ? '#0d9488' : '#94a3b8'} />
+                            {unreadCount > 0 && (
+                                <View style={styles.tabBadge}>
+                                    <Text style={styles.tabBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                                </View>
+                            )}
+                        </View>
+                        <Text style={[styles.tabLabel, activeTab === 'announcements' && styles.tabLabelActive]}>Annonces</Text>
+                        {activeTab === 'announcements' && <View style={styles.tabIndicator} />}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('calendar')}>
+                        <Calendar size={22} color={activeTab === 'calendar' ? '#0d9488' : '#94a3b8'} />
                         <Text style={[styles.tabLabel, activeTab === 'calendar' && styles.tabLabelActive]}>Planning</Text>
                         {activeTab === 'calendar' && <View style={styles.tabIndicator} />}
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.tabItem}
-                        onPress={() => setActiveTab('profile')}
-                    >
-                        <UserIcon size={24} color={activeTab === 'profile' ? '#0d9488' : '#94a3b8'} />
+                    <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('profile')}>
+                        <UserIcon size={22} color={activeTab === 'profile' ? '#0d9488' : '#94a3b8'} />
                         <Text style={[styles.tabLabel, activeTab === 'profile' && styles.tabLabelActive]}>Profil</Text>
                         {activeTab === 'profile' && <View style={styles.tabIndicator} />}
                     </TouchableOpacity>
                 </View>
             </View>
-            {/* Full Announcements Overlay */}
-            {
-                showFullAnnouncements && (
-                    <Animated.View style={[styles.detailOverlay, { opacity: fullAnnouncementsAnim }]}>
-                        <SafeAreaView style={styles.detailContainer}>
-                            <TouchableOpacity style={styles.backButton} onPress={closeFullAnnouncements}>
-                                <ArrowLeft size={24} color="#1e293b" />
-                                <Text style={styles.backButtonText}>Retour</Text>
-                            </TouchableOpacity>
-
-                            <View style={styles.fullPageHeaderRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.fullPageTitle}>Toutes les Annonces</Text>
-                                    <Text style={styles.fullPageSubtitle}>Information et communications officielles</Text>
-                                </View>
-                                <TouchableOpacity onPress={markAllAsRead} style={styles.markAllReadButton}>
-                                    <Text style={styles.markReadText}>Tout lire</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            <ScrollView showsVerticalScrollIndicator={false} style={styles.fullListScroll}>
-                                {(dashboardData?.announcements || []).map((notif: any) => (
-                                    <TouchableOpacity
-                                        key={notif.id}
-                                        style={[
-                                            styles.fullNotifItem,
-                                            readNotifications.has(notif.id) && styles.notifItemRead
-                                        ]}
-                                        onPress={() => openNotification(notif)}
-                                    >
-                                        <View style={styles.fullNotifIcon}>
-                                            <Bell size={20} color={readNotifications.has(notif.id) ? "#94a3b8" : "#0d9488"} />
-                                            {!readNotifications.has(notif.id) && <View style={styles.fullNotifDot} />}
-                                        </View>
-                                        <View style={styles.fullNotifContent}>
-                                            <Text style={[styles.fullNotifTitle, readNotifications.has(notif.id) && styles.fullNotifTitleRead]}>{notif.title}</Text>
-                                            {notif.author && (
-                                                <View style={styles.authorBadge}>
-                                                    <UserIcon size={10} color="#0d9488" />
-                                                    <Text style={styles.authorBadgeText}>{notif.author}</Text>
-                                                </View>
-                                            )}
-                                            <Text style={styles.fullNotifDesc} numberOfLines={2}>{notif.content}</Text>
-                                            <Text style={styles.fullNotifDate}>{new Date(notif.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</Text>
-                                        </View>
-                                        <ChevronRight size={18} color="#cbd5e1" />
-                                    </TouchableOpacity>
-                                ))}
-                                {(dashboardData?.announcements || []).length === 0 && (
-                                    <View style={styles.emptyFullState}>
-                                        <Text style={styles.noNotifText}>Aucune annonce disponible.</Text>
-                                    </View>
-                                )}
-                            </ScrollView>
-                        </SafeAreaView>
-                    </Animated.View>
-                )
-            }
+            {/* Annonces overlay supprimé - maintenant dans l'onglet dédié */}
 
             {/* Notification Detail Overlay - MOVED HERE for z-index */}
             {
@@ -2067,6 +2123,17 @@ export function HomeScreen({ onLogout, onOpenScanner }: HomeScreenProps) {
             </Modal>
 
             {AdManagerModal()}
+
+            {/* Ecran Progression Globale */}
+            {showGlobalAttendance && (
+                <GlobalAttendanceScreen
+                    onClose={() => setShowGlobalAttendance(false)}
+                    attendance={dashboardData?.stats?.attendance ?? 0}
+                    courses={coursesData}
+                    studentName={dashboardData?.student?.name}
+                    attendanceHistory={dashboardData?.recentAttendance || []}
+                />
+            )}
         </View >
     );
 }
@@ -2199,8 +2266,8 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingBottom: 120, // Increased to ensure announcements are visible above bottom nav
-        paddingTop: Platform.OS === 'ios' ? 220 : 190,
+        paddingBottom: 120,
+        paddingTop: Platform.OS === 'ios' ? 220 : 200,
     },
     card: {
         backgroundColor: 'white',
@@ -2642,6 +2709,45 @@ const styles = StyleSheet.create({
         color: '#94a3b8',
         marginTop: 5,
     },
+    // Styles pour l'avatar sur Home
+    homeAvatarContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        padding: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 15,
+    },
+    homeAvatarImage: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        borderWidth: 2,
+        borderColor: 'white',
+    },
+    homeAvatarPlaceholder: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'white',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    homeAvatarBadge: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: '#0d9488',
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: 'white',
+    },
     statsOverview: {
         flexDirection: 'row',
         backgroundColor: '#f8fafc',
@@ -2847,7 +2953,7 @@ const styles = StyleSheet.create({
     },
     tabScrollPadding: {
         padding: 20,
-        paddingTop: 180, // Pour passer sous le header
+        paddingTop: Platform.OS === 'ios' ? 60 : 50,
         paddingBottom: 100,
     },
     tabTitle: {
@@ -2994,6 +3100,26 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 15,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    profileAvatarImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+    },
+    editPhotoBadge: {
+        position: 'absolute',
+        bottom: 5,
+        right: 5,
+        backgroundColor: '#0d9488',
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: 'white',
     },
     profileName: {
         fontSize: 24,
@@ -3818,11 +3944,6 @@ const styles = StyleSheet.create({
         fontWeight: '800',
     },
     // Enrollment Modal Styles
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
     enrollModalContent: {
         backgroundColor: 'white',
         borderTopLeftRadius: 35,
@@ -3830,22 +3951,6 @@ const styles = StyleSheet.create({
         minHeight: height * 0.7,
         maxHeight: height * 0.9,
         padding: 24,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 25,
-    },
-    modalTitle: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: '#1e293b',
-    },
-    modalSubtitle: {
-        fontSize: 14,
-        color: '#64748b',
-        marginTop: 4,
     },
     modalCloseBtn: {
         width: 36,
@@ -3919,5 +4024,76 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 22,
         maxWidth: 250,
+    },
+    // Styles pour les Annonces
+    announcementsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 24,
+        gap: 16,
+    },
+    announcementsIconBig: {
+        width: 56,
+        height: 56,
+        borderRadius: 18,
+        backgroundColor: '#f0fdfa',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    announcementsBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: '#ef4444',
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: 'white',
+        paddingHorizontal: 4,
+    },
+    announcementsBadgeText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: '800',
+    },
+    emptyAnnouncementsState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 80,
+    },
+    emptyAnnouncementsText: {
+        color: '#1e293b',
+        fontSize: 18,
+        fontWeight: '700',
+        marginTop: 20,
+    },
+    emptyAnnouncementsSubText: {
+        color: '#94a3b8',
+        fontSize: 14,
+        marginTop: 8,
+        textAlign: 'center',
+    },
+    tabBadge: {
+        position: 'absolute',
+        top: -6,
+        right: -10,
+        backgroundColor: '#ef4444',
+        borderRadius: 9,
+        minWidth: 18,
+        height: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: 'white',
+        paddingHorizontal: 3,
+    },
+    tabBadgeText: {
+        color: 'white',
+        fontSize: 9,
+        fontWeight: '900',
     },
 });

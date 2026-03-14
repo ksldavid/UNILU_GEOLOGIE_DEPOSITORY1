@@ -521,3 +521,223 @@ export const deleteAttendanceSession = async (req: AuthRequest, res: Response) =
         res.status(500).json({ message: 'Erreur serveur lors de la suppression' });
     }
 };
+
+/**
+ * [ADMIN] Génère un nouveau token offline hebdomadaire (chaque lundi à minuit via cron ou manuellement).
+ */
+export const rotateOfflineToken = async (req: AuthRequest, res: Response) => {
+    try {
+        const userRole = req.user?.role;
+        if (!['ADMIN', 'ACADEMIC_OFFICE'].includes(userRole || '')) {
+            return res.status(403).json({ message: 'Accès refusé' });
+        }
+
+        const token = crypto.randomBytes(32).toString('hex');
+
+        // Expiration : prochain lundi à minuit (heure de Lubumbashi UTC+2)
+        const now = new Date();
+        const lubumbashi = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+        const daysUntilNextMonday = (8 - lubumbashi.getDay()) % 7 || 7;
+        const nextMonday = new Date(lubumbashi);
+        nextMonday.setDate(lubumbashi.getDate() + daysUntilNextMonday);
+        nextMonday.setHours(0, 0, 0, 0);
+        const expiresAt = new Date(nextMonday.getTime() - 2 * 60 * 60 * 1000); // Reconvertir en UTC
+
+        // Désactiver l'ancien token
+        await (prisma as any).offlineToken.updateMany({
+            where: { isActive: true },
+            data: { isActive: false }
+        });
+
+        // Créer le nouveau
+        const newToken = await (prisma as any).offlineToken.create({
+            data: { token, expiresAt, isActive: true }
+        });
+
+        console.log(`[OFFLINE TOKEN] Nouveau token généré, expire le ${expiresAt.toISOString()}`);
+
+        res.json({
+            message: 'Token offline généré avec succès',
+            expiresAt: newToken.expiresAt
+        });
+    } catch (error) {
+        console.error('Erreur rotateOfflineToken:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+/**
+ * [STUDENT] Récupère le token offline actif à stocker localement dans l'app.
+ * Appelé à chaque connexion de l'étudiant.
+ */
+export const getOfflineToken = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.userId;
+        if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+
+        const activeToken = await (prisma as any).offlineToken.findFirst({
+            where: { isActive: true, expiresAt: { gt: new Date() } },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        if (!activeToken) {
+            return res.status(404).json({ message: "Aucun token offline disponible. Contactez l'administration." });
+        }
+
+        res.json({
+            token: activeToken.token,
+            expiresAt: activeToken.expiresAt
+        });
+    } catch (error) {
+        console.error('Erreur getOfflineToken:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+/**
+ * [STUDENT] Valide une présence enregistrée hors-ligne.
+ * Vérifie : token offline valide + même jour + session QR existante + inscription + géoloc + pas de doublon
+ */
+export const scanQRTokenOffline = async (req: AuthRequest, res: Response) => {
+    try {
+        const { qrToken, latitude, longitude, offlineToken, scanTimestamp } = req.body;
+        const userId = req.user?.userId;
+
+        if (!userId) return res.status(401).json({ message: 'Non authentifié' });
+        if (!offlineToken || !scanTimestamp) {
+            return res.status(400).json({ message: 'Token offline et horodatage du scan requis' });
+        }
+
+        // === VÉRIFICATION 1 : Token offline valide et non expiré ===
+        const validToken = await (prisma as any).offlineToken.findFirst({
+            where: { token: offlineToken, isActive: true, expiresAt: { gt: new Date() } }
+        });
+
+        if (!validToken) {
+            return res.status(403).json({
+                message: 'Clé de sécurité offline invalide ou expirée. Reconnectez-vous pour obtenir une nouvelle clé.',
+                debugCode: 'ERR_OFFLINE_TOKEN_INVALID'
+            });
+        }
+
+        // === VÉRIFICATION 2 : Le scan doit être du JOUR MÊME (anti-manipulation horloge) ===
+        const now = new Date();
+        const lubumbashiNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+        const todayStr = lubumbashiNow.toISOString().split('T')[0];
+
+        const scanDate = new Date(scanTimestamp);
+        const lubumbashiScan = new Date(scanDate.getTime() + 2 * 60 * 60 * 1000);
+        const scanDayStr = lubumbashiScan.toISOString().split('T')[0];
+
+        if (scanDayStr !== todayStr) {
+            return res.status(403).json({
+                message: `Présence refusée : le scan date du ${scanDayStr} mais nous sommes le ${todayStr}. La présence n'est valable que le jour même.`,
+                debugCode: 'ERR_WRONG_DAY',
+                scanDay: scanDayStr,
+                today: todayStr
+            });
+        }
+
+        // === VÉRIFICATION 3 : Session QR existante ===
+        const session = await (prisma as any).attendanceSession.findUnique({
+            where: { qrToken },
+            include: { course: true }
+        });
+
+        if (!session) {
+            return res.status(404).json({ message: 'QR Code invalide.', debugCode: 'ERR_TOKEN_NOT_FOUND' });
+        }
+
+        // La session doit aussi être de ce jour
+        const sessionDateObj = new Date(session.date);
+        const lubumbashiSession = new Date(sessionDateObj.getTime() + 2 * 60 * 60 * 1000);
+        const sessionDayStr = lubumbashiSession.toISOString().split('T')[0];
+
+        if (sessionDayStr !== todayStr) {
+            return res.status(403).json({
+                message: `Ce QR Code correspond au ${sessionDayStr}. La présence ne peut être enregistrée que le jour du cours.`,
+                debugCode: 'ERR_SESSION_WRONG_DAY'
+            });
+        }
+
+        // === VÉRIFICATION 4 : Étudiant inscrit au cours ===
+        const activeEnrollment = await prisma.studentCourseEnrollment.findFirst({
+            where: { userId, courseCode: session.courseCode, isActive: true }
+        });
+
+        if (!activeEnrollment) {
+            return res.status(403).json({
+                message: `Accès refusé : Vous n'êtes pas inscrit au cours "${session.course?.name || session.courseCode}".`,
+                debugCode: 'ERR_STUDENT_NOT_ENROLLED'
+            });
+        }
+
+        // === VÉRIFICATION 5 : Géolocalisation au moment du scan ===
+        if (latitude && longitude) {
+            const studentLat = parseFloat(latitude);
+            const studentLng = parseFloat(longitude);
+            const isNearFaculty = FACULTY_LOCATIONS.some(loc =>
+                calculateDistance(loc.lat, loc.lng, studentLat, studentLng) <= 1000
+            );
+            if (!isNearFaculty) {
+                return res.status(403).json({
+                    message: 'Vous étiez trop loin de la Faculté au moment du scan pour valider votre présence.'
+                });
+            }
+        } else {
+            return res.status(400).json({ message: 'La géolocalisation est requise.' });
+        }
+
+        // === VÉRIFICATION 6 : Pas de doublon ===
+        const existingAttendance = await (prisma as any).attendanceRecord.findUnique({
+            where: { sessionId_studentId: { sessionId: session.id, studentId: userId } }
+        });
+
+        if (existingAttendance && existingAttendance.status !== 'ABSENT') {
+            return res.status(400).json({
+                message: 'Vous avez déjà pris présence pour ce cours.',
+                alreadyMarked: true,
+                status: existingAttendance.status
+            });
+        }
+
+        // === ENREGISTREMENT ===
+        await (prisma as any).attendanceRecord.upsert({
+            where: { sessionId_studentId: { sessionId: session.id, studentId: userId } },
+            update: { status: 'PRESENT' },
+            create: { sessionId: session.id, studentId: userId, status: 'PRESENT' }
+        });
+
+        console.log(`[OFFLINE SCAN] ✅ Étudiant: ${userId} | Cours: ${session.courseCode} | ScanTime: ${scanTimestamp}`);
+
+        // Statistiques de feedback
+        const allCourseSessions = await prisma.attendanceSession.findMany({
+            where: { courseCode: session.courseCode },
+            select: { id: true }
+        });
+        const sessionIds = allCourseSessions.map(s => s.id);
+        const studentAttendances = await prisma.attendanceRecord.count({
+            where: { studentId: userId, sessionId: { in: sessionIds }, status: { in: ['PRESENT', 'LATE'] } }
+        });
+        const totalSessions = allCourseSessions.length;
+        const attendanceRate = totalSessions > 0 ? Math.round((studentAttendances / totalSessions) * 100) : 100;
+
+        let feedbackMessage = `Présence offline validée ! Ton taux est de ${attendanceRate}%.`;
+        if (attendanceRate > 90) feedbackMessage = `Incroyable ! ${attendanceRate}% de présence. Tu es un étudiant modèle ! 🏆`;
+        else if (attendanceRate > 70) feedbackMessage = `Superbe ! Présence offline confirmée. ${attendanceRate}% — continue ainsi ! ✨`;
+        else if (attendanceRate > 40) feedbackMessage = `Bravo ! Présence offline enregistrée. Taux : ${attendanceRate}% 🚀`;
+        else feedbackMessage = `Présence offline validée ! Tu es à ${attendanceRate}%. Encore un effort ! 💪`;
+
+        res.json({
+            message: feedbackMessage,
+            courseCode: session.courseCode,
+            offlineSync: true,
+            stats: { attendanceRate, totalPresent: studentAttendances, totalSessions }
+        });
+
+    } catch (error) {
+        console.error('Erreur scanQRTokenOffline:', error);
+        res.status(500).json({ message: 'Erreur lors de la validation de la présence offline' });
+    }
+};
+

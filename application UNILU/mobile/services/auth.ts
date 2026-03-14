@@ -1,6 +1,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from './api';
+import { refreshOfflineToken } from './attendance';
 
 export const authService = {
     login: async (idNumber: string, password: string) => {
@@ -17,6 +18,9 @@ export const authService = {
             role: data.user.systemRole,
             timestamp: new Date().getTime()
         }));
+
+        // Rafraîchir le token offline en arrière-plan (silencieux si pas d'internet)
+        refreshOfflineToken().catch(() => {});
 
         return data;
     },

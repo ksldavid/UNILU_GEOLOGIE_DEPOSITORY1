@@ -117,6 +117,10 @@ model User {
   // Notifications Push
   pushToken String? // Expo Push Token for mobile notifications
 
+  // Photo de profil
+  profilePhotoUrl     String? // URL Cloudinary de la photo de profil
+  profilePhotoPublicId String? // Public ID Cloudinary pour la suppression
+
   // Attendance change requests made by this user (Academic Office)
   attendanceChangeRequests AttendanceChangeRequest[]
 
@@ -609,6 +613,19 @@ model ExamSchedule {
   @@index([academicLevelId])
   @@index([courseCode])
   @@index([month, year])
+}
+
+// --- OFFLINE TOKEN (Token secret hebdomadaire pour la présence hors-ligne) ---
+
+model OfflineToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime // Expiration : 7 jours après créatedAt (à minuit)
+  isActive  Boolean  @default(true)
+
+  @@index([isActive])
+  @@index([expiresAt])
 }
 
 // --- ADVERTISEMENTS ---
