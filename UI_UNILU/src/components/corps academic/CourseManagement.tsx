@@ -3,7 +3,8 @@ import {
   ArrowLeft, FileText, Users, ClipboardList, UserPlus, FilePlus,
   Settings2, BarChart3, UploadCloud, ChevronRight, Loader2, CheckCircle2,
   Search, Plus, Calendar, Download, Trash2, Eye, Mail,
-  AlertTriangle, X, UserCheck, Send, History, Save
+  AlertTriangle, X, UserCheck, Send, History, Save, FileSpreadsheet, FileDown,
+  FileUp
 } from "lucide-react";
 import { toast } from 'sonner';
 import JSZip from "jszip";
@@ -40,6 +41,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modifFileInputRef = useRef<HTMLInputElement>(null);
+  const csvImportRef = useRef<HTMLInputElement>(null);
 
   const [students, setStudents] = useState<any[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
@@ -228,7 +230,9 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
     try {
       const gradesArray = Object.entries(tempGrades).map(([studentId, score]) => {
         if (score === "") return null;
-        const s = parseFloat(score);
+        const s = parseFloat(score.toString().replace(',', '.'));
+        if (isNaN(s)) return null;
+        
         if (s > (selectedExam.maxPoints || 20)) {
           throw new Error(`La note (${s}) dépasse le maximum autorisé pour cette évaluation (${selectedExam.maxPoints}).`);
         }
@@ -237,12 +241,18 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           score: s
         };
       }).filter(g => g !== null);
+      
+      if (gradesArray.length === 0) {
+        toast.error("Aucune note à enregistrer.");
+        return;
+      }
+
       await professorService.saveGrades(selectedExam.id, gradesArray);
-      alert("Notes enregistrées avec succès !");
+      toast.success(`${gradesArray.length} notes enregistrées avec succès !`);
       fetchExams(); // Pour être sûr d'avoir les données à jour
     } catch (error: any) {
       console.error(error);
-      alert(error.message || "Erreur lors de l'enregistrement des notes");
+      toast.error(error.message || "Erreur lors de l'enregistrement des notes");
     } finally {
       setIsSavingGrades(false);
     }
@@ -314,6 +324,97 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
       console.error(error);
       alert("Erreur lors de la suppression du document");
     }
+  };
+
+  const handleDownloadCSVTemplate = () => {
+    const header = "Matricule,Nom,Note (Maximum: " + (selectedExam?.maxPoints || 20) + ")\n";
+    const rows = students
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+      .map(s => `${s.matricule},${s.name},""`)
+      .join("\n");
+      
+    const blob = new Blob(["\uFEFF" + header + rows], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `Template_Points_${course.code}_${selectedExam.title.replace(/\s+/g, '_')}.csv`);
+    toast.info("Le template CSV a été généré.");
+  };
+
+  const handleImportCSV = (fileOrEvent: React.ChangeEvent<HTMLInputElement> | File) => {
+    let file: File | undefined;
+    
+    if (fileOrEvent instanceof File) {
+      file = fileOrEvent;
+    } else {
+      file = fileOrEvent.target.files?.[0];
+    }
+
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      toast.error("Veuillez sélectionner un fichier CSV (.csv)");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const lines = text.split(/\r?\n/);
+        const newGrades = { ...tempGrades };
+        let count = 0;
+        let errors = 0;
+
+        // On ignore la première ligne (header)
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          // Gestion intelligente du séparateur (virgule ou point-virgule)
+          let parts = line.split(';');
+          if (parts.length < 3) parts = line.split(',');
+          
+          if (parts.length < 3) {
+            errors++;
+            continue;
+          }
+
+          const matricule = parts[0].trim().replace(/^"|"$/g, '');
+          let scoreStr = parts[2].trim().replace(/^"|"$/g, '').replace(',', '.');
+          
+          if (scoreStr === "" || scoreStr === '""') continue;
+
+          const score = parseFloat(scoreStr);
+          if (isNaN(score)) {
+            errors++;
+            continue;
+          }
+
+          const student = students.find(s => s.matricule === matricule);
+          if (student) {
+            if (score > (selectedExam?.maxPoints || 20)) {
+              errors++;
+              continue;
+            }
+            newGrades[student.id] = score.toString();
+            count++;
+          } else {
+            errors++;
+          }
+        }
+
+        setTempGrades(newGrades);
+        if (errors > 0) {
+          toast.warning(`${count} notes importées, mais ${errors} lignes ont été ignorées (erreur de format ou matricule inconnu).`);
+        } else {
+          toast.success(`${count} notes importées avec succès ! N'oubliez pas d'enregistrer.`);
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Erreur lors de la lecture du fichier CSV.");
+      }
+    };
+    reader.readAsText(file);
+    // Reset input
+    if (csvImportRef.current) csvImportRef.current.value = "";
   };
 
   const handleLaunchAssignment = async () => {
@@ -704,7 +805,30 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           </button>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-[32px] overflow-hidden shadow-sm">
+        <div 
+          className={`bg-white border border-gray-100 rounded-[32px] overflow-hidden shadow-sm transition-all duration-300 relative ${isDragging ? 'ring-4 ring-orange-500/20 scale-[0.99] border-orange-300 bg-orange-50/10' : ''}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file) handleImportCSV(file);
+          }}
+        >
+          {isDragging && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-orange-50/80 backdrop-blur-sm animate-in fade-in duration-300">
+              <div className="w-20 h-20 bg-orange-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-orange-500/20 animate-bounce">
+                <FileSpreadsheet className="w-10 h-10" />
+              </div>
+              <p className="mt-6 text-xl font-black text-orange-600 uppercase tracking-widest">Relâchez pour importer les notes</p>
+              <p className="text-orange-400 font-bold text-sm">Fichier CSV uniquement</p>
+            </div>
+          )}
+          
           <div className="p-6 border-b border-gray-50 flex gap-4 bg-gray-50/30">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -1255,14 +1379,71 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
             <h1 className="text-4xl font-black text-gray-900 tracking-tight">{selectedExam?.title}</h1>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
+            {/* Stats Summary Panel */}
+            <div className="flex bg-gray-50 rounded-2xl px-6 py-3 border border-gray-100 items-center gap-6 mr-auto">
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Saisies</p>
+                <p className="text-sm font-black text-gray-900">{Object.keys(tempGrades).length} / {students.length}</p>
+              </div>
+              <div className="w-px h-8 bg-gray-200"></div>
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Moyenne</p>
+                <p className="text-sm font-black text-indigo-600">
+                  {Object.values(tempGrades).length > 0 
+                    ? (Object.values(tempGrades).reduce((a, b) => a + parseFloat(b || '0'), 0) / Object.values(tempGrades).length).toFixed(2) 
+                    : "0.00"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  if (window.confirm("Voulez-vous attribuer 0 à tous les étudiants qui n'ont pas encore de note ?")) {
+                    const newGrades = { ...tempGrades };
+                    students.forEach(s => {
+                      if (!newGrades[s.id]) newGrades[s.id] = "0";
+                    });
+                    setTempGrades(newGrades);
+                  }
+                }}
+                className="bg-white border border-gray-100 text-[10px] text-gray-500 font-black uppercase tracking-wider px-4 py-4 rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all"
+              >
+                Mettre 0 aux vides
+              </button>
+              <button
+                onClick={handleDownloadCSVTemplate}
+                className="bg-white border border-gray-200 text-gray-700 font-bold px-4 py-4 rounded-2xl hover:bg-gray-50 transition-all flex items-center gap-2"
+                title="Télécharger le template pour Excel"
+              >
+                <FileDown className="w-5 h-5 text-blue-600" />
+                <span className="hidden sm:inline text-xs uppercase tracking-tight">Template</span>
+              </button>
+              <button
+                onClick={() => csvImportRef.current?.click()}
+                className="bg-white border border-gray-200 text-gray-700 font-bold px-4 py-4 rounded-2xl hover:bg-gray-50 transition-all flex items-center gap-2"
+                title="Importer des points depuis un fichier CSV"
+              >
+                <FileUp className="w-5 h-5 text-emerald-600" />
+                <span className="hidden sm:inline text-xs uppercase tracking-tight">Importer</span>
+              </button>
+              <input 
+                type="file" 
+                ref={csvImportRef} 
+                className="hidden" 
+                accept=".csv" 
+                onChange={handleImportCSV} 
+              />
+            </div>
+            
             <button
               onClick={handleSaveGrades}
               disabled={isSavingGrades}
               className="bg-indigo-600 text-white font-black px-8 py-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 flex items-center gap-2 disabled:opacity-50"
             >
               {isSavingGrades ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              Enregistrer les points
+              Enregistrer
             </button>
             <button
               onClick={handlePublishAllGrades}
@@ -1270,12 +1451,35 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
               className="bg-orange-50 text-orange-700 font-black px-8 py-4 rounded-2xl hover:bg-orange-100 transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
             >
               <CheckCircle2 className="w-5 h-5" />
-              {selectedExam?.isPublished ? 'Déjà publié' : 'Publier tous les points'}
+              {selectedExam?.isPublished ? 'Déjà publié' : 'Publier'}
             </button>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-[32px] overflow-hidden shadow-sm">
+        <div 
+          className={`bg-white border border-gray-100 rounded-[32px] overflow-hidden shadow-sm transition-all duration-300 relative ${isDragging ? 'ring-4 ring-orange-500/20 scale-[0.99] border-orange-300 bg-orange-50/10' : ''}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file) handleImportCSV(file);
+          }}
+        >
+          {isDragging && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-orange-50/80 backdrop-blur-sm animate-in fade-in duration-300">
+              <div className="w-20 h-20 bg-orange-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-orange-500/20 animate-bounce">
+                <FileSpreadsheet className="w-10 h-10" />
+              </div>
+              <p className="mt-6 text-xl font-black text-orange-600 uppercase tracking-widest">Relâchez pour importer les notes</p>
+              <p className="text-orange-400 font-bold text-sm">Fichier CSV uniquement</p>
+            </div>
+          )}
+          
           <div className="p-6 border-b border-gray-50 flex gap-4 bg-gray-50/30">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -1293,8 +1497,22 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50/50 text-xs font-bold text-gray-400 uppercase tracking-widest">
-                  <th className="px-8 py-5">Étudiant</th>
-                  <th className="px-8 py-5">Points / {selectedExam?.maxPoints || 10}</th>
+                  <th className="px-8 py-5">
+                    <button 
+                      onClick={() => setSortBy(sortBy === 'name' ? 'matricule' : 'name')}
+                      className="flex items-center gap-1 hover:text-gray-600 transition-colors"
+                    >
+                      Étudiant
+                    </button>
+                  </th>
+                  <th className="px-8 py-5">
+                    <button 
+                      onClick={() => setSortBy('attendance')} // On réutilise le tri par grade/attendance si on veut
+                      className="flex items-center gap-1 hover:text-gray-600 transition-colors"
+                    >
+                      Points / {selectedExam?.maxPoints || 10}
+                    </button>
+                  </th>
                   <th className="px-8 py-5">Status</th>
                   <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
@@ -1312,6 +1530,16 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                 )}
                 {students
                   .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.matricule.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .sort((a, b) => {
+                    if (sortBy === 'name') return (a.name || "").localeCompare(b.name || "");
+                    if (sortBy === 'matricule') return (a.matricule || "").localeCompare(b.matricule || "");
+                    if (sortBy === 'attendance') {
+                        const gradeA = parseFloat(tempGrades[a.id] || "-1");
+                        const gradeB = parseFloat(tempGrades[b.id] || "-1");
+                        return gradeB - gradeA;
+                    }
+                    return 0;
+                  })
                   .map((student) => {
                     const isPublished = selectedExam?.isPublished;
                     return (
@@ -1330,7 +1558,23 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                         <td className="px-8 py-5">
                           <input
                             type="number"
+                            data-grade-input={student.id}
                             value={tempGrades[student.id] || ""}
+                            onKeyDown={(e) => {
+                              if (e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                const inputs = document.querySelectorAll('input[data-grade-input]');
+                                const currentIndex = Array.from(inputs).indexOf(e.currentTarget as HTMLInputElement);
+                                const next = inputs[currentIndex + 1] as HTMLInputElement;
+                                if (next) next.focus();
+                              } else if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                const inputs = document.querySelectorAll('input[data-grade-input]');
+                                const currentIndex = Array.from(inputs).indexOf(e.currentTarget as HTMLInputElement);
+                                const prev = inputs[currentIndex - 1] as HTMLInputElement;
+                                if (prev) prev.focus();
+                              }
+                            }}
                             onChange={(e) => {
                               const valStr = e.target.value;
                               if (valStr === "") {
