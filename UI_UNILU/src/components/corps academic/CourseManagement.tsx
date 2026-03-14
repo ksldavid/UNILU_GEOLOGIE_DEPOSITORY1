@@ -1625,6 +1625,30 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
               </div>
             </div>
           )}
+
+          {unknownStudentsFromCSV.length > 0 && (
+            <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-red-800 font-bold text-sm">
+                    {unknownStudentsFromCSV.length} étudiant(s) du fichier Excel n’appartiennent pas à ce cours.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {unknownStudentsFromCSV.map((name, i) => (
+                      <span key={i} className="text-xs bg-red-100 text-red-700 font-bold px-2 py-1 rounded-lg">{name}</span>
+                    ))}
+                  </div>
+                  <p className="text-red-500 text-xs mt-2 italic font-medium">
+                    Contactez le chef de département ou le service technique si vous pensez que c’est une erreur.
+                  </p>
+                </div>
+                <button onClick={() => setUnknownStudentsFromCSV([])} className="text-red-300 hover:text-red-500 transition-colors shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
           
           <div className="p-6 border-b border-gray-50 flex gap-4 bg-gray-50/30">
             <div className="flex-1 relative">
