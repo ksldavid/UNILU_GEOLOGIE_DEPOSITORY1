@@ -214,6 +214,31 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
     }
   }, [activeSubView, course.code]);
 
+  // Global drag events to prevent browser from opening the file and show dropzone
+  useEffect(() => {
+    const handleGlobalDragOver = (e: DragEvent) => {
+      if (activeSubView === 'exam-details') {
+        e.preventDefault();
+        setIsDragging(true);
+      }
+    };
+    
+    const handleGlobalDrop = (e: DragEvent) => {
+      if (activeSubView === 'exam-details') {
+        e.preventDefault();
+        setIsDragging(false);
+      }
+    };
+
+    window.addEventListener('dragover', handleGlobalDragOver);
+    window.addEventListener('drop', handleGlobalDrop);
+    
+    return () => {
+      window.removeEventListener('dragover', handleGlobalDragOver);
+      window.removeEventListener('drop', handleGlobalDrop);
+    };
+  }, [activeSubView]);
+
   useEffect(() => {
     if (selectedExam && selectedExam.grades) {
       const gradesMap: Record<string, string> = {};
@@ -1470,12 +1495,18 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         </div>
 
         <div 
-          className={`bg-white border border-gray-100 rounded-[32px] overflow-hidden shadow-sm transition-all duration-300 relative ${isDragging ? 'ring-4 ring-orange-500/20 scale-[0.99] border-orange-300 bg-orange-50/10' : ''}`}
+          className={`bg-white border border-gray-100 rounded-[32px] overflow-hidden shadow-sm transition-all duration-300 relative ${isDragging ? 'ring-4 ring-orange-500 border-orange-500 scale-[1.01]' : ''}`}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
           onDragOver={(e) => {
             e.preventDefault();
             setIsDragging(true);
           }}
-          onDragLeave={() => setIsDragging(false)}
+          onDragLeave={(e) => {
+            if (e.currentTarget === e.target) setIsDragging(false);
+          }}
           onDrop={(e) => {
             e.preventDefault();
             setIsDragging(false);
@@ -1484,12 +1515,14 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
           }}
         >
           {isDragging && (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-orange-50/80 backdrop-blur-sm animate-in fade-in duration-300">
-              <div className="w-20 h-20 bg-orange-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-orange-500/20 animate-bounce">
-                <FileSpreadsheet className="w-10 h-10" />
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-orange-600/90 backdrop-blur-md animate-in fade-in duration-300 pointer-events-none">
+              <div className="w-28 h-28 bg-white rounded-3xl flex items-center justify-center text-orange-600 shadow-2xl animate-bounce">
+                <FileSpreadsheet className="w-14 h-14" />
               </div>
-              <p className="mt-6 text-xl font-black text-orange-600 uppercase tracking-widest">Relâchez pour importer les notes</p>
-              <p className="text-orange-400 font-bold text-sm">Fichier CSV uniquement</p>
+              <p className="mt-8 text-2xl font-black text-white uppercase tracking-widest">Déposez votre fichier ici</p>
+              <div className="mt-4 px-6 py-2 bg-white/20 rounded-full border border-white/30">
+                <p className="text-white text-xs font-bold uppercase tracking-tighter">Mise à jour automatique des points de la promotion</p>
+              </div>
             </div>
           )}
           
