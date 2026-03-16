@@ -149,7 +149,9 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         attendance: s.attendance || 0,
         grade: s.grade || 0,
         totalSessions: s.totalSessions || 0,
-        presentCount: s.presentCount || 0
+        presentCount: s.presentCount || 0,
+        isComplement: s.isComplement,
+        isCompleted: s.isCompleted
       }));
       setStudents(formattedStudents);
     } catch (error) {
@@ -1088,7 +1090,21 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                             <div className="w-10 h-10 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 font-bold">
                               {student.name.charAt(0)}
                             </div>
-                            <span className="font-bold text-gray-900">{student.name}</span>
+                             <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-gray-900">{student.name}</span>
+                                {student.isComplement && (
+                                  <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[9px] font-black uppercase tracking-wider border border-purple-100">
+                                    Complément
+                                  </span>
+                                )}
+                              </div>
+                              {student.isCompleted && (
+                                <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" /> Cours déjà validé
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-8 py-5 text-gray-500 font-bold">{student.matricule}</td>
@@ -1773,7 +1789,19 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                               {student.name.charAt(0)}
                             </div>
                             <div>
-                              <div className="font-bold text-gray-900">{student.name}</div>
+                              <div className="flex items-center gap-2">
+                                <div className="font-bold text-gray-900">{student.name}</div>
+                                {student.isComplement && (
+                                  <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[8px] font-black uppercase tracking-wider border border-purple-100">
+                                    Complément
+                                  </span>
+                                )}
+                                {student.isCompleted && (
+                                  <div className="flex items-center gap-1 text-[8px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
+                                    <CheckCircle2 className="w-2.5 h-2.5" /> TERMINÉ
+                                  </div>
+                                )}
+                              </div>
                               <div className="text-xs text-gray-400 font-bold uppercase">{student.matricule}</div>
                             </div>
                           </div>

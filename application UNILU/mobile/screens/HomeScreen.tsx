@@ -67,6 +67,8 @@ interface CourseStats {
     nextSession?: string;
     status?: 'ACTIVE' | 'FINISHED';
     courseProgress?: number;
+    isComplement?: boolean;
+    isCompleted?: boolean;
 }
 
 const getAttendanceColor = (percentage: number) => {
@@ -818,20 +820,19 @@ export function HomeScreen({ onLogout, onOpenScanner, onOpenProfilePhoto, overri
                                             {displayPct}%
                                         </Text>
                                     </View>
-                                    <Text style={styles.statCourseName} numberOfLines={1}>{stat.name}</Text>
-                                    {isFinished ? (
+                                    {isFinished || stat.isCompleted ? (
                                         <View style={{ backgroundColor: '#d1fae5', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, marginTop: 2 }}>
-                                            <Text style={{ color: '#065f46', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>{'\u2713 COURS TERMIN\u00c9'}</Text>
+                                            <Text style={{ color: '#065f46', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>{'\u2713 TERMIN\u00c9'}</Text>
                                         </View>
                                     ) : (
                                         <View style={styles.statFooterRow}>
                                             <Text style={styles.statDetails}>
                                                 {stat.attendedCount || 0}/{stat.totalCount || 0} p.
                                             </Text>
-                                            {stat.courseProgress !== undefined && (
-                                                <Text style={[styles.statProgressLabel, { color: '#0d9488' }]}>
-                                                    {stat.courseProgress}% pg.
-                                                </Text>
+                                            {stat.isComplement && (
+                                                <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 4 }}>
+                                                    <Text style={{ color: '#d97706', fontSize: 8, fontWeight: 'bold' }}>COMPL.</Text>
+                                                </View>
                                             )}
                                         </View>
                                     )}
@@ -1051,11 +1052,18 @@ export function HomeScreen({ onLogout, onOpenScanner, onOpenProfilePhoto, overri
                                 <View style={styles.courseRowInfo}>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                         <Text style={[styles.courseRowName, { flex: 1, marginRight: 8 }]}>{course.name}</Text>
-                                        {isFinished && (
-                                            <View style={{ backgroundColor: '#d1fae5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-                                                <Text style={{ color: '#065f46', fontSize: 8, fontWeight: '900' }}>TERMINÉ</Text>
-                                            </View>
-                                        )}
+                                        <View style={{ flexDirection: 'row', gap: 4 }}>
+                                            {course.isComplement && (
+                                                <View style={{ backgroundColor: '#fff7ed', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: '#ffedd5' }}>
+                                                    <Text style={{ color: '#c2410c', fontSize: 8, fontWeight: '900' }}>COMPLÉMENT</Text>
+                                                </View>
+                                            )}
+                                            {(isFinished || course.isCompleted) && (
+                                                <View style={{ backgroundColor: '#d1fae5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                                                    <Text style={{ color: '#065f46', fontSize: 8, fontWeight: '900' }}>TERMINÉ</Text>
+                                                </View>
+                                            )}
+                                        </View>
                                     </View>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                         <Text style={styles.courseRowMeta}>
@@ -1750,129 +1758,141 @@ export function HomeScreen({ onLogout, onOpenScanner, onOpenProfilePhoto, overri
                                     <View style={styles.metricDivider} />
                                 )}
 
-                                <View style={styles.statMetric}>
-                                    <Text style={styles.metricValue}>{selectedCourse.attendedCount}/{selectedCourse.totalCount}</Text>
-                                    <Text style={styles.metricLabel}>Cours suivis</Text>
-                                </View>
-                            </View>
-
-                            <Text style={styles.sessionHistoryTitle}>Communications du cours</Text>
-                            <View style={styles.courseNotifsList}>
-                                {(dashboardData?.announcements || []).filter((n: any) => n.course === selectedCourse.name || n.courseId === selectedCourse.id).map((notif: any) => (
-                                    <View key={notif.id} style={[styles.courseNotifItem, { borderLeftColor: selectedCourse.color }]}>
-                                        <Text style={styles.courseNotifTitle}>{notif.title}</Text>
-                                        <Text style={styles.courseNotifDesc}>{notif.content}</Text>
-                                        <Text style={styles.courseNotifDate}>{new Date(notif.date).toLocaleDateString()}</Text>
-                                    </View>
-                                ))}
-                                {(dashboardData?.announcements || []).filter((n: any) => n.course === selectedCourse.name || n.courseId === selectedCourse.id).length === 0 && (
-                                    <Text style={styles.noNotifText}>Aucune annonce pour ce cours.</Text>
-                                )}
-                            </View>
-
-                            <Text style={[styles.sessionHistoryTitle, { marginTop: 20 }]}>Historique de présence</Text>
-                            <ScrollView showsVerticalScrollIndicator={false}>
-                                {(dashboardData?.recentAttendance || []).filter((record: any) => {
-                                    // Filter records for this specific course
-                                    return record.courseName === selectedCourse.name;
-                                }).map((record: any) => {
-                                    const info = getStatusInfo(record.status.toLowerCase());
-                                    return (
-                                        <View key={record.id} style={styles.sessionItem}>
-                                            <View style={styles.sessionMain}>
-                                                <Text style={styles.sessionDate}>{new Date(record.date).toLocaleDateString('fr-FR')}</Text>
-                                                <Text style={styles.sessionTime}>{record.time}</Text>
-                                            </View>
-                                            <View style={styles.sessionRight}>
-                                                <Text style={[styles.sessionPoints, { color: info.color }]}>{info.points}</Text>
-                                                <View style={[styles.statusBadge, { backgroundColor: info.bgColor }]}>
-                                                    <Text style={[styles.statusBadgeText, { color: info.color }]}>{info.label}</Text>
-                                                </View>
-                                            </View>
+                                    {selectedCourse.isComplement && (
+                                        <View style={[styles.statMetric, { backgroundColor: '#fff7ed', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }]}>
+                                            <BookOpen size={18} color="#f97316" />
+                                            <Text style={{ color: '#c2410c', fontSize: 9, fontWeight: 'bold', marginTop: 4 }}>COMPLÉMENT</Text>
                                         </View>
-                                    );
-                                })}
-                                {(dashboardData?.recentAttendance || []).filter((record: any) => record.courseName === selectedCourse.name).length === 0 && (
-                                    <Text style={styles.noNotifText}>Aucune présence enregistrée pour ce cours.</Text>
-                                )}
+                                    )}
 
-                                {/* Désinscription section */}
-                                <View style={[styles.cautionSection, { marginTop: 30, marginBottom: 50 }]}>
-                                    {!isUnenrolling ? (
-                                        <TouchableOpacity
-                                            style={styles.unenrollTrigger}
-                                            onPress={() => setIsUnenrolling(true)}
-                                        >
-                                            <Trash2 size={20} color="#ef4444" />
-                                            <Text style={styles.unenrollTriggerText}>Se désinscrire du cours</Text>
-                                        </TouchableOpacity>
-                                    ) : !showUnenrollAuth ? (
-                                        <LinearGradient colors={['#fff', '#fff1f2']} style={styles.unenrollConfirmCard}>
-                                            <View style={styles.cautionIconContainer}>
-                                                <AlertCircle size={24} color="#ef4444" />
-                                                <Text style={styles.cautionTitle}>Désinscription</Text>
-                                            </View>
-                                            <Text style={styles.cautionText}>
-                                                Cette action entraînera :
-                                                {'\n'}• La suppression de vos statistiques de présence.
-                                                {'\n'}• Le retrait immédiat du cours de votre planning.
-                                                {'\n'}• L'impossibilité de scanner votre présence.
-                                            </Text>
-                                            <View style={styles.cautionActions}>
-                                                <TouchableOpacity
-                                                    style={styles.cautionCancel}
-                                                    onPress={() => setIsUnenrolling(false)}
-                                                >
-                                                    <Text style={styles.cautionCancelText}>Annuler</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={[styles.cautionConfirm, { backgroundColor: '#ef4444' }]}
-                                                    onPress={() => setShowUnenrollAuth(true)}
-                                                >
-                                                    <Text style={styles.cautionConfirmText}>Continuer</Text>
-                                                </TouchableOpacity>
-                                            </View>
-                                        </LinearGradient>
+                                    {selectedCourse.isCompleted || selectedCourse.status === 'FINISHED' ? (
+                                        <View style={[styles.statMetric, { backgroundColor: '#f0fdf4', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }]}>
+                                            <CheckCircle size={20} color="#10b981" />
+                                            <Text style={{ color: '#065f46', fontSize: 9, fontWeight: 'bold', marginTop: 4 }}>COURS TERMINÉ</Text>
+                                        </View>
                                     ) : (
-                                        <LinearGradient colors={['#fff', '#f0fdfa']} style={styles.unenrollConfirmCard}>
-                                            <View style={styles.cautionIconContainer}>
-                                                <GraduationCap size={24} color="#0d9488" />
-                                                <Text style={[styles.cautionTitle, { color: '#0d9488' }]}>Vérification</Text>
-                                            </View>
-                                            <Text style={[styles.cautionText, { color: '#64748b' }]}>
-                                                Pour confirmer votre désinscription de ce cours, veuillez saisir votre mot de passe étudiant.
-                                            </Text>
-                                            <TextInput
-                                                style={[styles.cautionInput, { borderColor: '#ccfbf1' }]}
-                                                placeholder="Saisissez votre mot de passe"
-                                                secureTextEntry
-                                                value={unenrollPassword}
-                                                onChangeText={setUnenrollPassword}
-                                                autoFocus
-                                            />
-                                            <View style={styles.cautionActions}>
-                                                <TouchableOpacity
-                                                    style={styles.cautionCancel}
-                                                    onPress={() => setShowUnenrollAuth(false)}
-                                                >
-                                                    <Text style={styles.cautionCancelText}>Retour</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={[styles.cautionConfirm, !unenrollPassword && { opacity: 0.5 }]}
-                                                    onPress={handleUnenroll}
-                                                    disabled={!unenrollPassword || isEnrolling}
-                                                >
-                                                    {isEnrolling ? <ActivityIndicator color="white" size="small" /> : <Text style={styles.cautionConfirmText}>Désinscrire</Text>}
-                                                </TouchableOpacity>
-                                            </View>
-                                        </LinearGradient>
+                                        <View style={styles.metricDivider} />
+                                    )}
+
+                                    <View style={styles.statMetric}>
+                                        <Text style={styles.metricValue}>{selectedCourse.attendedCount}/{selectedCourse.totalCount}</Text>
+                                        <Text style={styles.metricLabel}>Cours suivis</Text>
+                                    </View>
+                                </View>
+
+                                <Text style={styles.sessionHistoryTitle}>Communications du cours</Text>
+                                <View style={styles.courseNotifsList}>
+                                    {(dashboardData?.announcements || []).filter((n: any) => n.course === selectedCourse.name || n.courseId === selectedCourse.id).map((notif: any) => (
+                                        <View key={notif.id} style={[styles.courseNotifItem, { borderLeftColor: selectedCourse.color }]}>
+                                            <Text style={styles.courseNotifTitle}>{notif.title}</Text>
+                                            <Text style={styles.courseNotifDesc}>{notif.content}</Text>
+                                            <Text style={styles.courseNotifDate}>{new Date(notif.date).toLocaleDateString()}</Text>
+                                        </View>
+                                    ))}
+                                    {(dashboardData?.announcements || []).filter((n: any) => n.course === selectedCourse.name || n.courseId === selectedCourse.id).length === 0 && (
+                                        <Text style={styles.noNotifText}>Aucune annonce pour ce cours.</Text>
                                     )}
                                 </View>
-                            </ScrollView>
-                        </SafeAreaView>
-                    </Animated.View>
-                )
-            }
+
+                                <Text style={[styles.sessionHistoryTitle, { marginTop: 20 }]}>Historique de présence</Text>
+                                <ScrollView showsVerticalScrollIndicator={false}>
+                                    {(dashboardData?.recentAttendance || []).filter((record: any) => {
+                                        // Filter records for this specific course
+                                        return record.courseName === selectedCourse.name;
+                                    }).map((record: any) => {
+                                        const info = getStatusInfo(record.status.toLowerCase());
+                                        return (
+                                            <View key={record.id} style={styles.sessionItem}>
+                                                <View style={styles.sessionMain}>
+                                                    <Text style={styles.sessionDate}>{new Date(record.date).toLocaleDateString('fr-FR')}</Text>
+                                                    <Text style={styles.sessionTime}>{record.time}</Text>
+                                                </View>
+                                                <View style={styles.sessionRight}>
+                                                    <Text style={[styles.sessionPoints, { color: info.color }]}>{info.points}</Text>
+                                                    <View style={[styles.statusBadge, { backgroundColor: info.bgColor }]}>
+                                                        <Text style={[styles.statusBadgeText, { color: info.color }]}>{info.label}</Text>
+                                                    </View>
+                                                </View>
+                                            </View>
+                                        );
+                                    })}
+                                    {(dashboardData?.recentAttendance || []).filter((record: any) => record.courseName === selectedCourse.name).length === 0 && (
+                                        <Text style={styles.noNotifText}>Aucune présence enregistrée pour ce cours.</Text>
+                                    )}
+
+                                    {/* Désinscription section */}
+                                    <View style={[styles.cautionSection, { marginTop: 30, marginBottom: 50 }]}>
+                                        {!isUnenrolling ? (
+                                            <TouchableOpacity
+                                                style={styles.unenrollTrigger}
+                                                onPress={() => setIsUnenrolling(true)}
+                                            >
+                                                <Trash2 size={20} color="#ef4444" />
+                                                <Text style={styles.unenrollTriggerText}>Se désinscrire du cours</Text>
+                                            </TouchableOpacity>
+                                        ) : !showUnenrollAuth ? (
+                                            <LinearGradient colors={['#fff', '#fff1f2']} style={styles.unenrollConfirmCard}>
+                                                <View style={styles.cautionIconContainer}>
+                                                    <AlertCircle size={24} color="#ef4444" />
+                                                    <Text style={styles.cautionTitle}>Désinscription</Text>
+                                                </View>
+                                                <Text style={styles.cautionText}>
+                                                    Cette action entraînera :
+                                                    {'\n'}• La suppression de vos statistiques de présence.
+                                                    {'\n'}• Le retrait immédiat du cours de votre planning.
+                                                    {'\n'}• L'impossibilité de scanner votre présence.
+                                                </Text>
+                                                <View style={styles.cautionActions}>
+                                                    <TouchableOpacity
+                                                        style={styles.cautionCancel}
+                                                        onPress={() => setIsUnenrolling(false)}
+                                                    >
+                                                        <Text style={styles.cautionCancelText}>Annuler</Text>
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={[styles.cautionConfirm, { backgroundColor: '#ef4444' }]}
+                                                        onPress={() => setShowUnenrollAuth(true)}
+                                                    >
+                                                        <Text style={styles.cautionConfirmText}>Continuer</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </LinearGradient>
+                                        ) : (
+                                            <LinearGradient colors={['#fff', '#f0fdfa']} style={styles.unenrollConfirmCard}>
+                                                <View style={styles.cautionIconContainer}>
+                                                    <GraduationCap size={24} color="#0d9488" />
+                                                    <Text style={[styles.cautionTitle, { color: '#0d9488' }]}>Vérification</Text>
+                                                </View>
+                                                <Text style={[styles.cautionText, { color: '#64748b' }]}>
+                                                    Pour confirmer votre désinscription de ce cours, veuillez saisir votre mot de passe étudiant.
+                                                </Text>
+                                                <TextInput
+                                                    style={[styles.cautionInput, { borderColor: '#ccfbf1' }]}
+                                                    placeholder="Saisissez votre mot de passe"
+                                                    secureTextEntry
+                                                    value={unenrollPassword}
+                                                    onChangeText={setUnenrollPassword}
+                                                    autoFocus
+                                                />
+                                                <View style={styles.cautionActions}>
+                                                    <TouchableOpacity
+                                                        style={styles.cautionCancel}
+                                                        onPress={() => setShowUnenrollAuth(false)}
+                                                    >
+                                                        <Text style={styles.cautionCancelText}>Retour</Text>
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={[styles.cautionConfirm, !unenrollPassword && { opacity: 0.5 }]}
+                                                        onPress={handleUnenroll}
+                                                        disabled={!unenrollPassword || isEnrolling}
+                                                    >
+                                                        {isEnrolling ? <ActivityIndicator color="white" size="small" /> : <Text style={styles.cautionConfirmText}>Désinscrire</Text>}
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </LinearGradient>
+                                        )}
+                                    </View>
+                                </ScrollView>
 
             {/* Full Stats Overlay */}
             {

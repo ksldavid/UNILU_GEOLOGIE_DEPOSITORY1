@@ -178,10 +178,11 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
                 courseCode: cCode,
                 courseName: courseMap.get(cCode) || cCode,
                 academicLevel: level,
-                attendance: attendanceRate,
                 grade: averageGrade,
                 totalSessions: courseSessions.length,
                 presentCount,
+                isComplement: enrollment.isComplement || false,
+                isCompleted: enrollment.isCompleted || false,
                 todayStatus: (todayStatus && todayStatus.courseCode === cCode) ? todayStatus.status.toLowerCase() : null
             };
         });

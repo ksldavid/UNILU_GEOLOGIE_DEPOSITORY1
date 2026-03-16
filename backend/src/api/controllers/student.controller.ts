@@ -71,7 +71,9 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
                     percentage,
                     totalCount,
                     attendedCount: Math.round(attendedCount),
-                    color
+                    color,
+                    isComplement: enrollment.isComplement,
+                    isCompleted: enrollment.isCompleted
                 }
             })
         )
@@ -369,7 +371,9 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
                 percentage: personalPercentage,
                 attendance: personalPercentage,
                 courseProgress: Math.round(Math.min(100, progress)),
-                status: isFinished ? 'FINISHED' : 'ACTIVE'
+                status: isFinished ? 'FINISHED' : 'ACTIVE',
+                isComplement: e.isComplement,
+                isCompleted: e.isCompleted || isFinished
             };
         });
 
@@ -505,7 +509,11 @@ export const getStudentCourseDetails = async (req: AuthRequest, res: Response) =
                 submissionUrl: a.submissions[0]?.fileUrl,
                 status: a.isPublished ? 'PUBLISHED' : 'LAUNCHED'
             })),
-            isFinished: course.enrollments.some((en: any) => en.role === 'PROFESSOR' && en.status === 'FINISHED')
+            isFinished: course.enrollments.some((en: any) => en.role === 'PROFESSOR' && en.status === 'FINISHED'),
+            studentStatus: {
+                isComplement: allEnrollments[courseIndex]?.isComplement || false,
+                isCompleted: allEnrollments[courseIndex]?.isCompleted || false
+            }
         });
 
     } catch (error) {

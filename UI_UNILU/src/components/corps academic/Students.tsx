@@ -1,4 +1,4 @@
-import { Search, ChevronDown, Eye, Trash2, X } from "lucide-react";
+import { Search, ChevronDown, Eye, Trash2, X, CheckCircle2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { professorService } from "../../services/professor";
 
@@ -173,8 +173,22 @@ export function Students() {
             <tbody className="divide-y divide-gray-200">
               {filteredStudents.map((student, idx) => (
                 <tr key={`${student.id}-${idx}`} className="hover:bg-teal-50/30 transition-colors group">
-                  <td className="px-8 py-5 text-gray-900 font-medium">
-                    {student.name}
+                  <td className="px-8 py-5">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-900 font-medium">{student.name}</span>
+                        {student.isComplement && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-100">
+                            PL
+                          </span>
+                        )}
+                      </div>
+                      {student.isCompleted && (
+                        <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
+                          <CheckCircle2 className="w-3 h-3" /> Terminé
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-8 py-5 text-gray-500 font-mono text-sm">
                     {student.id}

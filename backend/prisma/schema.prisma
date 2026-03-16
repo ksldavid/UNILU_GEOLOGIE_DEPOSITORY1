@@ -340,8 +340,10 @@ model StudentCourseEnrollment {
   enrolledAt   DateTime @default(now())
 
   // Status management
-  isActive    Boolean   @default(true)
-  withdrawnAt DateTime?
+  isActive     Boolean   @default(true)
+  isComplement Boolean   @default(false)
+  isCompleted  Boolean   @default(false)
+  withdrawnAt  DateTime?
 
   user   User   @relation(fields: [userId], references: [id])
   course Course @relation(fields: [courseCode], references: [code])
