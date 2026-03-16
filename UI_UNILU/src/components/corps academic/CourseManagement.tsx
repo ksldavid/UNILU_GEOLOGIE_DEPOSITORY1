@@ -1099,14 +1099,14 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                                     <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[9px] font-black uppercase tracking-wider border border-purple-100">
                                       Complément
                                     </span>
-                                    <span className="text-[10px] text-purple-400 font-bold uppercase">
+                                    <span className="text-[10px] text-purple-600 font-bold uppercase">
                                       {student.academicLevel}
                                     </span>
                                   </div>
                                 ) : (
                                   <span className={`text-[10px] font-bold uppercase mt-1 ${
-                                    (student.academicLevel?.includes('Licence 3') || student.academicLevel?.includes('B3'))
-                                    ? 'text-purple-400'
+                                    (student.academicLevel?.toLowerCase().includes('licence 3') || student.academicLevel?.toLowerCase().includes('b3'))
+                                    ? 'text-purple-600'
                                     : 'text-gray-400'
                                   }`}>
                                     {student.academicLevel}
@@ -1810,14 +1810,14 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                                     <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[8px] font-black uppercase tracking-wider border border-purple-100">
                                       Complément
                                     </span>
-                                    <span className="text-[10px] text-purple-400 font-bold uppercase">
+                                    <span className="text-[10px] text-purple-600 font-bold uppercase">
                                       {student.academicLevel}
                                     </span>
                                   </div>
                                 ) : (
                                   <span className={`text-[10px] font-bold uppercase mt-1 ${
-                                    (student.academicLevel?.includes('Licence 3') || student.academicLevel?.includes('B3'))
-                                    ? 'text-purple-400'
+                                    (student.academicLevel?.toLowerCase().includes('licence 3') || student.academicLevel?.toLowerCase().includes('b3'))
+                                    ? 'text-purple-600'
                                     : 'text-gray-400'
                                   }`}>
                                     {student.academicLevel}
