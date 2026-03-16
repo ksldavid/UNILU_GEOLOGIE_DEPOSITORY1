@@ -1094,7 +1094,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                              <div className="flex flex-col">
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-gray-900">{student.name}</span>
-                                {student.isComplement && (
+                                {student.isComplement ? (
                                   <div className="flex items-center gap-1.5 mt-1">
                                     <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[9px] font-black uppercase tracking-wider border border-purple-100">
                                       Complément
@@ -1103,6 +1103,10 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                                       {student.academicLevel}
                                     </span>
                                   </div>
+                                ) : (
+                                  <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">
+                                    {student.academicLevel}
+                                  </span>
                                 )}
                               </div>
                               {student.isCompleted && (
@@ -1797,7 +1801,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                             <div>
                               <div className="flex items-center gap-2">
                                 <div className="font-bold text-gray-900">{student.name}</div>
-                                {student.isComplement && (
+                                {student.isComplement ? (
                                   <div className="flex items-center gap-1.5 mt-1">
                                     <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[8px] font-black uppercase tracking-wider border border-purple-100">
                                       Complément
@@ -1806,6 +1810,10 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                                       {student.academicLevel}
                                     </span>
                                   </div>
+                                ) : (
+                                  <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">
+                                    {student.academicLevel}
+                                  </span>
                                 )}
                                 {student.isCompleted && (
                                   <div className="flex items-center gap-1 text-[8px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
