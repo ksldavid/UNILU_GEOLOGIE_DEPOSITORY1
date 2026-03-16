@@ -1094,7 +1094,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                              <div className="flex flex-col">
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-gray-900">{student.name}</span>
-                                {(student.isComplement || student.academicLevel?.toLowerCase().includes('licence 3') || student.academicLevel?.toLowerCase().includes('b3')) ? (
+                                {student.isComplement ? (
                                   <div className="flex items-center gap-1.5 mt-1">
                                     <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[9px] font-black uppercase tracking-wider border border-purple-100">
                                       Complément
@@ -1805,7 +1805,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                             <div>
                               <div className="flex items-center gap-2">
                                 <div className="font-bold text-gray-900">{student.name}</div>
-                                {(student.isComplement || student.academicLevel?.toLowerCase().includes('licence 3') || student.academicLevel?.toLowerCase().includes('b3')) ? (
+                                {student.isComplement ? (
                                   <div className="flex items-center gap-1.5 mt-1">
                                     <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[8px] font-black uppercase tracking-wider border border-purple-100">
                                       Complément

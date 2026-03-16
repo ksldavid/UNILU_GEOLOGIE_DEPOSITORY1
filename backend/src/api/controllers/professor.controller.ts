@@ -143,7 +143,7 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
             });
         });
  
-        // 5a. Get Students Actual Academic Levels for the current year
+        // 4. Get actual student levels for the current year (to detect true complements)
         const currentYear = "2025-2026";
         const studentIds = studentEnrollments.map(e => e.user.id);
         const actualStudentLevels = await prisma.studentEnrollment.findMany({
@@ -153,7 +153,12 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
             },
             include: { academicLevel: true }
         });
-        const studentLevelMap = new Map(actualStudentLevels.map(sl => [sl.userId, sl.academicLevel.name]));
+        
+        // Map student ID to their full level info (name and order)
+        const studentLevelInfoMap = new Map(actualStudentLevels.map(sl => [
+            sl.userId, 
+            { name: sl.academicLevel.name, order: sl.academicLevel.order }
+        ]));
 
         // 6. Format response with stats
         const students = studentEnrollments.map(enrollment => {
@@ -181,7 +186,14 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
                 averageGrade = parseFloat((totalNormalized / studentGrades.length).toFixed(1));
             }
 
-            const actualLevel = studentLevelMap.get(studentId) || enrollment.course.academicLevels[0]?.name || 'Niveau Inconnu';
+            const studentLevelInfo = studentLevelInfoMap.get(studentId);
+            const actualLevel = studentLevelInfo?.name || enrollment.course.academicLevels[0]?.name || 'Niveau Inconnu';
+            const studentLevelOrder = studentLevelInfo?.order || 0;
+
+            // Rule: If Student Level Order > any Course Level Order, it's a complement
+            const courseMaxOrder = enrollment.course.academicLevels.reduce((max: number, al: any) => Math.max(max, al.order), -1);
+            const isLogicalComplement = studentLevelOrder > courseMaxOrder;
+
             const todayStatus = todayAttendanceMap.get(studentId);
 
             return {
@@ -193,7 +205,7 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
                 grade: averageGrade,
                 totalSessions: courseSessions.length,
                 presentCount,
-                isComplement: enrollment.isComplement || false,
+                isComplement: isLogicalComplement, // Logic: Student Rank > Course Rank
                 isCompleted: enrollment.isCompleted || false,
                 todayStatus: (todayStatus && todayStatus.courseCode === cCode) ? todayStatus.status.toLowerCase() : null
             };
@@ -979,21 +991,25 @@ export const enrollStudent = async (req: AuthRequest, res: Response) => {
         // Current academic year
         const academicYear = "2025-2026";
 
-        // Detect if it's a complement (student level vs course level)
-        const [studentLevel, courseLevels] = await Promise.all([
+        // Detect if it's a complement (logical rule: student level order > course level orders)
+        const [studentEnrollment, course] = await Promise.all([
             prisma.studentEnrollment.findFirst({
                 where: { userId: studentId, academicYear },
-                select: { academicLevelId: true }
+                include: { academicLevel: true }
             }),
             prisma.course.findUnique({
                 where: { code: courseCode },
-                select: { academicLevels: { select: { id: true } } }
+                select: { academicLevels: { select: { id: true, order: true } } }
             })
         ]);
 
-        const isComplement = studentLevel && courseLevels 
-            ? !courseLevels.academicLevels.some(al => al.id === studentLevel.academicLevelId)
-            : false;
+        if (!course) {
+            return res.status(404).json({ message: "Cours non trouvé." });
+        }
+
+        const studentLevelOrder = studentEnrollment?.academicLevel?.order || 0;
+        const courseMaxOrder = course.academicLevels.reduce((max: number, al: { order: number }) => Math.max(max, al.order), -1);
+        const isComplement = studentLevelOrder > courseMaxOrder;
 
         const enrollment = await prisma.studentCourseEnrollment.upsert({
             where: {
