@@ -1104,7 +1104,11 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                                     </span>
                                   </div>
                                 ) : (
-                                  <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">
+                                  <span className={`text-[10px] font-bold uppercase mt-1 ${
+                                    (student.academicLevel?.includes('Licence 3') || student.academicLevel?.includes('B3'))
+                                    ? 'text-purple-400'
+                                    : 'text-gray-400'
+                                  }`}>
                                     {student.academicLevel}
                                   </span>
                                 )}
@@ -1811,7 +1815,11 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                                     </span>
                                   </div>
                                 ) : (
-                                  <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">
+                                  <span className={`text-[10px] font-bold uppercase mt-1 ${
+                                    (student.academicLevel?.includes('Licence 3') || student.academicLevel?.includes('B3'))
+                                    ? 'text-purple-400'
+                                    : 'text-gray-400'
+                                  }`}>
                                     {student.academicLevel}
                                   </span>
                                 )}
