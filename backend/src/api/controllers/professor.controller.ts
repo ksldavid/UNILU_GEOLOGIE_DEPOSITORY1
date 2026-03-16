@@ -142,6 +142,18 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
                 courseCode: record.session.courseCode
             });
         });
+ 
+        // 5a. Get Students Actual Academic Levels for the current year
+        const currentYear = "2025-2026";
+        const studentIds = studentEnrollments.map(e => e.user.id);
+        const actualStudentLevels = await prisma.studentEnrollment.findMany({
+            where: {
+                userId: { in: studentIds },
+                academicYear: currentYear
+            },
+            include: { academicLevel: true }
+        });
+        const studentLevelMap = new Map(actualStudentLevels.map(sl => [sl.userId, sl.academicLevel.name]));
 
         // 6. Format response with stats
         const students = studentEnrollments.map(enrollment => {
@@ -169,7 +181,7 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
                 averageGrade = parseFloat((totalNormalized / studentGrades.length).toFixed(1));
             }
 
-            const level = enrollment.course.academicLevels[0]?.name || 'Niveau Inconnu';
+            const actualLevel = studentLevelMap.get(studentId) || enrollment.course.academicLevels[0]?.name || 'Niveau Inconnu';
             const todayStatus = todayAttendanceMap.get(studentId);
 
             return {
@@ -177,7 +189,7 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
                 name: enrollment.user.name,
                 courseCode: cCode,
                 courseName: courseMap.get(cCode) || cCode,
-                academicLevel: level,
+                academicLevel: actualLevel,
                 grade: averageGrade,
                 totalSessions: courseSessions.length,
                 presentCount,
@@ -964,8 +976,24 @@ export const enrollStudent = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
         }
 
-        // Current academic year (should be dynamic)
-        const academicYear = "2024-2025";
+        // Current academic year
+        const academicYear = "2025-2026";
+
+        // Detect if it's a complement (student level vs course level)
+        const [studentLevel, courseLevels] = await Promise.all([
+            prisma.studentEnrollment.findFirst({
+                where: { userId: studentId, academicYear },
+                select: { academicLevelId: true }
+            }),
+            prisma.course.findUnique({
+                where: { code: courseCode },
+                select: { academicLevels: { select: { id: true } } }
+            })
+        ]);
+
+        const isComplement = studentLevel && courseLevels 
+            ? !courseLevels.academicLevels.some(al => al.id === studentLevel.academicLevelId)
+            : false;
 
         const enrollment = await prisma.studentCourseEnrollment.upsert({
             where: {
@@ -977,13 +1005,15 @@ export const enrollStudent = async (req: AuthRequest, res: Response) => {
             },
             update: {
                 isActive: true,
+                isComplement, // Mise à jour auto
                 withdrawnAt: null
             },
             create: {
                 userId: studentId,
                 courseCode,
                 academicYear,
-                isActive: true
+                isActive: true,
+                isComplement // Détection auto
             }
         });
 

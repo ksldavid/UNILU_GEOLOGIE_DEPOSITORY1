@@ -151,7 +151,8 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         totalSessions: s.totalSessions || 0,
         presentCount: s.presentCount || 0,
         isComplement: s.isComplement,
-        isCompleted: s.isCompleted
+        isCompleted: s.isCompleted,
+        academicLevel: s.academicLevel
       }));
       setStudents(formattedStudents);
     } catch (error) {
@@ -1094,9 +1095,14 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-gray-900">{student.name}</span>
                                 {student.isComplement && (
-                                  <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[9px] font-black uppercase tracking-wider border border-purple-100">
-                                    Complément
-                                  </span>
+                                  <div className="flex items-center gap-1.5 mt-1">
+                                    <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[9px] font-black uppercase tracking-wider border border-purple-100">
+                                      Complément
+                                    </span>
+                                    <span className="text-[10px] text-purple-400 font-bold uppercase">
+                                      {student.academicLevel}
+                                    </span>
+                                  </div>
                                 )}
                               </div>
                               {student.isCompleted && (
@@ -1792,9 +1798,14 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                               <div className="flex items-center gap-2">
                                 <div className="font-bold text-gray-900">{student.name}</div>
                                 {student.isComplement && (
-                                  <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[8px] font-black uppercase tracking-wider border border-purple-100">
-                                    Complément
-                                  </span>
+                                  <div className="flex items-center gap-1.5 mt-1">
+                                    <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[8px] font-black uppercase tracking-wider border border-purple-100">
+                                      Complément
+                                    </span>
+                                    <span className="text-[10px] text-purple-400 font-bold uppercase">
+                                      {student.academicLevel}
+                                    </span>
+                                  </div>
                                 )}
                                 {student.isCompleted && (
                                   <div className="flex items-center gap-1 text-[8px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
