@@ -523,6 +523,33 @@ export const deleteAttendanceSession = async (req: AuthRequest, res: Response) =
 };
 
 /**
+ * Logique interne pour générer un nouveau token secret hebdomadaire.
+ */
+async function internalRotateOfflineToken() {
+    const token = crypto.randomBytes(32).toString('hex');
+
+    // Expiration : prochain lundi à minuit (heure de Lubumbashi UTC+2)
+    const now = new Date();
+    const lubumbashi = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    const daysUntilNextMonday = (8 - lubumbashi.getDay()) % 7 || 7;
+    const nextMonday = new Date(lubumbashi);
+    nextMonday.setDate(lubumbashi.getDate() + daysUntilNextMonday);
+    nextMonday.setHours(0, 0, 0, 0);
+    const expiresAt = new Date(nextMonday.getTime() - 2 * 60 * 60 * 1000); // Reconvertir en UTC
+
+    // Désactiver l'ancien token
+    await (prisma as any).offlineToken.updateMany({
+        where: { isActive: true },
+        data: { isActive: false }
+    });
+
+    // Créer le nouveau
+    return await (prisma as any).offlineToken.create({
+        data: { token, expiresAt, isActive: true }
+    });
+}
+
+/**
  * [ADMIN] Génère un nouveau token offline hebdomadaire (chaque lundi à minuit via cron ou manuellement).
  */
 export const rotateOfflineToken = async (req: AuthRequest, res: Response) => {
@@ -532,29 +559,8 @@ export const rotateOfflineToken = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: 'Accès refusé' });
         }
 
-        const token = crypto.randomBytes(32).toString('hex');
-
-        // Expiration : prochain lundi à minuit (heure de Lubumbashi UTC+2)
-        const now = new Date();
-        const lubumbashi = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-        const daysUntilNextMonday = (8 - lubumbashi.getDay()) % 7 || 7;
-        const nextMonday = new Date(lubumbashi);
-        nextMonday.setDate(lubumbashi.getDate() + daysUntilNextMonday);
-        nextMonday.setHours(0, 0, 0, 0);
-        const expiresAt = new Date(nextMonday.getTime() - 2 * 60 * 60 * 1000); // Reconvertir en UTC
-
-        // Désactiver l'ancien token
-        await (prisma as any).offlineToken.updateMany({
-            where: { isActive: true },
-            data: { isActive: false }
-        });
-
-        // Créer le nouveau
-        const newToken = await (prisma as any).offlineToken.create({
-            data: { token, expiresAt, isActive: true }
-        });
-
-        console.log(`[OFFLINE TOKEN] Nouveau token généré, expire le ${expiresAt.toISOString()}`);
+        const newToken = await internalRotateOfflineToken();
+        console.log(`[OFFLINE TOKEN] Nouveau token généré par Admin, expire le ${newToken.expiresAt.toISOString()}`);
 
         res.json({
             message: 'Token offline généré avec succès',
@@ -575,13 +581,14 @@ export const getOfflineToken = async (req: AuthRequest, res: Response) => {
         const userId = req.user?.userId;
         if (!userId) return res.status(401).json({ message: 'Non authentifié' });
 
-        const activeToken = await (prisma as any).offlineToken.findFirst({
+        let activeToken = await (prisma as any).offlineToken.findFirst({
             where: { isActive: true, expiresAt: { gt: new Date() } },
             orderBy: { createdAt: 'desc' }
         });
 
         if (!activeToken) {
-            return res.status(404).json({ message: "Aucun token offline disponible. Contactez l'administration." });
+            console.log('[OfflineToken] Aucun token actif trouvé, génération automatique...');
+            activeToken = await internalRotateOfflineToken();
         }
 
         res.json({

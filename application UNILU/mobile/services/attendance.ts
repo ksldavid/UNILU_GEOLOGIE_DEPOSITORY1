@@ -13,17 +13,23 @@ const OFFLINE_SCANS_KEY = 'offline_scans';
  * Télécharge et stocke le token offline depuis le serveur.
  * À appeler à chaque connexion de l'étudiant.
  */
-export const refreshOfflineToken = async (): Promise<void> => {
+export const refreshOfflineToken = async (): Promise<boolean> => {
     try {
+        console.log('[OfflineToken] Tentative de rafraîchissement...');
         const result = await apiFetch('/attendance/offline-token');
+        if (!result || !result.token) throw new Error('Format de réponse invalide');
+        
+        const now = new Date();
         await AsyncStorage.setItem(OFFLINE_TOKEN_KEY, JSON.stringify({
             token: result.token,
             expiresAt: result.expiresAt,
-            fetchedAt: new Date().toISOString()
+            fetchedAt: now.toISOString()
         }));
-        console.log('[OfflineToken] Token mis à jour, expire le', result.expiresAt);
-    } catch (error) {
-        console.warn('[OfflineToken] Impossible de mettre à jour le token offline:', error);
+        console.log('[OfflineToken] Token mis à jour avec succès : expire le', result.expiresAt);
+        return true;
+    } catch (error: any) {
+        console.warn('[OfflineToken] Échec du rafraîchissement:', error?.message || error);
+        return false;
     }
 };
 
@@ -54,24 +60,43 @@ export const getOfflineTokenStatus = async (): Promise<'ok' | 'warning' | 'expir
         const stored = await AsyncStorage.getItem(OFFLINE_TOKEN_KEY);
         if (!stored) return 'expired';
 
-        const parsed = JSON.parse(stored);
+        let parsed;
+        try {
+            parsed = JSON.parse(stored);
+        } catch {
+            return 'expired';
+        }
+
+        if (!parsed.expiresAt) return 'expired';
+
         const expiresAt = new Date(parsed.expiresAt);
-        const fetchedAt = new Date(parsed.fetchedAt);
         const now = new Date();
 
-        // Expiré
-        if (expiresAt < now) return 'expired';
+        // 1. Vérifier si VRAIMENT expiré (la date de fin est passée)
+        if (isNaN(expiresAt.getTime()) || expiresAt < now) {
+            return 'expired';
+        }
 
-        // Pas mis à jour depuis 7 jours
-        const daysSinceFetch = (now.getTime() - fetchedAt.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSinceFetch >= 7) return 'expired';
-
-        // Expire dans moins de 24h → avertissement
+        // 2. Vérifier si on approche de la fin (moins de 24h)
         const hoursRemaining = (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60);
-        if (hoursRemaining < 24) return 'warning';
+        if (hoursRemaining < 24) {
+            return 'warning';
+        }
+
+        // 3. Vérifier la date du dernier refresh (sécurité supplémentaire, 7 jours)
+        if (parsed.fetchedAt) {
+            const fetchedAt = new Date(parsed.fetchedAt);
+            if (!isNaN(fetchedAt.getTime())) {
+                const daysSinceFetch = (now.getTime() - fetchedAt.getTime()) / (1000 * 60 * 60 * 24);
+                // On passe en warning si pas de refresh depuis 5 jours, expired seulement si 10 jours
+                if (daysSinceFetch >= 10) return 'expired';
+                if (daysSinceFetch >= 5) return 'warning';
+            }
+        }
 
         return 'ok';
-    } catch {
+    } catch (error) {
+        console.error('[OfflineToken] Erreur check status:', error);
         return 'expired';
     }
 };

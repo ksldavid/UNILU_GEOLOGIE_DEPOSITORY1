@@ -22,6 +22,7 @@ export function ScannerScreen({ navigation, deepLinkToken }: any) {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isOfflineSave, setIsOfflineSave] = useState(false);
     const [offlineTokenStatus, setOfflineTokenStatus] = useState<'ok' | 'warning' | 'expired' | null>(null);
+    const [isRefreshingToken, setIsRefreshingToken] = useState(false);
     const scanLineAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -72,9 +73,17 @@ export function ScannerScreen({ navigation, deepLinkToken }: any) {
         (async () => {
             await requestPermission();
             await requestLocationPermission();
-            // Vérifier le statut du token offline
-            const status = await getOfflineTokenStatus();
+
+            // Vérifier le statut initial
+            let status = await getOfflineTokenStatus();
             setOfflineTokenStatus(status);
+
+            // Si expiré ou bientôt expiré, on tante de le rafraîchir (si internet dispo)
+            if (status !== 'ok') {
+                await refreshOfflineToken();
+                const newStatus = await getOfflineTokenStatus();
+                setOfflineTokenStatus(newStatus);
+            }
         })();
     }, []);
 
@@ -84,6 +93,17 @@ export function ScannerScreen({ navigation, deepLinkToken }: any) {
             handleBarCodeScanned({ data: deepLinkToken });
         }
     }, [deepLinkToken]);
+
+    const handleRefreshStatus = async () => {
+        setIsRefreshingToken(true);
+        try {
+            await refreshOfflineToken();
+            const newStatus = await getOfflineTokenStatus();
+            setOfflineTokenStatus(newStatus);
+        } finally {
+            setIsRefreshingToken(false);
+        }
+    };
 
     if (!permission || !locationPermission) {
         return <View style={styles.container}><ActivityIndicator size="large" color="#0d9488" /></View>;
@@ -322,12 +342,25 @@ export function ScannerScreen({ navigation, deepLinkToken }: any) {
                                 styles.urgentBanner,
                                 offlineTokenStatus === 'expired' ? styles.urgentBannerRed : styles.urgentBannerOrange
                             ]}>
-                                <WifiOff color="white" size={16} />
-                                <Text style={styles.urgentBannerText}>
-                                    {offlineTokenStatus === 'expired'
-                                        ? '🔴 URGENT : Votre clé hors-ligne est expirée ! Connectez-vous dès que possible, sinon la prise de présence hors-ligne sera impossible.'
-                                        : '⚠️ Votre clé hors-ligne expire bientôt. Connectez-vous pour la renouveler.'}
-                                </Text>
+                                <TouchableOpacity 
+                                    style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 8 }}
+                                    onPress={handleRefreshStatus}
+                                    disabled={isRefreshingToken}
+                                >
+                                    {isRefreshingToken ? (
+                                        <ActivityIndicator size="small" color="white" />
+                                    ) : (
+                                        <WifiOff color="white" size={16} />
+                                    )}
+                                    <Text style={styles.urgentBannerText}>
+                                        {offlineTokenStatus === 'expired'
+                                            ? '🔴 URGENT : Votre clé hors-ligne est expirée ! '
+                                            : '⚠️ Votre clé hors-ligne expire bientôt. '}
+                                        <Text style={{ textDecorationLine: 'underline' }}>
+                                            {isRefreshingToken ? 'Mise à jour...' : 'Appuyer pour actualiser'}
+                                        </Text>
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
                         )}
                         <View style={styles.topBar}>

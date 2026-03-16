@@ -7,7 +7,7 @@ import { Linking, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { attendanceService } from '../services/attendance';
+import { attendanceService, refreshOfflineToken } from '../services/attendance';
 import { studentService } from '../services/student';
 import { notificationService } from '../services/notification';
 import { Alert } from 'react-native';
@@ -348,8 +348,11 @@ export function HomeScreen({ onLogout, onOpenScanner, onOpenProfilePhoto, overri
     useEffect(() => {
         notificationService.init();
 
-        // 1. Synchroniser d'abord
-        attendanceService.syncOfflineScans().then(synced => {
+        // 1. Synchroniser les scans ET rafraîchir le token de sécurité
+        Promise.all([
+            attendanceService.syncOfflineScans(),
+            refreshOfflineToken()
+        ]).then(([synced]) => {
             if (synced && synced > 0) {
                 Alert.alert("Synchronisation", `${synced} présence(s) hors-ligne ont été synchronisées.`);
             }
