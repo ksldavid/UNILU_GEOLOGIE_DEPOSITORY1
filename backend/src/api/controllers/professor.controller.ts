@@ -926,7 +926,7 @@ export const unenrollStudent = async (req: AuthRequest, res: Response) => {
 
 export const searchStudents = async (req: AuthRequest, res: Response) => {
     try {
-        const { query } = req.query;
+        const { query, courseCode } = req.query;
         if (!query || String(query).length < 2) {
             return res.json([]);
         }
@@ -952,7 +952,13 @@ export const searchStudents = async (req: AuthRequest, res: Response) => {
                         academicYear: 'desc'
                     },
                     take: 1
-                }
+                },
+                studentCourseEnrollments: courseCode ? {
+                    where: {
+                        courseCode: String(courseCode),
+                        isActive: true
+                    }
+                } : false
             },
             take: 10
         }) as any[];
@@ -961,7 +967,8 @@ export const searchStudents = async (req: AuthRequest, res: Response) => {
             id: s.id,
             name: s.name,
             email: s.email,
-            academicLevel: s.studentEnrollments[0]?.academicLevel.name || 'Non défini'
+            academicLevel: s.studentEnrollments[0]?.academicLevel.name || 'Non défini',
+            isAlreadyEnrolled: courseCode ? s.studentCourseEnrollments.length > 0 : false
         })));
     } catch (error) {
         console.error('Erreur recherche étudiants:', error);

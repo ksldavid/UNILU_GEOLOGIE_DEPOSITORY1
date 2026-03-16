@@ -567,7 +567,7 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
       }
       setIsSearchingGlobal(true);
       try {
-        const results = await professorService.searchStudents(searchQuery);
+        const results = await professorService.searchStudents(searchQuery, course.code);
         setGlobalStudents(results);
       } catch (error) {
         console.error(error);
@@ -1352,11 +1352,22 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                           {s.name.charAt(0)}
                         </div>
                         <div>
-                          <div className="font-bold text-gray-900">{s.name}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="font-bold text-gray-900">{s.name}</div>
+                            {s.isAlreadyEnrolled && (
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md text-[8px] font-black uppercase tracking-widest border border-gray-200">
+                                Déjà inscrit
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-gray-400 font-bold">{s.id}</div>
                         </div>
                       </div>
-                      <Plus className="w-5 h-5 text-gray-300 group-hover:text-teal-600" />
+                      {s.isAlreadyEnrolled ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                      ) : (
+                        <Plus className="w-5 h-5 text-gray-300 group-hover:text-teal-600" />
+                      )}
                     </div>
                   ))
                 ) : (
@@ -1389,6 +1400,10 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                 </div>
                 <button
                   onClick={async () => {
+                    if (selectedStudentToAdd.isAlreadyEnrolled) {
+                      alert("Cet étudiant est déjà inscrit à ce cours.");
+                      return;
+                    }
                     try {
                       await professorService.enrollStudent(selectedStudentToAdd.id, course.code);
                       alert("Étudiant inscrit avec succès !");
@@ -1400,10 +1415,24 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                       alert(error.message || "Erreur lors de l'inscription");
                     }
                   }}
-                  className="w-full bg-[#1B4332] text-white py-5 rounded-2xl font-black text-xl hover:bg-[#2D6A4F] transition-all shadow-[0_20px_40px_rgba(27,67,50,0.2)] flex items-center justify-center gap-3 active:scale-95"
+                  disabled={selectedStudentToAdd.isAlreadyEnrolled}
+                  className={`w-full py-5 rounded-2xl font-black text-xl transition-all shadow-xl flex items-center justify-center gap-3 active:scale-95 ${
+                    selectedStudentToAdd.isAlreadyEnrolled 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none' 
+                    : 'bg-[#1B4332] text-white hover:bg-[#2D6A4F] shadow-[0_20px_40px_rgba(27,67,50,0.2)]'
+                  }`}
                 >
-                  <UserCheck className="w-6 h-6" />
-                  Inscrire l'étudiant
+                  {selectedStudentToAdd.isAlreadyEnrolled ? (
+                    <>
+                      <CheckCircle2 className="w-6 h-6" />
+                      Déjà dans ce cours
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="w-6 h-6" />
+                      Inscrire l'étudiant
+                    </>
+                  )}
                 </button>
               </div>
             )}

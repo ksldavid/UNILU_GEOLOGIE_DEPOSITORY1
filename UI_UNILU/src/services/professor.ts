@@ -145,8 +145,10 @@ export const professorService = {
         });
         return handleResponse(response, "Erreur lors de la désinscription de l'étudiant");
     },
-    async searchStudents(query: string) {
-        const response = await fetch(`${PROFESSOR_API_URL}/search-students?query=${query}`, {
+    async searchStudents(query: string, courseCode?: string) {
+        let url = `${PROFESSOR_API_URL}/search-students?query=${query}`;
+        if (courseCode) url += `&courseCode=${courseCode}`;
+        const response = await fetch(url, {
             headers: getHeaders()
         });
         return handleResponse(response, "Erreur lors de la recherche d'étudiants");
