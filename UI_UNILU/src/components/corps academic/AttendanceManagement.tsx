@@ -1013,8 +1013,23 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                     <td className="px-8 py-6 text-gray-900 font-medium">
                       {student.name}
                     </td>
-                    <td className="px-8 py-6 text-gray-500">
-                      {student.academicLevel || '-'}
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col">
+                        <span className={`font-bold ${
+                          (student.academicLevel?.toLowerCase().includes('licence 3') || student.academicLevel?.toLowerCase().includes('b3'))
+                            ? 'text-purple-600'
+                            : 'text-gray-500'
+                        }`}>
+                          {student.academicLevel || '-'}
+                        </span>
+                        {student.isComplement && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md text-[8px] font-black uppercase tracking-wider border border-purple-100">
+                              Complément
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-3">
