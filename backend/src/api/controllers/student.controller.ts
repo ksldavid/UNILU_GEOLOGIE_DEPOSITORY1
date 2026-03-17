@@ -299,6 +299,7 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
                                 ]
                             }
                         },
+                        academicLevels: true,
                         attendanceSessions: {
                             include: {
                                 records: {
@@ -373,7 +374,9 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
                 courseProgress: Math.round(Math.min(100, progress)),
                 status: isFinished ? 'FINISHED' : 'ACTIVE',
                 isComplement: e.isComplement,
-                isCompleted: e.isCompleted || isFinished
+                isCompleted: e.isCompleted || isFinished,
+                levelName: c.academicLevels?.[0]?.name || 'Optionnel',
+                levelOrder: c.academicLevels?.[0]?.order ?? 99
             };
         });
 

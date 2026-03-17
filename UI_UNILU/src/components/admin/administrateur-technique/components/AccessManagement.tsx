@@ -1,10 +1,12 @@
 import { API_URL } from '../../../../services/config';
+import { courseService } from '../../../../services/course';
+import { userService } from '../../../../services/user';
 import { useState, useEffect, useCallback } from 'react';
 import {
     Search, UserPlus, FileDown,
     Key, ShieldAlert, Trash2, Filter, ChevronLeft,
     ChevronRight, RefreshCw, ShieldCheck, User as UserIcon,
-    GraduationCap, School, Settings, Eye, Ban,
+    GraduationCap, School, Settings, Eye, Ban, BookOpen,
     UserCircle, Mail, Globe,
     Activity, X, Lock, Copy, CheckCircle, Terminal, HelpCircle, Clock
 } from 'lucide-react';
@@ -21,6 +23,19 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
     const [editingLevelUser, setEditingLevelUser] = useState<any>(null);
     const [editingNameUser, setEditingNameUser] = useState<any>(null);
     const [isExporting, setIsExporting] = useState(false);
+    const [availableCourses, setAvailableCourses] = useState<any[]>([]);
+
+    useEffect(() => {
+        const loadCourses = async () => {
+            try {
+                const courses = await courseService.getCourses();
+                setAvailableCourses(courses);
+            } catch (err) {
+                console.error("Error loading courses:", err);
+            }
+        };
+        loadCourses();
+    }, []);
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
@@ -387,8 +402,63 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
             {inspectedUser && (
                 <UserInspectionModal
                     user={inspectedUser}
+                    availableCourses={availableCourses}
                     onClose={() => setInspectedUser(null)}
                     onAction={handleAction}
+                    onEnroll={async (userId, courseCode) => {
+                        try {
+                            await userService.enrollInCourse(userId, courseCode);
+                            
+                            // Find the course details to add it to local state
+                            const course = availableCourses.find(c => c.code === courseCode);
+                            const newEnrollment = {
+                                course: {
+                                    name: course?.name || 'Cours',
+                                    code: courseCode
+                                }
+                            };
+
+                            setUsers(prev => prev.map(u => 
+                                u.id === userId 
+                                    ? { ...u, studentCourseEnrollments: [...(u.studentCourseEnrollments || []), newEnrollment] }
+                                    : u
+                            ));
+
+                            if (inspectedUser?.id === userId) {
+                                setInspectedUser((prev: any) => ({
+                                    ...prev,
+                                    studentCourseEnrollments: [...(prev.studentCourseEnrollments || []), newEnrollment]
+                                }));
+                            }
+
+                            alert("Inscription réussie");
+                        } catch (err: any) {
+                            alert(err.message);
+                        }
+                    }}
+                    onUnenroll={async (userId, courseCode) => {
+                        if (!confirm("Voulez-vous vraiment désinscrire cet étudiant ?")) return;
+                        try {
+                            await userService.unenrollFromCourse(userId, courseCode);
+                            
+                            setUsers(prev => prev.map(u => 
+                                u.id === userId 
+                                    ? { ...u, studentCourseEnrollments: u.studentCourseEnrollments?.filter((e: any) => e.course.code !== courseCode) }
+                                    : u
+                            ));
+
+                            if (inspectedUser?.id === userId) {
+                                setInspectedUser((prev: any) => ({
+                                    ...prev,
+                                    studentCourseEnrollments: prev.studentCourseEnrollments?.filter((e: any) => e.course.code !== courseCode)
+                                }));
+                            }
+
+                            alert("Désinscription réussie");
+                        } catch (err: any) {
+                            alert(err.message);
+                        }
+                    }}
                     onModifyPassword={() => {
                         setEditingPasswordUser(inspectedUser);
                         setInspectedUser(null);
@@ -725,7 +795,23 @@ function NameEditModal({ user, onClose, onSuccess }: { user: any, onClose: () =>
     );
 }
 
-function UserInspectionModal({ user, onClose, onAction, onModifyPassword }: { user: any, onClose: () => void, onAction: (a: string, u: any) => void, onModifyPassword: () => void }) {
+function UserInspectionModal({ user, availableCourses, onClose, onAction, onModifyPassword, onEnroll, onUnenroll }: { 
+    user: any, 
+    availableCourses: any[], 
+    onClose: () => void, 
+    onAction: (a: string, u: any) => void, 
+    onModifyPassword: () => void, 
+    onEnroll: (userId: string, courseCode: string) => Promise<void>,
+    onUnenroll: (userId: string, courseCode: string) => Promise<void>
+}) {
+    const [enrollSearch, setEnrollSearch] = useState('');
+    const [isEnrolling, setIsEnrolling] = useState(false);
+
+    const filteredCourses = availableCourses.filter(c => 
+        (c.name.toLowerCase().includes(enrollSearch.toLowerCase()) || c.code.toLowerCase().includes(enrollSearch.toLowerCase())) &&
+        !user.studentCourseEnrollments?.some((e: any) => e.course.code === c.code)
+    ).slice(0, 15);
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0B0F19]/90 backdrop-blur-xl p-4 animate-in fade-in duration-300">
             <div className="bg-[#111827] w-full max-w-2xl rounded-[32px] border border-white/5 shadow-[0_0_100px_rgba(37,99,235,0.1)] overflow-hidden flex flex-col max-h-[90vh]">
@@ -808,6 +894,88 @@ function UserInspectionModal({ user, onClose, onAction, onModifyPassword }: { us
                             value={user.sex === 'M' ? 'Masculin' : user.sex === 'F' ? 'Féminin' : 'Non spécifié'}
                         />
                     </div>
+
+                    {/* Course Management for Students */}
+                    {user.role === 'Étudiant' && (
+                        <div className="space-y-6 pt-4 border-t border-white/5">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-400 flex items-center gap-2">
+                                    <BookOpen className="w-4 h-4" /> gestion des inscriptions aux cours
+                                </h4>
+                                <span className="text-[10px] bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded font-black uppercase tracking-widest">
+                                    {user.studentCourseEnrollments?.length || 0} Cours
+                                </span>
+                            </div>
+
+                            {/* Current Enrollments */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {user.studentCourseEnrollments?.map((enrollment: any) => (
+                                    <div key={enrollment.course.code} className="bg-[#0B0F19] p-3 rounded-xl border border-white/5 flex items-center justify-between group">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/10">
+                                                <BookOpen className="w-4 h-4 text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[11px] font-bold text-white uppercase tracking-tight">{enrollment.course.name}</p>
+                                                <p className="text-[9px] font-mono text-slate-500">{enrollment.course.code}</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => onUnenroll(user.id, enrollment.course.code)}
+                                            className="p-2 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-slate-600 hover:text-red-500 rounded-lg transition-all"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Action Inscrire */}
+                            <div className="bg-[#0B0F19] rounded-[20px] p-6 border border-blue-500/10 space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 block">Inscrire à un nouveau cours</label>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                                        <input 
+                                            type="text" 
+                                            value={enrollSearch}
+                                            onChange={(e) => setEnrollSearch(e.target.value)}
+                                            placeholder="Rechercher par nom ou code..."
+                                            className="w-full bg-[#111827] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white outline-none focus:border-blue-500/30 transition-all font-medium"
+                                        />
+                                    </div>
+                                </div>
+
+                                {enrollSearch && (
+                                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                                        {filteredCourses.map((c: any) => (
+                                            <div key={c.code} className="flex items-center justify-between p-3 bg-[#111827] border border-white/5 rounded-xl hover:border-blue-500/20 transition-all">
+                                                <div>
+                                                    <p className="text-xs font-bold text-slate-300 uppercase tracking-tight">{c.name}</p>
+                                                    <p className="text-[9px] font-mono text-slate-600">{c.code}</p>
+                                                </div>
+                                                <button 
+                                                    onClick={async () => {
+                                                        setIsEnrolling(true);
+                                                        await onEnroll(user.id, c.code);
+                                                        setEnrollSearch('');
+                                                        setIsEnrolling(false);
+                                                    }}
+                                                    disabled={isEnrolling}
+                                                    className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50"
+                                                >
+                                                    {isEnrolling ? '...' : 'Inscrire'}
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {filteredCourses.length === 0 && (
+                                            <p className="text-[10px] text-slate-600 italic text-center py-2 uppercase font-black tracking-widest">Aucun cours disponible</p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="bg-slate-900/40 p-6 rounded-[24px] border border-white/5 space-y-4">
                         <div className="flex items-center justify-between">

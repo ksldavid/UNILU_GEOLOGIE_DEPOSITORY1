@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { BookOpen, Clock, MapPin, User, FileText, Download, ArrowLeft, Send, CheckCircle2, AlertCircle, ChevronRight, UploadCloud, Loader2, ArrowRight } from "lucide-react";
+import { BookOpen, Clock, MapPin, User, FileText, Download, ArrowLeft, Send, CheckCircle2, AlertCircle, ChevronRight, UploadCloud, Loader2, ArrowRight, Search } from "lucide-react";
 import { motion } from "motion/react";
 import { studentService } from "../../services/student";
 import { cloudinaryService } from "../../services/cloudinary";
@@ -17,6 +17,7 @@ export function StudentCourses() {
   const [showAllResources, setShowAllResources] = useState(false);
   const [showAllSubmissions, setShowAllSubmissions] = useState(false);
   const [showFullAttendance, setShowFullAttendance] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCourseClick = async (course: any) => {
@@ -761,13 +762,31 @@ export function StudentCourses() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
-      <div className="mb-6 md:mb-10">
-        <h1 className="text-2xl md:text-4xl font-black text-gray-900 mb-1 md:mb-2 tracking-tight">Mes Cours</h1>
-        <p className="text-gray-500 text-xs md:text-base font-medium tracking-tight">Gérez et accédez à vos supports de {academicLevel}</p>
+      <div className="mb-6 md:mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-4xl font-black text-gray-900 mb-1 md:mb-2 tracking-tight">Mes Cours</h1>
+          <p className="text-gray-500 text-xs md:text-base font-medium tracking-tight">Gérez et accédez à vos supports de {academicLevel}</p>
+        </div>
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Rechercher un cours..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-600 outline-none focus:border-teal-500/50 focus:ring-4 focus:ring-teal-500/5 transition-all shadow-sm"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
-        {courses.map((course) => (
+        {courses
+          .filter(course => 
+            course.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            course.code.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+          .sort((a, b) => (a.levelOrder || 0) - (b.levelOrder || 0))
+          .map((course) => (
           <motion.div
             key={course.id}
             whileHover={{ y: -8 }}
@@ -793,6 +812,7 @@ export function StudentCourses() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 md:gap-3">
                     <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{course.code}</span>
+                    <span className="text-[8px] md:text-[10px] font-black text-blue-500/70 border border-blue-200 bg-blue-50 px-2 py-0.5 rounded uppercase tracking-[0.1em]">{course.levelName}</span>
                     {course.status === 'FINISHED' && (
                       <span className="bg-slate-800 text-white text-[7px] md:text-[8px] font-black uppercase tracking-[0.3em] px-2 py-0.5 md:py-1 rounded-md">Terminé</span>
                     )}

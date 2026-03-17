@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { userService } from '../../../../services/user';
 import { supportService } from '../../../../services/support';
+import { courseService } from '../../../../services/course';
 import { API_URL } from '../../../../services/config';
 
 // Types definitons
@@ -47,36 +48,38 @@ interface User {
   title?: string;
 }
 
-// Mock Data (Garder pour les dropdowns de cours pour l'instant)
-const AVAILABLE_COURSES: Course[] = [
-  { id: 'c1', name: 'Cristallographie', code: 'GEO101', level: 'Bac 1' },
-  { id: 'c2', name: 'Mathématiques I', code: 'MAT101', level: 'Bac 1' },
-  { id: 'c3', name: 'Minéralogie', code: 'GEO201', level: 'Bac 2' },
-  { id: 'c4', name: 'Pétrologie Magmatique', code: 'GEO202', level: 'Bac 2' },
-  { id: 'c5', name: 'Stratigraphie', code: 'GEO203', level: 'Bac 2' },
-  { id: 'c6', name: 'Géochimie', code: 'GEO301', level: 'Bac 3' },
-  { id: 'c7', name: 'Cartographie', code: 'GEO302', level: 'Bac 3' },
-  { id: 'c8', name: 'Paléontologie', code: 'GEO303', level: 'Bac 3' },
-  { id: 'c9', name: 'Sédimentologie', code: 'GEO304', level: 'Bac 3' },
-  { id: 'c10', name: 'Géologie Structurale', code: 'GEO305', level: 'Bac 3' },
-  { id: 'c11', name: 'Physique Élémentaire', code: 'PHY001', level: 'Préscience' },
-  { id: 'c12', name: 'Chimie Générale', code: 'CHM001', level: 'Préscience' },
-  { id: 'c13', name: 'Gîtologie', code: 'GEO401', level: 'Master 1' },
-  { id: 'c14', name: 'Hydrogéologie', code: 'GEO402', level: 'Master 1' },
-  { id: 'c15', name: 'Exploration Minière', code: 'GEO501', level: 'Master 2' },
-  { id: 'c16', name: 'Gestion de Projets Miniers', code: 'GEO502', level: 'Master 2' },
-];
+
 
 // Mock Data (Garder pour référence ou fallback si besoin, mais on va charger via API)
 const INITIAL_USERS: User[] = [];
 
 export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [viewMode, setViewMode] = useState<'student' | 'academic'>('student');
   const [filterClass, setFilterClass] = useState<string>('all');
+
+  // Fetch Courses from API
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const apiCourses = await courseService.getCourses();
+        const formatted: Course[] = apiCourses.map((c: any) => ({
+          id: c.code,
+          name: c.name,
+          code: c.code,
+          level: c.academicLevels?.[0]?.displayName || 'Inconnu'
+        }));
+        setCourses(formatted);
+      } catch (error) {
+        console.error("Erreur chargement cours:", error);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   // Fetch Users from API
   useEffect(() => {
@@ -362,17 +365,40 @@ Mot de passe: ${formData.password}
     );
   };
 
-  const handleStudentEnroll = (course: Course) => {
+  const handleStudentEnroll = async (course: Course) => {
     if (!selectedUser) return;
 
     setEnrollingCourseId(course.id);
 
-    // Simulate API call
-    setTimeout(() => {
-      alert(`Demande d'inscription pour ${selectedUser.name} au cours de ${course.name} (${course.code}) envoyée.`);
+    try {
+      await userService.enrollInCourse(selectedUser.id, course.code);
+      
+      // Update local state to show the new course immediately
+      const newEnrollment: StudentCourse = {
+        ...course,
+        attendance: 0,
+        grade: 'N/A',
+        grades: []
+      };
+
+      setUsers(prev => prev.map(u => 
+        u.id === selectedUser.id 
+          ? { ...u, enrolledCourses: [...(u.enrolledCourses || []), newEnrollment] }
+          : u
+      ));
+
+      setSelectedUser(prev => prev ? {
+        ...prev,
+        enrolledCourses: [...(prev.enrolledCourses || []), newEnrollment]
+      } : null);
+
+      alert(`L'étudiant ${selectedUser.name} a été inscrit au cours de ${course.name} avec succès.`);
+    } catch (error: any) {
+      console.error("Erreur inscription:", error);
+      alert(error.message || "Une erreur est survenue lors de l'inscription.");
+    } finally {
       setEnrollingCourseId(null);
-      // Logic to actually add course would go here
-    }, 800);
+    }
   };
 
   // Block User State & Handlers
@@ -425,31 +451,38 @@ Mot de passe: ${formData.password}
     setJustifyData({ courseId: '', session: '', reason: '' });
   };
 
-  const handleUnenroll = (courseId: string) => {
+  const handleUnenroll = async (courseId: string) => {
     if (!selectedUser) return;
     const course = selectedUser.enrolledCourses?.find(c => c.id === courseId);
-    const confirmMsg = course
-      ? `Voulez-vous vraiment désinscrire ${selectedUser.name} du cours de ${course.name} ?`
-      : `Voulez-vous vraiment désinscrire ${selectedUser.name} de ce cours ?`;
+    if (!course) return;
+
+    const confirmMsg = `Voulez-vous vraiment désinscrire ${selectedUser.name} du cours de ${course.name} ?`;
 
     if (!confirm(confirmMsg)) return;
 
-    setUsers(users.map(u => {
-      if (u.id === selectedUser.id) {
-        return {
-          ...u,
-          enrolledCourses: u.enrolledCourses?.filter(c => c.id !== courseId)
-        };
-      }
-      return u;
-    }));
+    try {
+      await userService.unenrollFromCourse(selectedUser.id, course.code);
 
-    setSelectedUser(prev => prev ? {
-      ...prev,
-      enrolledCourses: prev.enrolledCourses?.filter(c => c.id !== courseId)
-    } : null);
+      setUsers(prev => prev.map(u => {
+        if (u.id === selectedUser.id) {
+          return {
+            ...u,
+            enrolledCourses: u.enrolledCourses?.filter(c => c.id !== courseId)
+          };
+        }
+        return u;
+      }));
 
-    alert(`L'étudiant ${selectedUser.name} a été désinscrit du cours.`);
+      setSelectedUser(prev => prev ? {
+        ...prev,
+        enrolledCourses: prev.enrolledCourses?.filter(c => c.id !== courseId)
+      } : null);
+
+      alert(`L'étudiant ${selectedUser.name} a été désinscrit du cours.`);
+    } catch (error: any) {
+      console.error("Erreur désinscription:", error);
+      alert(error.message || "Une erreur est survenue lors de la désinscription.");
+    }
   };
 
   const handleRemoveTeachingCourse = (courseId: string) => {
@@ -1222,7 +1255,7 @@ Mot de passe: ${formData.password}
                   {/* Suggestions Dropdown */}
                   {showSuggestions && courseSearch.length > 0 && !assignCourseData.code && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-[#1B4332]/10 rounded-[12px] shadow-lg max-h-48 overflow-y-auto">
-                      {AVAILABLE_COURSES.filter(c =>
+                      {courses.filter(c =>
                         c.name.toLowerCase().includes(courseSearch.toLowerCase()) ||
                         c.code.toLowerCase().includes(courseSearch.toLowerCase())
                       ).map(course => (
@@ -1239,7 +1272,7 @@ Mot de passe: ${formData.password}
                           <span className="text-xs px-2 py-1 bg-[#F1F8F4] group-hover:bg-white rounded text-[#52796F]">{course.code}</span>
                         </button>
                       ))}
-                      {AVAILABLE_COURSES.filter(c =>
+                      {courses.filter(c =>
                         c.name.toLowerCase().includes(courseSearch.toLowerCase()) ||
                         c.code.toLowerCase().includes(courseSearch.toLowerCase())
                       ).length === 0 && (
@@ -1419,14 +1452,22 @@ Mot de passe: ${formData.password}
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F1F8F4]">
-                {['Préscience', 'Bac 1', 'Bac 2', 'Bac 3', 'Master 1', 'Master 2'].map(level => {
-                  const levelCourses = AVAILABLE_COURSES.filter(c =>
+                {Array.from(new Set(courses.map(c => c.level))).sort((a, b) => {
+                  const order = ['Préscience', 'Licence 1 (B1)', 'Licence 2 (B2)', 'Licence 3 (B3)', 'Master 1 (Exploration)', 'Master 1 (Géotechnique)', 'Master 1 (Hydro)', 'Master 2 (Exploration)', 'Master 2 (Géotechnique)', 'Master 2 (Hydro)'];
+                  const indexA = order.indexOf(a);
+                  const indexB = order.indexOf(b);
+                  if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+                  if (indexA === -1) return 1;
+                  if (indexB === -1) return -1;
+                  return indexA - indexB;
+                }).map(level => {
+                  const levelCourses = courses.filter(c =>
                     c.level === level &&
                     (c.name.toLowerCase().includes(enrollSearchTerm.toLowerCase()) ||
                       c.code.toLowerCase().includes(enrollSearchTerm.toLowerCase()))
                   );
 
-                  if (levelCourses.length === 0 && enrollSearchTerm) return null;
+                  if (levelCourses.length === 0) return null;
 
                   const isExpanded = expandedLevels.includes(level);
 

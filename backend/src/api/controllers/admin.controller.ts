@@ -82,6 +82,14 @@ export const getAllUsers = async (req: Request, res: Response) => {
                 },
                 professorProfile: {
                     select: { title: true }
+                },
+                studentCourseEnrollments: {
+                    where: { isActive: true },
+                    include: {
+                        course: {
+                            select: { name: true, code: true }
+                        }
+                    }
                 }
             },
             orderBy: { createdAt: 'desc' }
@@ -123,7 +131,8 @@ export const getAllUsers = async (req: Request, res: Response) => {
                 color: userColor,
                 class: userClass,
                 avatar: u.name.charAt(0).toUpperCase(),
-                lastLogin: 'En ligne'
+                lastLogin: 'En ligne',
+                studentCourseEnrollments: u.studentCourseEnrollments
             }
         })
 
@@ -446,5 +455,123 @@ export const updateUserName = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error updating user name:', error)
         res.status(500).json({ error: 'Failed to update user name' })
+    }
+}
+
+// Inscrire un étudiant à un cours spécifique
+export const enrollStudentInCourse = async (req: Request, res: Response) => {
+    try {
+        const { id: userId } = req.params as { id: string }
+        const { courseCode, academicYear } = req.body
+
+        if (!courseCode) {
+            return res.status(400).json({ error: 'Le code du cours est requis.' })
+        }
+
+        // 1. Vérifier si l'étudiant existe
+        const student = await prisma.user.findFirst({
+            where: { id: userId, systemRole: 'STUDENT' },
+            include: {
+                studentEnrollments: {
+                    orderBy: { enrolledAt: 'desc' },
+                    take: 1
+                }
+            }
+        })
+
+        if (!student) {
+            return res.status(404).json({ error: "Étudiant non trouvé." })
+        }
+
+        // 2. Vérifier si le cours existe
+        const course = await prisma.course.findUnique({
+            where: { code: courseCode }
+        })
+
+        if (!course) {
+            return res.status(404).json({ error: "Cours non trouvé." })
+        }
+
+        const year = academicYear || student.studentEnrollments[0]?.academicYear || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
+
+        // 3. Créer ou activer l'inscription
+        const enrollment = await prisma.studentCourseEnrollment.upsert({
+            where: {
+                userId_courseCode_academicYear: {
+                    userId,
+                    courseCode,
+                    academicYear: year
+                }
+            },
+            update: {
+                isActive: true
+            },
+            create: {
+                userId,
+                courseCode,
+                academicYear: year,
+                isActive: true
+            }
+        })
+
+        res.json({ message: `L'étudiant ${student.name} a été inscrit au cours ${course.name} avec succès.`, enrollment })
+    } catch (error) {
+        console.error('Error enrolling student in course:', error)
+        res.status(500).json({ error: 'Failed to enroll student in course' })
+    }
+}
+
+// Désinscrire un étudiant d'un cours spécifique
+export const unenrollStudentFromCourse = async (req: Request, res: Response) => {
+    try {
+        const { id: userId } = req.params as { id: string }
+        const { courseCode, academicYear } = req.body
+
+        if (!courseCode) {
+            return res.status(400).json({ error: 'Le code du cours est requis.' })
+        }
+
+        // On ne supprime pas forcément, on peut juste désactiver ou supprimer l'entrée
+        // Pour une désinscription administrative, on peut supprimer si aucune note n'est liée.
+        
+        const hasGrades = await prisma.grade.findFirst({
+            where: {
+                studentId: userId,
+                assessment: {
+                    courseCode: courseCode
+                }
+            }
+        })
+
+        if (hasGrades) {
+            // Si des notes existent, on désactive juste l'inscription
+            await prisma.studentCourseEnrollment.update({
+                where: {
+                    userId_courseCode_academicYear: {
+                        userId,
+                        courseCode,
+                        academicYear: academicYear || '2025-2026' // Par défaut si non fourni
+                    }
+                },
+                data: { isActive: false }
+            })
+            return res.json({ message: "L'étudiant a des notes pour ce cours. L'accès a été désactivé mais les données sont conservées." })
+        }
+
+        // Sinon on supprime l'inscription
+        await prisma.studentCourseEnrollment.delete({
+            where: {
+                userId_courseCode_academicYear: {
+                    userId,
+                    courseCode,
+                    academicYear: academicYear || '2025-2026'
+                }
+            }
+        })
+
+        res.json({ message: "L'étudiant a été désinscrit du cours avec succès." })
+    } catch (error) {
+        console.error('Error unenrolling student from course:', error)
+        res.status(500).json({ error: 'Failed to unenroll student from course' })
     }
 }

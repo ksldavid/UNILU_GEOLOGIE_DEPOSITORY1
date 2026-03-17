@@ -195,5 +195,45 @@ export const userService = {
             throw new Error('Erreur lors de la création de l\'annonce');
         }
         return response.json();
+    },
+
+    async enrollInCourse(userId: string, courseCode: string, academicYear?: string) {
+        const token = sessionStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        const response = await fetch(`${API_URL}/admin/users/${userId}/enroll`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ courseCode, academicYear })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Erreur lors de l\'inscription');
+        }
+        return response.json();
+    },
+
+    async unenrollFromCourse(userId: string, courseCode: string, academicYear?: string) {
+        const token = sessionStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        const response = await fetch(`${API_URL}/admin/users/${userId}/unenroll`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ courseCode, academicYear })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Erreur lors de la désinscription');
+        }
+        return response.json();
     }
 };
