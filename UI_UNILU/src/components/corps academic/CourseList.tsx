@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Course } from "../../App";
 import { professorService } from "../../services/professor";
-import { Settings2, ArrowRight } from "lucide-react";
+import { Settings2, ArrowRight, Search } from "lucide-react";
 
 interface CourseListProps {
   onCourseSelect: (course: Course) => void;
@@ -10,6 +10,7 @@ interface CourseListProps {
 export function CourseList({ onCourseSelect }: CourseListProps) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchCourses = async () => {
     try {
@@ -48,17 +49,35 @@ export function CourseList({ onCourseSelect }: CourseListProps) {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-4xl font-semibold text-gray-900 mb-3 tracking-tight">
-          Mes Cours
-        </h1>
-        <p className="text-gray-600 text-lg font-medium opacity-80">
-          Gérez vos supports de cours, consultez les soumissions et communiquez avec vos étudiants.
-        </p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-semibold text-gray-900 mb-2 tracking-tight">
+            Mes Cours
+          </h1>
+          <p className="text-gray-500 font-medium opacity-80">
+            Gérez vos supports de cours, consultez les soumissions et communiquez avec vos étudiants.
+          </p>
+        </div>
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Rechercher un cours..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-3xl text-sm font-bold text-slate-600 outline-none focus:border-teal-500/50 focus:ring-4 focus:ring-teal-500/5 transition-all shadow-sm"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {courses.map((course) => {
+        {courses
+          .filter(course =>
+            course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            course.code.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+          .sort((a: any, b: any) => (a.levelOrder || 0) - (b.levelOrder || 0))
+          .map((course) => {
           const isFinished = course.isFinished;
           const colorClasses = getColorClasses(course.color);
 
