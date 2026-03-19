@@ -23,7 +23,10 @@ export const getProfessorStudents = async (req: AuthRequest, res: Response) => {
             select: { name: true }
         });
 
-        const isSuperUser = userRole === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+        const isSuperUser = userRole === 'ADMIN' || 
+            userRole === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
 
         let filterCourseCodes: string[] = [];
         let courseMap = new Map<string, string>();
@@ -232,7 +235,10 @@ export const getProfessorSchedule = async (req: AuthRequest, res: Response) => {
             select: { name: true }
         });
 
-        const isSuperUser = userRole === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+        const isSuperUser = userRole === 'ADMIN' || 
+            userRole === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
 
         const taughtCourses = await prisma.courseEnrollment.findMany({
             where: isSuperUser ? {} : { userId },
@@ -709,7 +715,10 @@ export const saveAttendance = async (req: AuthRequest, res: Response) => {
             where: { userId, courseCode }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || 
+            req.user?.role === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
 
         if (!enrollment && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
@@ -829,7 +838,10 @@ export const getStudentPerformance = async (req: AuthRequest, res: Response) => 
         const hasAccess = await prisma.courseEnrollment.findFirst({
             where: { userId, courseCode: String(courseCode) }
         });
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || 
+            req.user?.role === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
 
         if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Accès refusé" });
@@ -899,7 +911,10 @@ export const unenrollStudent = async (req: AuthRequest, res: Response) => {
             where: { userId, courseCode }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || 
+            req.user?.role === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
 
         if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
@@ -990,7 +1005,10 @@ export const enrollStudent = async (req: AuthRequest, res: Response) => {
             where: { userId, courseCode }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || 
+            req.user?.role === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
 
         if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à gérer ce cours." });
@@ -1061,7 +1079,10 @@ export const createAssessment = async (req: AuthRequest, res: Response) => {
             where: { userId, courseCode }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || 
+            req.user?.role === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
 
         if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à créer un devoir pour ce cours." });
@@ -1237,7 +1258,10 @@ export const saveGrades = async (req: AuthRequest, res: Response) => {
             where: { id: assessmentId }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || 
+            req.user?.role === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
 
         if (!assessment || (assessment.creatorId !== userId && !isSuperUser)) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à modifier ces notes" });
@@ -1279,12 +1303,18 @@ export const uploadCourseResource = async (req: AuthRequest, res: Response) => {
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+        const isSuperUser = req.user?.role === 'ADMIN' || 
+            req.user?.role === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
+
         // Vérifier si le professeur enseigne ce cours
         const enrollment = await prisma.courseEnrollment.findFirst({
             where: { userId, courseCode }
         });
 
-        if (!enrollment) {
+        if (!enrollment && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à ajouter des ressources pour ce cours." });
         }
 
@@ -1373,12 +1403,18 @@ export const deleteCourseResource = async (req: AuthRequest, res: Response) => {
 
         if (!resource) return res.status(404).json({ message: 'Ressource non trouvée' });
 
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+        const isSuperUser = req.user?.role === 'ADMIN' || 
+            req.user?.role === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
+
         // Vérifier si le professeur enseigne ce cours
         const enrollment = await prisma.courseEnrollment.findFirst({
             where: { userId, courseCode: resource.courseCode }
         });
 
-        if (!enrollment) {
+        if (!enrollment && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à supprimer cette ressource." });
         }
 
@@ -1411,8 +1447,14 @@ export const deleteAssessment = async (req: AuthRequest, res: Response) => {
 
         if (!assessment) return res.status(404).json({ message: 'Évaluation non trouvée' });
 
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+        const isSuperUser = req.user?.role === 'ADMIN' || 
+            req.user?.role === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
+
         // Vérifier si le professeur est le créateur
-        if (assessment.creatorId !== userId) {
+        if (assessment.creatorId !== userId && !isSuperUser) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à supprimer cette évaluation." });
         }
 
@@ -1618,7 +1660,10 @@ export const getCoursePerformance = async (req: AuthRequest, res: Response) => {
             where: { userId, courseCode: String(courseCode) }
         });
 
-        const isSuperUser = req.user?.role === 'ADMIN' || user?.name?.toLowerCase()?.includes('departement');
+        const isSuperUser = req.user?.role === 'ADMIN' || 
+            req.user?.role === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
 
         if (!hasAccess && !isSuperUser) {
             return res.status(403).json({ message: "Accès refusé" });
@@ -1719,7 +1764,10 @@ export const syncPastAttendance = async (req: AuthRequest, res: Response) => {
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
 
         const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
-        const isSuperUser = userRole === 'ADMIN' || user?.name.toLowerCase().includes('departement');
+        const isSuperUser = userRole === 'ADMIN' || 
+            userRole === 'ACADEMIC_OFFICE' || 
+            user?.name?.toLowerCase()?.includes('departement') || 
+            user?.name?.toLowerCase()?.includes('service académique');
 
         // Get course codes managed by this professor
         const taughtCourses = await prisma.courseEnrollment.findMany({
