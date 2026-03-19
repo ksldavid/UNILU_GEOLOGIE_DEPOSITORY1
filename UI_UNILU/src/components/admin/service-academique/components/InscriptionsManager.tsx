@@ -57,6 +57,7 @@ export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [academicLevels, setAcademicLevels] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [viewMode, setViewMode] = useState<'student' | 'academic'>('student');
@@ -83,12 +84,19 @@ export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
 
   // Fetch Users from API
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        // On récupère tout le monde pour l'instant
-        const apiUsers = await userService.getAllUsers();
-
+        const [apiUsers, levels] = await Promise.all([
+          userService.getAllUsers(),
+          fetch(`${API_URL}/courses/levels`, {
+            headers: { 'Authorization': `Bearer ${sessionStorage.getItem('token')}` }
+          }).then(res => res.json())
+        ]);
+        
+        if (Array.isArray(levels)) {
+          setAcademicLevels(levels);
+        }
         // DEBUG FRONTEND : Inspection des données brutes
         if (apiUsers.length > 0) {
           console.log("🐛 Données reçues du Backend (Premier user) :", apiUsers[0]);
@@ -160,14 +168,15 @@ export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
 
         setUsers(formattedUsers);
       } catch (error) {
-        console.error("Erreur chargement utilisateurs:", error);
+        console.error("Erreur chargement données:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUsers();
+    fetchData();
   }, []);
+
 
   // Modal States
   const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
@@ -289,43 +298,79 @@ export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
   };
 
   const handleSubmit = async () => {
+    if (!formData.nom || !formData.postNom || !formData.prenom) {
+      alert("Veuillez remplir tous les champs obligatoires (Nom, Post-nom, Prénom).");
+      return;
+    }
+
+    if (newUserType === 'student' && !formData.classe) {
+      alert("Veuillez sélectionner une classe.");
+      return;
+    }
+
     try {
-      const studentDetails = `
-DEMANDE DE NOUVELLE INSCRIPTION
+      setLoading(true);
+
+      // Préparation des données pour le backend
+      const userData = {
+        id: formData.idNumber,
+        name: `${formData.nom} ${formData.postNom} ${formData.prenom}`,
+        email: formData.email,
+        password: formData.password,
+        role: newUserType === 'student' ? 'student' : 'prof',
+        studentClass: formData.classe, // Le nom du niveau académique
+        whatsapp: formData.whatsapp,
+        sex: formData.sex,
+        birthday: formData.birthday,
+        nationality: formData.nationality,
+        titre: formData.titre
+      };
+
+      const result = await userService.createAdminUser(userData);
+
+      alert(`L'utilisateur ${userData.name} a été créé avec succès avec l'identifiant ${result.user?.id || userData.id} !`);
+      
+      if (onUpdate) onUpdate();
+      window.location.reload(); // Solution simple pour rafraîchir tout le dashboard
+      
+      resetForm();
+    } catch (error: any) {
+      console.error("Erreur d'inscription directe:", error);
+      
+      // Fallback au système de tickets si l'inscription directe échoue (ex: problème de droits ou doublon)
+      const confirmTicket = window.confirm(`L'inscription directe a échoué (${error.message}). Voulez-vous envoyer une demande au service technique via un ticket de support ?`);
+      
+      if (confirmTicket) {
+        try {
+          const studentDetails = `
+DEMANDE DE NOUVELLE INSCRIPTION (FALLBACK)
 -------------------------------
 Type: ${newUserType === 'student' ? 'ÉTUDIANT' : 'CORPS ACADÉMIQUE'}
 Nom complet: ${formData.nom} ${formData.postNom} ${formData.prenom}
-Genre: ${formData.sex}
-Date de naissance: ${formData.birthday}
-Nationalité: ${formData.nationality}
-WhatsApp: ${formData.whatsapp}
-Email: ${formData.email}
-${newUserType === 'student' ? `Classe: ${formData.classe}` : `Titre: ${formData.titre}`}
+...
+          `;
 
-IDENTIFIANTS SUGGÉRÉS:
-ID (Matricule): ${formData.idNumber}
-Mot de passe: ${formData.password}
-      `;
-
-      await supportService.createTicket({
-        subject: `[Nouvelle Inscription] ${formData.nom} ${formData.prenom}`,
-        category: 'Inscription',
-        priority: 'MEDIUM',
-        message: studentDetails,
-        metadata: {
-          type: newUserType,
-          data: formData
+          await supportService.createTicket({
+            subject: `[Nouvelle Inscription] ${formData.nom} ${formData.prenom}`,
+            category: 'Inscription',
+            priority: 'MEDIUM',
+            message: studentDetails,
+            metadata: {
+              type: newUserType,
+              data: formData
+            }
+          });
+          alert("Demande envoyée au service technique.");
+          resetForm();
+        } catch (ticketError) {
+          alert("Échec de l'envoi du ticket également.");
         }
-      });
-
-      alert("Les informations ont été envoyées au service technique avec succès via le système de support !");
-      if (onUpdate) onUpdate();
-      resetForm();
-    } catch (error) {
-      console.error("Erreur d'envoi de l'inscription:", error);
-      alert("Une erreur est survenue lors de l'envoi au service technique.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
+
 
   // Assign Course State & Handlers
   const [isAssignCourseModalOpen, setIsAssignCourseModalOpen] = useState(false);
@@ -1053,13 +1098,11 @@ Mot de passe: ${formData.password}
                             className="w-full p-3 bg-[#F1F8F4] border border-[#1B4332]/10 rounded-[12px] outline-none focus:border-[#1B4332] transition-colors"
                           >
                             <option value="">Sélectionner...</option>
-                            <option value="prescience">Préscience</option>
-                            <option value="bac1">Bachelor 1</option>
-                            <option value="bac2">Bachelor 2</option>
-                            <option value="bac3">Bachelor 3</option>
-                            <option value="master1">Master 1</option>
-                            <option value="master2">Master 2</option>
+                            {academicLevels.map((level: any) => (
+                              <option key={level.id} value={level.name}>{level.name}</option>
+                            ))}
                           </select>
+
                         </div>
                       </div>
                     )}
@@ -1195,10 +1238,12 @@ Mot de passe: ${formData.password}
                   {newUserType && (
                     <button
                       onClick={handleSubmit}
-                      className="px-6 py-2 bg-[#1B4332] hover:bg-[#2D6A4F] text-white rounded-[12px] font-medium shadow-lg shadow-[#1B4332]/20 transition-all transform hover:scale-105"
+                      disabled={loading}
+                      className="px-6 py-2 bg-[#1B4332] hover:bg-[#2D6A4F] disabled:opacity-50 text-white rounded-[12px] font-medium shadow-lg shadow-[#1B4332]/20 transition-all transform hover:scale-105"
                     >
-                      Envoyer au service technique
+                      {loading ? "Création..." : "Confirmer l'inscription"}
                     </button>
+
                   )}
                 </div>
               </div>

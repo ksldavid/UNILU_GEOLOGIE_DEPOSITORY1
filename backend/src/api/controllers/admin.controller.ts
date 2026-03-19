@@ -212,6 +212,21 @@ export const createAdminUser = async (req: Request, res: Response) => {
             'academic': 'ACADEMIC_OFFICE'
         }
 
+/**
+ * Utility to get current academic year (Session)
+ * If we are before October, the session started in the previous calendar year.
+ * e.g. March 2026 -> "2025-2026"
+ */
+const getCurrentAcademicYear = (): string => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1 // 1-12
+
+    if (currentMonth < 10) {
+        return `${currentYear - 1}-${currentYear}`
+    }
+    return `${currentYear}-${currentYear + 1}`
+}
         const newUser = await prisma.user.create({
             data: {
                 id,
@@ -242,7 +257,8 @@ export const createAdminUser = async (req: Request, res: Response) => {
             })
 
             if (level) {
-                const year = academicYear || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
+                const year = academicYear || getCurrentAcademicYear()
+
 
                 // 1. Inscription au niveau académique
                 await prisma.studentEnrollment.create({
@@ -377,7 +393,8 @@ export const updateUserAcademicLevel = async (req: Request, res: Response) => {
             return res.status(404).json({ error: "Niveau académique non trouvé." })
         }
 
-        const year = academicYear || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
+        const year = academicYear || getCurrentAcademicYear()
+
 
         // 3. Mettre à jour l'inscription au niveau académique (Upsert)
         await prisma.studentEnrollment.upsert({
@@ -492,7 +509,8 @@ export const enrollStudentInCourse = async (req: Request, res: Response) => {
             return res.status(404).json({ error: "Cours non trouvé." })
         }
 
-        const year = academicYear || student.studentEnrollments[0]?.academicYear || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
+        const year = academicYear || student.studentEnrollments[0]?.academicYear || getCurrentAcademicYear()
+
 
         // 3. Créer ou activer l'inscription
         const enrollment = await prisma.studentCourseEnrollment.upsert({

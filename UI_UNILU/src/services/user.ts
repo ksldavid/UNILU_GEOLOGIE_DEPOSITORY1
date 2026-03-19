@@ -235,5 +235,26 @@ export const userService = {
             throw new Error(error.error || 'Erreur lors de la désinscription');
         }
         return response.json();
+    },
+
+    async createAdminUser(data: any) {
+        const token = sessionStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        const response = await fetch(`${API_URL}/admin/users`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Erreur lors de la création de l\'utilisateur');
+        }
+        return response.json();
     }
+
 };
