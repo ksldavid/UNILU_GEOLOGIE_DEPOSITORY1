@@ -6,7 +6,7 @@ const router = Router()
 
 // Toutes les routes ici nécessitent d'être ADMIN
 router.use(authenticateToken)
-router.use(authorizeRole(['ADMIN']))
+router.use(authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']))
 
 router.get('/users', getAllUsers)
 router.get('/credentials/suggest', suggestNextUserCredentials)
