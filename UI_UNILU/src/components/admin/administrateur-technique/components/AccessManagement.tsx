@@ -355,18 +355,22 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
                                                         onClick={async () => {
                                                             try {
                                                                 const newStatus = !u.isChefDePromo;
-                                                                if (!confirm(`Voulez-vous ${newStatus ? 'nommer' : 'destituer'} ${u.name} en tant que CP ?`)) return;
+                                                                if (!confirm(`Voulez-vous ${newStatus ? 'nommer' : 'retirer'} ${u.name} comme Chef de Promotion ?`)) return;
                                                                 await userService.updateUser(u.id, { isChefDePromo: newStatus });
-                                                                fetchUsers();
-                                                                alert("Statut CP mis à jour.");
-                                                            } catch (err: any) { alert(err.message); }
+                                                                // Optimistic update: reflect change immediately in the table
+                                                                setUsers(prev => prev.map(user =>
+                                                                    user.id === u.id ? { ...user, isChefDePromo: newStatus } : user
+                                                                ));
+                                                            } catch (err: any) { alert(err.message || 'Erreur lors de la mise à jour.'); }
                                                         }}
-                                                        title={u.isChefDePromo ? 'Retirer CP' : 'Nommer CP'}
-                                                        className={`p-2 rounded-xl border transition-all shadow-sm ${u.isChefDePromo 
+                                                        title={u.isChefDePromo ? 'Retirer le statut CP' : 'Nommer Chef de Promotion'}
+                                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all text-[10px] font-black uppercase tracking-wide shadow-sm ${
+                                                            u.isChefDePromo 
                                                             ? 'bg-rose-600/10 text-rose-400 border-rose-500/20 hover:bg-rose-600 hover:text-white'
                                                             : 'bg-emerald-600/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-600 hover:text-white'}`}
                                                     >
-                                                        <ShieldCheck className="w-4 h-4" />
+                                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                                        {u.isChefDePromo ? 'Retirer CP' : 'Nommer CP'}
                                                     </button>
                                                 )}
                                             </div>
