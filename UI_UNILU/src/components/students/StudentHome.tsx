@@ -321,7 +321,10 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
             transition={{ delay: 0.3 }}
           >
             <h1 className="text-white text-2xl md:text-5xl font-black mb-2 md:mb-4 tracking-tight">
-              Bonjour, <span className="text-blue-400">{JSON.parse(sessionStorage.getItem('user') || '{}').name?.split(' ')[0] || 'Étudiant'}</span> 👋
+              Bonjour, <span className="text-blue-400">{data?.student?.name?.split(' ')[0] || 'Étudiant'}</span> 
+              {data?.student?.isChefDePromo && (
+                  <span className="ml-4 text-emerald-400 text-sm md:text-2xl italic font-black bg-emerald-400/10 px-4 py-1 rounded-full border border-emerald-400/20">CP</span>
+              )} 👋
             </h1>
             <div className="h-16 md:h-20">
               <motion.p
@@ -438,7 +441,7 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
         </motion.div>
 
         {/* SECTION CHEF DE PROMOTION (Délégué) */}
-        {currentStudent.isChefDePromo && (
+        {data?.student?.isChefDePromo && (
           <motion.div
             variants={item}
             className="xl:col-span-2 bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl md:rounded-[40px] p-6 md:p-8 border border-gray-700 shadow-2xl relative overflow-hidden"

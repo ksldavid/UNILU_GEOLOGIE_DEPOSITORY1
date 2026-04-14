@@ -30,13 +30,17 @@ export const getAllUsers = async (req: Request, res: Response) => {
         }
 
         if (role && role !== 'Tous les Rôles') {
-            const roleMap: any = {
-                'Admin Technique': 'ADMIN',
-                'Professeur': 'USER',
-                'Étudiant': 'STUDENT',
-                'Service Académique': 'ACADEMIC_OFFICE'
+            if (role === 'Chefs de Promotion (CP)') {
+                where.isChefDePromo = true
+            } else {
+                const roleMap: any = {
+                    'Admin Technique': 'ADMIN',
+                    'Professeur': 'USER',
+                    'Étudiant': 'STUDENT',
+                    'Service Académique': 'ACADEMIC_OFFICE'
+                }
+                where.systemRole = roleMap[role] || role
             }
-            where.systemRole = roleMap[role] || role
         }
 
         if (status && status !== 'Tous les Statuts') {

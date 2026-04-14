@@ -775,20 +775,18 @@ function SchedulePrintGrid({ levelName, courses }: { levelName: string, courses:
         { id: 7, label: '7', afternoon: true },
     ];
 
-    // Helper function to map days from French to English for matching or just use French in UI and translate for logic
-    const dayMap: Record<string, string> = {
-        'Lundi': 'Monday',
-        'Mardi': 'Tuesday',
-        'Mercredi': 'Wednesday',
-        'Jeudi': 'Thursday',
-        'Vendredi': 'Friday',
-        'Samedi': 'Saturday',
-        'Dimanche': 'Sunday'
+    // Helper function to map days
+    const dayMapFr: Record<string, string> = {
+        'Lundi': 'Lundi',
+        'Mardi': 'Mardi',
+        'Mercredi': 'Mercredi',
+        'Jeudi': 'Jeudi',
+        'Vendredi': 'Vendredi',
+        'Samedi': 'Samedi',
+        'Dimanche': 'Dimanche'
     };
 
-    const getSlotCourses = (engDay: string, slotId: number) => {
-        // En supposant que le slot 1 = 8h00, slot 2 = 9h30, etc. (ajuster selon votre logique)
-        // Mais pour faire simple comme dans l'image, on va mapper par tranches
+    const getSlotCourses = (frDay: string, slotId: number) => {
         const timeRanges: Record<number, {start: string, end: string}> = {
             1: { start: '07:00', end: '08:30' },
             2: { start: '08:30', end: '10:00' },
@@ -801,8 +799,7 @@ function SchedulePrintGrid({ levelName, courses }: { levelName: string, courses:
 
         const range = timeRanges[slotId];
         return courses.filter(c => {
-            const cDay = dayMap[c.day] || c.day;
-            if (cDay !== engDay) return false;
+            if (c.day !== frDay) return false;
             
             const [ch, cm] = c.startTime.split(':').map(Number);
             const [rh, rm] = range.start.split(':').map(Number);
@@ -812,42 +809,54 @@ function SchedulePrintGrid({ levelName, courses }: { levelName: string, courses:
             const rMin = rh * 60 + rm;
             const reMin = reh * 60 + rem;
 
-            // Un cours appartient au slot si il commence dans l'intervalle ou si il couvre l'intervalle
             return cMin >= rMin && cMin < reMin;
         });
     };
 
     return (
-        <div className="print-container font-sans text-slate-800 flex flex-col h-full bg-white">
-            {/* Header Title */}
-            <div className="bg-[#2563EB] text-white py-6 text-center shadow-md">
-                <h1 className="text-[32px] font-black tracking-[0.1em] uppercase">University Class Schedule</h1>
+        <div className="print-container font-sans text-slate-800 flex flex-col h-full bg-white relative">
+            {/* Header Title with Logo */}
+            <div className="bg-[#1e3a8a] text-white py-8 px-12 flex items-center justify-between shadow-md relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 -rotate-12 translate-x-32 -translate-y-12 rounded-full" />
+                <div className="flex items-center gap-6 relative z-10">
+                    <div className="w-20 h-20 bg-white p-2 rounded-2xl shadow-lg">
+                        <img src="/src/assets/unilu-official-logo.png" alt="Logo UNILU" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="text-left">
+                        <h1 className="text-[28px] font-black tracking-tight leading-none">FACULTÉ DES SCIENCES</h1>
+                        <p className="text-blue-200 text-sm font-bold mt-1 tracking-widest uppercase opacity-80">Département de Géologie</p>
+                    </div>
+                </div>
+                <div className="text-right relative z-10">
+                    <h2 className="text-3xl font-black italic tracking-tighter">HORAIRE DES COURS</h2>
+                    <p className="text-blue-100/60 text-xs font-bold uppercase tracking-widest mt-1">Année Académique 2025-2026</p>
+                </div>
             </div>
 
             <div className="p-1 flex-1 flex flex-col">
                 {/* Info Bar */}
-                <div className="grid grid-cols-[1.5fr_1fr_1fr] gap-8 py-8 px-4 border-b border-slate-100">
+                <div className="grid grid-cols-[1.5fr_1fr_1fr] gap-8 py-8 px-6 border-b border-slate-100 bg-slate-50/30">
                     <div>
-                        <span className="text-xs font-black uppercase text-slate-400">Class:</span>
-                        <span className="ml-3 font-bold text-slate-700">{levelName}</span>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">PROMOTION :</span>
+                        <span className="ml-3 font-black text-[#1e3a8a] text-lg uppercase">{levelName}</span>
                     </div>
                     <div>
-                        <span className="text-xs font-black uppercase text-slate-400">Student ID:</span>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">ID ÉTUDIANT :</span>
                         <span className="ml-3 font-bold text-slate-700">TOUS (OFFICIEL)</span>
                     </div>
                     <div>
-                        <span className="text-xs font-black uppercase text-slate-400">Name:</span>
-                        <span className="ml-3 font-bold text-slate-700">ADMINISTRATION</span>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">SEMESTRE :</span>
+                        <span className="ml-3 font-bold text-slate-700">PREMIER SEMESTRE</span>
                     </div>
                 </div>
 
                 <div className="flex flex-1">
                     {/* Main Grid Wrapper */}
-                    <div className="flex-1 p-4 grid grid-cols-[60px_repeat(7,1fr)] gap-2">
+                    <div className="flex-1 p-4 grid grid-cols-[70px_repeat(6,1fr)] gap-2">
                         {/* Headers */}
-                        <div className="flex items-center justify-center font-black text-xs text-slate-300 uppercase">Time</div>
-                        {days.map(d => (
-                            <div key={d} className="flex items-center justify-center font-bold text-xs text-slate-500 py-4 border-b border-slate-50">{d}</div>
+                        <div className="flex items-center justify-center font-black text-[10px] text-slate-300 uppercase tracking-widest bg-slate-50/50 rounded-lg">HEURE</div>
+                        {['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI'].map(d => (
+                            <div key={d} className="flex items-center justify-center font-black text-[10px] text-slate-500 py-4 border-b-2 border-[#1e3a8a]/10 uppercase tracking-widest">{d}</div>
                         ))}
 
                         {/* Rows */}
@@ -856,17 +865,17 @@ function SchedulePrintGrid({ levelName, courses }: { levelName: string, courses:
                                 <div className="relative flex items-center justify-center border-r border-slate-50 min-h-[100px]">
                                     {row.id === 1 && (
                                         <div className="absolute top-0 left-0 bottom-0 flex items-center -ml-2">
-                                            <span className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50 py-4 rounded-full">Morning</span>
+                                            <span className="[writing-mode:vertical-lr] rotate-180 text-[9px] font-black text-blue-400 uppercase tracking-[0.3em] bg-blue-50 py-4 px-1 rounded-full border border-blue-100">Matin</span>
                                         </div>
                                     )}
                                     {row.id === 5 && (
                                         <div className="absolute top-0 left-0 bottom-0 flex items-center -ml-2">
-                                            <span className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50 py-4 rounded-full">Afternoon</span>
+                                            <span className="[writing-mode:vertical-lr] rotate-180 text-[9px] font-black text-orange-400 uppercase tracking-[0.3em] bg-orange-50 py-4 px-1 rounded-full border border-orange-100">Après-midi</span>
                                         </div>
                                     )}
-                                    <span className="font-black text-slate-300 text-lg">{row.label}</span>
+                                    <span className="font-black text-slate-200 text-xl">{row.label}</span>
                                 </div>
-                                {days.map(day => {
+                                {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(day => {
                                     const slotCourses = getSlotCourses(day, row.id);
                                     return (
                                         <div key={day} className="bg-slate-50/30 rounded-lg p-1 border border-transparent">
@@ -892,38 +901,48 @@ function SchedulePrintGrid({ levelName, courses }: { levelName: string, courses:
                         ))}
                     </div>
 
-                    {/* Right Sidebar */}
-                    <div className="w-[180px] bg-[#34D399] p-4 text-white flex flex-col gap-8">
+                    {/* Right Sidebar - Improved Aesthetics */}
+                    <div className="w-[200px] bg-slate-50 p-6 flex flex-col gap-10 border-l border-slate-100">
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-80">Course notes</p>
-                            <div className="h-[2px] bg-white opacity-20 mb-4" />
-                            <div className="space-y-4">
+                            <p className="text-[10px] font-black uppercase tracking-widest mb-2 text-[#1e3a8a] opacity-80">NOTES DE COURS</p>
+                            <div className="h-[2px] bg-[#1e3a8a] opacity-10 mb-5" />
+                            <div className="space-y-6">
                                 <div>
-                                    <p className="text-[9px] font-bold opacity-80">Credits taken this semester:</p>
-                                    <p className="text-xl font-black">26 credits</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tight">Crédits validés ce semestre :</p>
+                                    <p className="text-2xl font-black text-[#1e3a8a]">26 crédits</p>
                                 </div>
                                 <div>
-                                    <p className="text-[9px] font-bold opacity-80">Elective courses for this semester:</p>
-                                    <p className="text-sm font-bold">Sports 2</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tight">Cours à option :</p>
+                                    <p className="text-sm font-bold text-slate-700">Sports 2</p>
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-80">Time period for this semester:</p>
-                            <p className="text-sm font-bold leading-tight">2025.10 - 2026.07</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest mb-2 text-[#1e3a8a] opacity-80">PÉRIODE DU SEMESTRE</p>
+                            <div className="h-[2px] bg-[#1e3a8a] opacity-10 mb-5" />
+                            <p className="text-sm font-black text-slate-700">10.2025 - 07.2026</p>
                         </div>
 
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-80">Adjustment/suspension/make-up class information:</p>
-                            <p className="text-xs font-bold leading-tight opacity-90 mt-2">
-                                University Location:<br/>
-                                Sciences & Technologies<br/>
-                                <br/>
-                                Course selection time:<br/>
-                                2025.09.24<br/>
-                                08:30-18:30
-                            </p>
+                        <div className="flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest mb-2 text-[#1e3a8a] opacity-80">INFORMATIONS</p>
+                            <div className="h-[2px] bg-[#1e3a8a] opacity-10 mb-5" />
+                            <div className="space-y-4">
+                                <div>
+                                    <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Localisation :</p>
+                                    <p className="text-[11px] font-bold text-slate-700 leading-tight">Faculté des Sciences<br/>Bâtiment de Géologie</p>
+                                </div>
+                                
+                                <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                                    <p className="text-[8px] font-black text-blue-400 uppercase mb-1 whitespace-nowrap">Date de sélection :</p>
+                                    <p className="text-[10px] font-black text-blue-900">24 Septembre 2025</p>
+                                    <p className="text-[9px] font-bold text-blue-900/60">08:30 - 18:30</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 opacity-20 filter grayscale">
+                            <img src="/src/assets/unilu-official-logo.png" alt="Logo Watermark" className="w-16 h-16 mx-auto" />
                         </div>
                     </div>
                 </div>

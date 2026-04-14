@@ -218,6 +218,7 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
                         onChange={(e) => setSelectedRole(e.target.value)}
                     >
                         <option>Tous les Rôles</option>
+                        <option>Chefs de Promotion (CP)</option>
                         <option>Admin Technique</option>
                         <option>Professeur</option>
                         <option>Étudiant</option>
@@ -292,7 +293,14 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
                                                     {u.avatar}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">{u.name}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-sm font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">{u.name}</p>
+                                                        {u.isChefDePromo && (
+                                                            <span className="flex items-center gap-1 text-[8px] font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase italic">
+                                                                CP
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="flex items-center gap-1.5 mt-0.5">
                                                         <UserCircle className="w-3 h-3 text-slate-600" />
                                                         <span className="text-[10px] font-mono text-slate-500 font-bold tracking-tighter uppercase">{u.id}</span>
@@ -342,6 +350,25 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
                                                     title="Suppression irréversible" className="p-2 rounded-xl bg-red-600/10 text-red-500 border border-red-500/20 hover:bg-red-600 hover:text-white transition-all shadow-sm">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
+                                                {u.role === 'Étudiant' && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                const newStatus = !u.isChefDePromo;
+                                                                if (!confirm(`Voulez-vous ${newStatus ? 'nommer' : 'destituer'} ${u.name} en tant que CP ?`)) return;
+                                                                await userService.updateUser(u.id, { isChefDePromo: newStatus });
+                                                                fetchUsers();
+                                                                alert("Statut CP mis à jour.");
+                                                            } catch (err: any) { alert(err.message); }
+                                                        }}
+                                                        title={u.isChefDePromo ? 'Retirer CP' : 'Nommer CP'}
+                                                        className={`p-2 rounded-xl border transition-all shadow-sm ${u.isChefDePromo 
+                                                            ? 'bg-rose-600/10 text-rose-400 border-rose-500/20 hover:bg-rose-600 hover:text-white'
+                                                            : 'bg-emerald-600/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-600 hover:text-white'}`}
+                                                    >
+                                                        <ShieldCheck className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

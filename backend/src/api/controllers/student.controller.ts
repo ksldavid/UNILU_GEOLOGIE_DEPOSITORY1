@@ -218,7 +218,8 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
         res.json({
             student: {
                 name: student.name,
-                level: levelName
+                level: levelName,
+                isChefDePromo: !!student.isChefDePromo
             },
             stats: {
                 attendance: overallAttendance,
