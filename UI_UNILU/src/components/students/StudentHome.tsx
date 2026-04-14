@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Calendar, BookOpen, Clock, MapPin, User as UserIcon, Megaphone, CheckCircle, ChevronRight, X, QrCode, Loader2, SignalHigh, SignalLow, Send, Search, ClipboardCopy, Info, AlertTriangle } from "lucide-react";
+import { Calendar, BookOpen, Clock, MapPin, User as UserIcon, Megaphone, CheckCircle, ChevronRight, X, QrCode, Loader2, SignalHigh, SignalLow, Send, ClipboardCopy, Info, AlertTriangle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion } from "motion/react";
 import { StudentPage } from "./StudentSidebar";
