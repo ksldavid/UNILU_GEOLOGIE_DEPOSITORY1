@@ -46,6 +46,7 @@ interface User {
   // Staff props
   teachingCourses?: Course[];
   title?: string;
+  isChefDePromo?: boolean;
 }
 
 
@@ -161,7 +162,8 @@ export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
               promotion: role === 'student' ? promotion : undefined,
               enrolledCourses: enrolledCourses,
               teachingCourses: teachingCourses,
-              title: title
+              title: title,
+              isChefDePromo: !!u.isChefDePromo
             };
           })
           .filter((u: User | null): u is User => u !== null);
@@ -553,6 +555,37 @@ Nom complet: ${formData.nom} ${formData.postNom} ${formData.prenom}
     alert(`Le cours a été retiré de la charge horaire.`);
   };
 
+  const [isUpdatingCP, setIsUpdatingCP] = useState(false);
+  const handleToggleChefDePromo = async () => {
+    if (!selectedUser || selectedUser.role !== 'student') return;
+    
+    const newStatus = !selectedUser.isChefDePromo;
+    const confirmMsg = newStatus 
+      ? `Voulez-vous désigner ${selectedUser.name} comme Chef de Promotion ?`
+      : `Voulez-vous retirer le rôle de Chef de Promotion à ${selectedUser.name} ?`;
+      
+    if (!confirm(confirmMsg)) return;
+
+    setIsUpdatingCP(true);
+    try {
+      await userService.updateUser(selectedUser.id, { isChefDePromo: newStatus });
+      
+      // Update local state
+      setUsers(prev => prev.map(u => 
+        u.id === selectedUser.id ? { ...u, isChefDePromo: newStatus } : u
+      ));
+      
+      setSelectedUser(prev => prev ? { ...prev, isChefDePromo: newStatus } : null);
+      
+      alert(`Statut mis à jour avec succès : ${selectedUser.name} est ${newStatus ? 'maintenant' : 'plus'} Chef de Promotion.`);
+    } catch (error: any) {
+      console.error("Erreur toggle CP:", error);
+      alert(error.message || "Erreur lors de la mise à jour du rôle.");
+    } finally {
+      setIsUpdatingCP(false);
+    }
+  };
+
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -833,6 +866,18 @@ Nom complet: ${formData.nom} ${formData.postNom} ${formData.prenom}
                   >
                     <BookOpen className="w-4 h-4" />
                     Inscrire à un cours
+                  </button>
+
+                  <button
+                    disabled={isUpdatingCP}
+                    onClick={handleToggleChefDePromo}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-md active:scale-95 ${selectedUser.isChefDePromo
+                      ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                      : 'bg-white/10 hover:bg-white/20 text-white'
+                      }`}
+                  >
+                    <GraduationCap className={`w-4 h-4 ${selectedUser.isChefDePromo ? 'animate-pulse' : ''}`} />
+                    {isUpdatingCP ? 'Mise à jour...' : selectedUser.isChefDePromo ? 'Chef de Promotion (Actif)' : 'Désigner comme CP'}
                   </button>
                 </>
               )}

@@ -8,6 +8,7 @@ export interface User {
     role: string; // 'STUDENT' | 'USER' | 'ADMIN' | 'ACADEMIC_OFFICE'
     systemRole: string;
     status: 'active' | 'blocked';
+    isChefDePromo?: boolean;
     avatarColor?: string; // On pourra le générer côté front
     // Student specific
     studentCourseEnrollments?: any[];
@@ -38,7 +39,7 @@ export const userService = {
         return response.json();
     },
 
-    async updateUser(id: string, data: { name?: string, email?: string, title?: string }) {
+    async updateUser(id: string, data: { name?: string, email?: string, title?: string, isChefDePromo?: boolean }) {
         const token = sessionStorage.getItem('token');
         const headers = {
             'Content-Type': 'application/json',
@@ -52,7 +53,8 @@ export const userService = {
         });
 
         if (!response.ok) {
-            throw new Error('Erreur lors de la mise à jour de l\'utilisateur');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Erreur lors de la mise à jour de l\'utilisateur');
         }
         return response.json();
     },

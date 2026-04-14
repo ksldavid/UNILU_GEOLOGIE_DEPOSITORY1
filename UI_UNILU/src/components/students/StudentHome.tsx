@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
-import { Calendar, BookOpen, Clock, MapPin, User as UserIcon, Megaphone, CheckCircle, ChevronRight, X, QrCode, Loader2, SignalHigh, SignalLow, Send, Search } from "lucide-react";
+import { Calendar, BookOpen, Clock, MapPin, User as UserIcon, Megaphone, CheckCircle, ChevronRight, X, QrCode, Loader2, SignalHigh, SignalLow, Send, Search, ClipboardCopy, Info, AlertTriangle } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { motion } from "motion/react";
 import { StudentPage } from "./StudentSidebar";
 import welcomeImage from '../../assets/slide1.png';
@@ -24,6 +25,10 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
   const [showScanner, setShowScanner] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [showAttendanceHistory, setShowAttendanceHistory] = useState(false);
+  const [showCPGenerator, setShowCPGenerator] = useState(false);
+  const [cpLoading, setCpLoading] = useState(false);
+  const [generatedQR, setGeneratedQR] = useState<any>(null);
+  const [cpSelectedCourse, setCpSelectedCourse] = useState<any>(null);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState("all");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("all");
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -229,6 +234,68 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
     return `${minutes}min`;
   };
 
+  const getCPButtonState = (courseTime: string) => {
+    try {
+      const [startStr, endStr] = courseTime.split(' - ');
+      const [startH, startM] = startStr.split(':').map(Number);
+      const [endH, endM] = endStr.split(':').map(Number);
+
+      const now = new Date();
+      // On utilise l'heure locale (qui devrait correspondre à celle de l'appareil de l'étudiant)
+      const startTime = new Date();
+      startTime.setHours(startH, startM, 0, 0);
+      
+      const startTimeMinus10 = new Date(startTime.getTime() - 10 * 60 * 1000);
+      
+      const endTime = new Date();
+      endTime.setHours(endH, endM, 0, 0);
+
+      if (now < startTimeMinus10) return { state: 'too-early', waitTime: startTimeMinus10 };
+      if (now > endTime) return { state: 'too-late' };
+      return { state: 'active' };
+    } catch (e) {
+      return { state: 'too-early' };
+    }
+  };
+
+  const currentStudent = JSON.parse(sessionStorage.getItem('user') || '{}');
+
+  const handleGenerateCPQR = async (course: any) => {
+    const timeState = getCPButtonState(course.time);
+    
+    if (timeState.state === 'too-early' && timeState.waitTime) {
+      const waitStr = timeState.waitTime.getHours() + 'h' + timeState.waitTime.getMinutes().toString().padStart(2, '0');
+      toast.error(`Le cours n'a pas encore débuté. Attendez ${waitStr} pour débuter la présence.`);
+      return;
+    }
+
+    if (timeState.state === 'too-late') {
+      toast.error("Le cours est déjà passé. Demandez au professeur de passer la présence.");
+      return;
+    }
+
+    setCpLoading(true);
+    setCpSelectedCourse(course);
+    try {
+      const result = await attendanceService.generateQR(course.code, 1, 50);
+      setGeneratedQR(result);
+      setShowCPGenerator(true);
+      toast.success("QR Code généré avec succès !");
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de la génération");
+    } finally {
+      setCpLoading(false);
+    }
+  };
+
+  const copyCPLink = () => {
+    if (!generatedQR) return;
+    const origin = window.location.origin;
+    const link = `${origin}/scan?t=${generatedQR.qrToken}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Lien de présence copié ! Envoyer à vos amis.");
+  };
+
   if (loading) return <DashboardSkeleton />;
 
   return (
@@ -369,6 +436,84 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
             ))}
           </div>
         </motion.div>
+
+        {/* SECTION CHEF DE PROMOTION (Délégué) */}
+        {currentStudent.isChefDePromo && (
+          <motion.div
+            variants={item}
+            className="xl:col-span-2 bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl md:rounded-[40px] p-6 md:p-8 border border-gray-700 shadow-2xl relative overflow-hidden"
+          >
+            {/* Background design */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl -ml-24 -mb-24" />
+
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <UserIcon className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-left font-primary">
+                  <h3 className="text-xl md:text-2xl font-black text-white tracking-tight uppercase italic">Portail Chef de Promotion</h3>
+                  <p className="text-gray-400 text-[10px] md:text-xs font-bold uppercase tracking-widest">Générez les présences de votre promotion</p>
+                </div>
+              </div>
+
+              {upcomingCourses.length === 0 ? (
+                <div className="bg-white/5 rounded-2xl p-6 text-center border border-white/10">
+                  <p className="text-gray-400 font-bold italic">Aucun cours prévu aujourd'hui pour générer une présence.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                  {upcomingCourses.map((course: any, idx: number) => {
+                    const timeInfo = getCPButtonState(course.time);
+                    const isActive = timeInfo.state === 'active';
+                    const isTooLate = timeInfo.state === 'too-late';
+                    
+                    return (
+                      <div key={idx} className="bg-white/5 rounded-2xl p-4 md:p-5 border border-white/10 flex flex-col justify-between group hover:bg-white/10 transition-all">
+                        <div className="mb-4">
+                          <h4 className="text-white font-black text-sm md:text-base uppercase truncate mb-1">{course.title}</h4>
+                          <div className="flex items-center gap-3 text-gray-400 text-[9px] md:text-[10px] font-bold uppercase shrink-0">
+                            <span className="flex items-center gap-1 ml-0"><Clock className="w-3 h-3" /> {course.time}</span>
+                            <span className="flex items-center gap-1 ml-0"><MapPin className="w-3 h-3" /> {course.room}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          disabled={isTooLate || cpLoading}
+                          onClick={() => handleGenerateCPQR(course)}
+                          className={`w-full py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 
+                            ${isActive 
+                              ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 active:scale-[0.98]' 
+                              : isTooLate 
+                                ? 'bg-rose-900/30 text-rose-500 border border-rose-900/50 cursor-not-allowed' 
+                                : 'bg-gray-800 text-gray-500 border border-gray-700 hover:bg-gray-700 active:scale-[0.98]'}`}
+                        >
+                          {cpLoading && cpSelectedCourse?.code === course.code ? (
+                             <Loader2 className="w-4 h-4 animate-spin text-white" />
+                          ) : isActive ? (
+                             <QrCode className="w-4 h-4" />
+                          ) : isTooLate ? (
+                             <AlertTriangle className="w-4 h-4" />
+                          ) : (
+                             <Info className="w-4 h-4" />
+                          )}
+                          
+                          {isActive 
+                            ? "Générer le QR de présence" 
+                            : isTooLate 
+                              ? "Session déjà expirée" 
+                              : "Trop tôt pour générer"
+                          }
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {/* Right Column: Active Assignments & Announcements */}
         <div className="space-y-6 md:space-y-8">
@@ -814,6 +959,68 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
               >
                 Fermer
               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      {/* CP QR Generator Modal */}
+      {showCPGenerator && generatedQR && cpSelectedCourse && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-gray-950/90 backdrop-blur-2xl animate-in fade-in duration-500">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl relative overflow-hidden text-center"
+          >
+            {/* Design header */}
+            <div className={`h-4 border-b ${cpSelectedCourse.colorHex ? '' : 'bg-blue-600'}`} style={{ backgroundColor: cpSelectedCourse.colorHex }} />
+
+            <div className="p-8 md:p-12">
+              <div className="mb-6">
+                <h3 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tighter italic mb-1">Session de présence ouverte</h3>
+                <p className="text-gray-400 text-xs font-black uppercase tracking-widest">{cpSelectedCourse.title}</p>
+              </div>
+
+              {/* QR Code */}
+              <div className="bg-gray-50 p-6 md:p-8 rounded-[40px] border-4 border-gray-100 mb-8 inline-block shadow-inner">
+                <QRCodeSVG 
+                  value={`${window.location.origin}/scan?t=${generatedQR.qrToken}`}
+                  size={200}
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-left">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 shrink-0">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">Validité du code</p>
+                    <p className="text-xs font-bold text-emerald-600">Expire dans 50 minutes (non-renouvelable)</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={copyCPLink}
+                    className="flex-1 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  >
+                    <ClipboardCopy className="w-4 h-4" />
+                    Copier le lien
+                  </button>
+                  <button
+                    onClick={() => setShowCPGenerator(false)}
+                    className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  >
+                    Fermer
+                  </button>
+                </div>
+                
+                <p className="text-[10px] text-gray-400 font-bold italic mt-4">
+                  Faites scanner ce code ou envoyez le lien à vos collègues.
+                </p>
+              </div>
             </div>
           </motion.div>
         </div>

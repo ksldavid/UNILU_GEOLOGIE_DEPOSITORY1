@@ -61,7 +61,8 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
     type: "INTERROGATION",
     maxPoints: "10",
     date: new Date().toISOString().split('T')[0],
-    weight: "1"
+    weight: "1",
+    shouldNotify: true
   });
   const [tempGrades, setTempGrades] = useState<Record<string, string>>({});
   const [isSavingGrades, setIsSavingGrades] = useState(false);
@@ -72,7 +73,8 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
     title: "",
     instructions: "",
     dueDate: new Date().toISOString().split('T')[0],
-    dueTime: "23:59"
+    dueTime: "23:59",
+    shouldNotify: true
   });
   const [isLaunchingAssignment, setIsLaunchingAssignment] = useState(false);
   const [selectedAssignmentForSubmissions, setSelectedAssignmentForSubmissions] = useState<any>(null);
@@ -361,7 +363,8 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         type: "INTERROGATION",
         maxPoints: "10",
         date: new Date().toISOString().split('T')[0],
-        weight: "1"
+        weight: "1",
+        shouldNotify: true
       });
       setActiveSubView('manage-exams');
     } catch (error) {
@@ -521,7 +524,8 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         date: new Date().toISOString(),
         dueDate: dueDateTime.toISOString(),
         courseCode: course.code,
-        weight: 1
+        weight: 1,
+        shouldNotify: assignmentData.shouldNotify
       });
 
       // Synchronize with Exam & Interro schedule as well
@@ -545,7 +549,8 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
         title: "",
         instructions: "",
         dueDate: new Date().toISOString().split('T')[0],
-        dueTime: "23:59"
+        dueTime: "23:59",
+        shouldNotify: true
       });
       fetchExams(); // Refresh assignments list
     } catch (error) {
@@ -1502,6 +1507,20 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                 />
               </div>
             </div>
+
+            <div className="flex items-center gap-3 p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+              <input
+                type="checkbox"
+                id="shouldNotify"
+                checked={newExamData.shouldNotify}
+                onChange={(e) => setNewExamData({ ...newExamData, shouldNotify: e.target.checked })}
+                className="w-5 h-5 rounded border-orange-300 text-orange-600 focus:ring-orange-500 focus:ring-offset-0"
+              />
+              <label htmlFor="shouldNotify" className="text-sm font-bold text-orange-900 cursor-pointer flex flex-col">
+                <span>Notifier les étudiants</span>
+                <span className="text-[10px] font-medium text-orange-600/70">Envoie une notification Push et crée une annonce automatiquement.</span>
+              </label>
+            </div>
             <button
               onClick={handleCreateExam}
               className="w-full bg-orange-600 text-white py-5 rounded-2xl font-black text-lg hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/20 active:scale-95"
@@ -1542,9 +1561,12 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   setSelectedExam(exam);
                   setActiveSubView('exam-details');
                 }}
-                className={`rounded-[32px] p-6 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex items-center justify-between border ${exam.isPublished
-                  ? 'bg-emerald-50/50 border-emerald-200'
-                  : 'bg-white border-gray-100'
+                className={`rounded-[32px] p-6 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex items-center justify-between border ${
+                  exam.type === 'EXAM' 
+                    ? 'bg-red-50/30 border-red-200 shadow-sm' 
+                    : exam.isPublished
+                    ? 'bg-emerald-50/50 border-emerald-200'
+                    : 'bg-white border-gray-100'
                   }`}
               >
                 <div className="flex items-center gap-6">
@@ -1554,7 +1576,11 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                   <div>
                     <h3 className="text-xl font-black text-gray-900 mb-1">{exam.title}</h3>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-black text-orange-600 uppercase tracking-widest">{exam.type}</span>
+                      <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                        exam.type === 'EXAM' ? 'bg-red-100 text-red-700' : 'text-orange-600 bg-orange-50'
+                      }`}>
+                        {exam.type}
+                      </span>
                       <span className="text-xs text-gray-400 font-bold">• {new Date(exam.date).toLocaleDateString()}</span>
                     </div>
                   </div>
@@ -1683,16 +1709,19 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                 </button>
                 <button
                   onClick={handlePublishAllGrades}
-                  disabled={selectedExam?.isPublished}
-                  className={`flex-1 px-6 py-5 rounded-[24px] font-black flex items-center justify-center gap-3 transition-all border transition-all active:scale-[0.98] ${
-                    selectedExam?.isPublished 
+                  disabled={selectedExam?.isPublished || selectedExam?.type === 'EXAM'}
+                  className={`flex-1 px-6 py-5 rounded-[24px] font-black flex items-center justify-center gap-3 transition-all border active:scale-[0.98] ${
+                    selectedExam?.type === 'EXAM'
+                    ? 'bg-red-50 text-red-300 border-red-50 cursor-not-allowed opacity-60'
+                    : selectedExam?.isPublished 
                     ? 'bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed' 
                     : 'bg-orange-50 text-orange-700 border-orange-100 hover:bg-orange-100 shadow-sm'
                   }`}
+                  title={selectedExam?.type === 'EXAM' ? "Les résultats d'examen ne peuvent pas être publiés sur cette interface" : ""}
                 >
-                  {selectedExam?.isPublished ? <CheckCircle2 className="w-5 h-5" /> : <Send className="w-5 h-5" />}
+                  {selectedExam?.isPublished || selectedExam?.type === 'EXAM' ? <CheckCircle2 className="w-5 h-5" /> : <Send className="w-5 h-5" />}
                   <span className="uppercase tracking-widest text-xs">
-                    {selectedExam?.isPublished ? 'Publié' : 'Publier'}
+                    {selectedExam?.type === 'EXAM' ? 'Publication restreinte' : selectedExam?.isPublished ? 'Publié' : 'Publier'}
                   </span>
                 </button>
               </div>
@@ -2415,6 +2444,20 @@ export function CourseManagement({ course, onBack, onTakeAttendance }: CourseMan
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-4 bg-fuchsia-50/50 rounded-2xl border border-fuchsia-100/50">
+                  <input
+                    type="checkbox"
+                    id="shouldNotifyAssignment"
+                    checked={assignmentData.shouldNotify}
+                    onChange={(e) => setAssignmentData({ ...assignmentData, shouldNotify: e.target.checked })}
+                    className="w-5 h-5 rounded border-fuchsia-300 text-fuchsia-600 focus:ring-fuchsia-500 focus:ring-offset-0"
+                  />
+                  <label htmlFor="shouldNotifyAssignment" className="text-sm font-bold text-fuchsia-900 cursor-pointer flex flex-col">
+                    <span>Notifier les étudiants sur mobile</span>
+                    <span className="text-[10px] font-medium text-fuchsia-600/70">Crée une annonce système et envoie une alerte Push immédiate.</span>
+                  </label>
                 </div>
               </div>
 

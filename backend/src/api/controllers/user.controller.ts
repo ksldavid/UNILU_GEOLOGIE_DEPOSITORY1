@@ -24,6 +24,7 @@ export const getUsers = async (req: Request, res: Response) => {
                 systemRole: true,
                 createdAt: true,
                 isBlocked: true,
+                isChefDePromo: true,
                 profilePhotoUrl: true,
                 studentEnrollments: {
                     take: 1,
@@ -79,12 +80,52 @@ export const getUsers = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
-        const { name, email, title } = req.body
+        const { name, email, title, isChefDePromo } = req.body
+
+        // Validation du nombre de CP par classe si on tente d'activer le statut
+        if (isChefDePromo === true) {
+            const userWithClass = await prisma.user.findUnique({
+                where: { id },
+                include: {
+                    studentEnrollments: {
+                        orderBy: { enrolledAt: 'desc' },
+                        take: 1,
+                        include: { academicLevel: true }
+                    }
+                }
+            });
+
+            if (userWithClass?.systemRole === 'STUDENT' && userWithClass.studentEnrollments.length > 0) {
+                const classLabel = userWithClass.studentEnrollments[0].academicLevel.name;
+                const classId = userWithClass.studentEnrollments[0].academicLevelId;
+                
+                // Déterminer la limite
+                const limit = classLabel.toLowerCase().includes('prescience') ? 4 : 2;
+
+                // Compter les CP actuels dans cette classe (exclure l'utilisateur actuel s'il l'est déjà)
+                const currentCPCount = await prisma.user.count({
+                    where: {
+                        isChefDePromo: true,
+                        id: { not: id },
+                        studentEnrollments: {
+                            some: { academicLevelId: classId }
+                        }
+                    }
+                });
+
+                if (currentCPCount >= limit) {
+                    return res.status(400).json({ 
+                        message: `Limite de Chefs de Promotion atteinte pour la classe ${classLabel}. Maximum autorisé : ${limit}.` 
+                    });
+                }
+            }
+        }
 
         const updatedUser = await prisma.user.update({
             where: { id },
             data: {
                 name, email,
+                isChefDePromo,
                 professorProfile: title ? {
                     upsert: { create: { id, title }, update: { title } }
                 } : undefined

@@ -70,6 +70,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
                 sex: true,
                 systemRole: true,
                 isBlocked: true,
+                isChefDePromo: true,
                 createdAt: true,
                 studentEnrollments: {
                     take: 1,
@@ -130,6 +131,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
                 status: u.isBlocked ? 'Inactif' : 'Actif',
                 color: userColor,
                 class: userClass,
+                isChefDePromo: !!u.isChefDePromo,
                 avatar: u.name.charAt(0).toUpperCase(),
                 lastLogin: 'En ligne',
                 studentCourseEnrollments: u.studentCourseEnrollments

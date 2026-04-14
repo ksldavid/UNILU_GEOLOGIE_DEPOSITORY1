@@ -463,6 +463,16 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
                         setEditingPasswordUser(inspectedUser);
                         setInspectedUser(null);
                     }}
+                    onUpdateCP={async (userId, status) => {
+                        try {
+                            await userService.updateUser(userId, { isChefDePromo: status });
+                            setUsers(prev => prev.map(u => u.id === userId ? { ...u, isChefDePromo: status } : u));
+                            setInspectedUser((prev: any) => prev ? { ...prev, isChefDePromo: status } : null);
+                            alert(`Statut CP mis à jour pour ${inspectedUser.name}`);
+                        } catch (err: any) {
+                            alert(err.message);
+                        }
+                    }}
                 />
             )}
 
@@ -802,10 +812,12 @@ function UserInspectionModal({ user, availableCourses, onClose, onAction, onModi
     onAction: (a: string, u: any) => void, 
     onModifyPassword: () => void, 
     onEnroll: (userId: string, courseCode: string) => Promise<void>,
-    onUnenroll: (userId: string, courseCode: string) => Promise<void>
+    onUnenroll: (userId: string, courseCode: string) => Promise<void>,
+    onUpdateCP: (userId: string, status: boolean) => Promise<void>
 }) {
     const [enrollSearch, setEnrollSearch] = useState('');
     const [isEnrolling, setIsEnrolling] = useState(false);
+    const [isUpdatingCP, setIsUpdatingCP] = useState(false);
 
     const filteredCourses = availableCourses.filter(c => 
         (c.name.toLowerCase().includes(enrollSearch.toLowerCase()) || c.code.toLowerCase().includes(enrollSearch.toLowerCase())) &&
@@ -1019,6 +1031,23 @@ function UserInspectionModal({ user, availableCourses, onClose, onAction, onModi
                     <button onClick={() => onAction(user.status === 'Actif' ? 'Bloquer' : 'Débloquer', user)} className="flex-1 py-3 bg-orange-600/10 hover:bg-orange-600 text-orange-400 hover:text-white border border-orange-500/20 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">
                         {user.status === 'Actif' ? 'Bloquer' : 'Débloquer'}
                     </button>
+                    {user.role === 'Étudiant' && (
+                        <button 
+                            disabled={isUpdatingCP}
+                            onClick={async () => {
+                                const newStatus = !user.isChefDePromo;
+                                if (!confirm(`Voulez-vous ${newStatus ? 'désigner' : 'retirer'} le rôle de Chef de Promotion pour ${user.name} ?`)) return;
+                                setIsUpdatingCP(true);
+                                await onUpdateCP(user.id, newStatus);
+                                setIsUpdatingCP(false);
+                            }}
+                            className={`flex-1 py-3 border rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${user.isChefDePromo 
+                                ? 'bg-amber-600/10 text-amber-500 border-amber-500/20 hover:bg-amber-600 hover:text-white' 
+                                : 'bg-slate-600/10 text-slate-400 border-white/5 hover:bg-slate-700 hover:text-white'}`}
+                        >
+                            {isUpdatingCP ? '...' : user.isChefDePromo ? 'CP: ACTIF' : 'Désigner CP'}
+                        </button>
+                    )}
                     <button onClick={() => onAction('Supprimer', user)} className="flex-1 py-3 bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/20 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">
                         Supprimer
                     </button>

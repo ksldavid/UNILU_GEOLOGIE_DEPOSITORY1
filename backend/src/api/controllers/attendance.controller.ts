@@ -44,12 +44,78 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         if (!userId) return res.status(401).json({ message: 'Non authentifié' });
 
         // 1. Vérifier si l'utilisateur enseigne ce cours
-        const hasAccess = await prisma.courseEnrollment.findFirst({
+        const hasProfAccess = await prisma.courseEnrollment.findFirst({
             where: { userId, courseCode }
         });
 
-        if (!hasAccess) {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { isChefDePromo: true }
+        });
+
+        if (!hasProfAccess && !user?.isChefDePromo) {
             return res.status(403).json({ message: "Vous n'êtes pas autorisé à générer un QR Code pour ce cours." });
+        }
+
+        let forcedExpiresIn = expiresInMinutes;
+
+        // Logique spécifique pour le Chef de Promotion
+        if (!hasProfAccess && user?.isChefDePromo) {
+            forcedExpiresIn = 50; // Toujours 50 min pour un CP (non modifiable)
+
+            // Récupérer le niveau académique actuel de l'étudiant
+            const enrollment = await prisma.studentEnrollment.findFirst({
+                where: { userId, academicYear: "2025-2026" },
+                orderBy: { enrolledAt: 'desc' }
+            });
+
+            if (!enrollment) {
+                return res.status(403).json({ message: "Impossible de déterminer votre niveau académique pour valider l'horaire." });
+            }
+
+            // Vérifier l'horaire
+            const now = new Date();
+            const lubumbashiTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
+            const dayOfWeek = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][lubumbashiTime.getDay()];
+            
+            const schedule = await prisma.schedule.findFirst({
+                where: {
+                    courseCode,
+                    day: dayOfWeek,
+                    academicLevelId: enrollment.academicLevelId,
+                    academicYear: "2025-2026"
+                }
+            });
+
+            if (!schedule) {
+                return res.status(403).json({ message: "Ce cours n'est pas prévu à l'horaire pour votre promotion aujourd'hui." });
+            }
+
+            // Calculer les heures pour la comparaison
+            const [startH, startM] = schedule.startTime.split(':').map(Number);
+            const [endH, endM] = schedule.endTime.split(':').map(Number);
+            
+            const startTimeDate = new Date(lubumbashiTime);
+            startTimeDate.setHours(startH, startM, 0, 0);
+            
+            const startTimeMinus10 = new Date(startTimeDate.getTime() - 10 * 60 * 1000);
+            
+            const endTimeDate = new Date(lubumbashiTime);
+            endTimeDate.setHours(endH, endM, 0, 0);
+
+            if (lubumbashiTime < startTimeMinus10) {
+                const hourStr = `${startH}h${startM.toString().padStart(2, '0')}`;
+                const waitTime = new Date(startTimeMinus10);
+                const waitHourStr = waitTime.getHours() + 'h' + waitTime.getMinutes().toString().padStart(2, '0');
+                
+                return res.status(403).json({ 
+                    message: `Le cours n'a pas encore débuté (prévu à ${hourStr}). Attendez ${waitHourStr} pour débuter la présence en tant que CP.` 
+                });
+            }
+
+            if (lubumbashiTime > endTimeDate) {
+                return res.status(403).json({ message: "Le cours est déjà passé, demandez au professeur de passer la présence." });
+            }
         }
 
         // 2. Définir la date d'aujourd'hui (format YYYY-MM-DD)
@@ -70,12 +136,21 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         });
 
         // Calcul de l'expiration
-        const qrExpiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+        const qrExpiresAt = new Date(Date.now() + forcedExpiresIn * 60 * 1000);
 
         // FIX: Si une session existe déjà, on renvoie TOUJOURS le token existant s'il y en a un.
         // Cela évite d'invalider les scans des étudiants si le prof rafraîchit sa page.
         if (existingSession && existingSession.qrToken) {
-            // On s'assure qu'elle est déverrouillée si le prof redemande le code
+            // Si c'est un CP, on ne permet pas de renouveler/étendre (Non renouvellable)
+            if (!hasProfAccess && user?.isChefDePromo) {
+                return res.json({
+                    qrToken: existingSession.qrToken,
+                    sessionId: existingSession.id,
+                    expiresAt: existingSession.qrExpiresAt
+                });
+            }
+
+            // Pour un prof, on s'assure qu'elle est déverrouillée si le prof redemande le code
             if (existingSession.isLocked) {
                 await (prisma as any).attendanceSession.update({
                     where: { id: existingSession.id },

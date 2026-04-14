@@ -60,6 +60,7 @@ export interface UserData {
   class?: string;
   id: string;
   title?: string;
+  isChefDePromo?: boolean;
 }
 
 type AppView = 'student-login' | 'admin-login' | 'logged-in' | 'attendance-scan' | 'location-diagnostic';
@@ -291,6 +292,7 @@ export default function App() {
           id: user.id,
           class: actualRole === 'STUDENT' ? studentClass : undefined,
           title: actualRole !== 'STUDENT' ? 'Membre du Personnel' : undefined,
+          isChefDePromo: user.isChefDePromo
         });
 
         setIsLoggedIn(true);

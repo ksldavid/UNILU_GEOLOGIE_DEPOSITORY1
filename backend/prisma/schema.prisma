@@ -121,6 +121,9 @@ model User {
   profilePhotoUrl     String? // URL Cloudinary de la photo de profil
   profilePhotoPublicId String? // Public ID Cloudinary pour la suppression
 
+  // Role spécial pour les délégués
+  isChefDePromo Boolean @default(false)
+
   // Attendance change requests made by this user (Academic Office)
   attendanceChangeRequests AttendanceChangeRequest[]
 
@@ -139,6 +142,7 @@ model User {
   @@index([systemRole])
   @@index([deletedAt])
   @@index([pushToken])
+  @@index([isChefDePromo])
 }
 
 // --- SUPPORT TICKETS & MESSAGES ---

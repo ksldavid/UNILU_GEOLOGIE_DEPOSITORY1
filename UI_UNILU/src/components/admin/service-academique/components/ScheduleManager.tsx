@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
-import { Save, Send, Clock, GripVertical, X, Calendar as CalendarIcon, Loader2, School, Search, Layout, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Save, Send, Clock, GripVertical, X, Calendar as CalendarIcon, Loader2, School, Search, Layout, AlertTriangle, CheckCircle2, FileDown, Printer } from 'lucide-react';
 import { courseService } from '../../../../services/course';
 import { scheduleService } from '../../../../services/schedule';
 
@@ -59,6 +59,7 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
     const [pendingSchedule, setPendingSchedule] = useState<{ course: Course; day: string } | null>(null);
     const [timeForm, setTimeForm] = useState({ startTime: '08:00', endTime: '10:00', room: '' });
     const [selectedEvent, setSelectedEvent] = useState<ScheduledCourse | null>(null);
+    const [showExportView, setShowExportView] = useState(false);
 
     const toMinutes = (time: string) => {
         const [h, m] = time.split(':').map(Number);
@@ -312,6 +313,13 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                         >
                             <Send className="w-4 h-4" />
                             Publier {modifiedLevels.size > 0 ? `(${modifiedLevels.size})` : ''}
+                        </button>
+                        <button
+                            onClick={() => setShowExportView(true)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 text-sm"
+                        >
+                            <FileDown className="w-4 h-4" />
+                            Format Officiel
                         </button>
                     </div>
                 </div>
@@ -698,6 +706,233 @@ export function ScheduleManager({ onModifiedChange, onSaveReady }: ScheduleManag
                     </div>
                 </div>
             )}
+            {/* Official Export Modal */}
+            {showExportView && (
+                <div className="fixed inset-0 z-[250] bg-slate-900/90 backdrop-blur-xl p-4 md:p-8 flex flex-col items-center overflow-y-auto">
+                    <div className="max-w-6xl w-full mb-6 flex justify-between items-center sticky top-0 z-[260] bg-slate-900/50 p-4 rounded-2xl backdrop-blur-md">
+                        <div>
+                            <h3 className="text-xl font-black text-white uppercase tracking-tighter">Prévisualisation Officielle</h3>
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{levels.find(l => l.id === selectedLevelId)?.name}</p>
+                        </div>
+                        <div className="flex gap-4">
+                            <button 
+                                onClick={() => setShowExportView(false)}
+                                className="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold transition-all border border-white/10"
+                            >
+                                Revenir à l'édition
+                            </button>
+                            <button 
+                                onClick={() => window.print()}
+                                className="px-8 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black transition-all shadow-xl shadow-blue-600/20 flex items-center gap-2"
+                            >
+                                <Printer className="w-5 h-5" />
+                                Imprimer / Exporter PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Print Container */}
+                    <div className="bg-white p-12 shadow-2xl rounded-sm print:p-0 print:shadow-none print:m-0 w-full max-w-[210mm] min-h-[297mm]">
+                         <SchedulePrintGrid 
+                            levelName={levels.find(l => l.id === selectedLevelId)?.displayName || levels.find(l => l.id === selectedLevelId)?.name || ''} 
+                            courses={scheduledCourses}
+                         />
+                    </div>
+                    
+                    {/* Add a specific style tag for print for this view */}
+                    <style>{`
+                        @media print {
+                            body * { visibility: hidden; }
+                            .print-container, .print-container * { visibility: visible; }
+                            .print-container { 
+                                position: absolute; 
+                                left: 0; 
+                                top: 0; 
+                                width: 210mm;
+                                height: 297mm;
+                            }
+                            @page {
+                                size: A4 portrait;
+                                margin: 0;
+                            }
+                        }
+                    `}</style>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function SchedulePrintGrid({ levelName, courses }: { levelName: string, courses: ScheduledCourse[] }) {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const rowSlots = [
+        { id: 1, label: '1', morning: true },
+        { id: 2, label: '2', morning: true },
+        { id: 3, label: '3', morning: true },
+        { id: 4, label: '4', morning: true },
+        { id: 5, label: '5', afternoon: true },
+        { id: 6, label: '6', afternoon: true },
+        { id: 7, label: '7', afternoon: true },
+    ];
+
+    // Helper function to map days from French to English for matching or just use French in UI and translate for logic
+    const dayMap: Record<string, string> = {
+        'Lundi': 'Monday',
+        'Mardi': 'Tuesday',
+        'Mercredi': 'Wednesday',
+        'Jeudi': 'Thursday',
+        'Vendredi': 'Friday',
+        'Samedi': 'Saturday',
+        'Dimanche': 'Sunday'
+    };
+
+    const getSlotCourses = (engDay: string, slotId: number) => {
+        // En supposant que le slot 1 = 8h00, slot 2 = 9h30, etc. (ajuster selon votre logique)
+        // Mais pour faire simple comme dans l'image, on va mapper par tranches
+        const timeRanges: Record<number, {start: string, end: string}> = {
+            1: { start: '07:00', end: '08:30' },
+            2: { start: '08:30', end: '10:00' },
+            3: { start: '10:00', end: '11:30' },
+            4: { start: '11:30', end: '13:00' },
+            5: { start: '13:30', end: '15:00' },
+            6: { start: '15:00', end: '16:30' },
+            7: { start: '16:30', end: '18:00' }
+        };
+
+        const range = timeRanges[slotId];
+        return courses.filter(c => {
+            const cDay = dayMap[c.day] || c.day;
+            if (cDay !== engDay) return false;
+            
+            const [ch, cm] = c.startTime.split(':').map(Number);
+            const [rh, rm] = range.start.split(':').map(Number);
+            const [reh, rem] = range.end.split(':').map(Number);
+            
+            const cMin = ch * 60 + cm;
+            const rMin = rh * 60 + rm;
+            const reMin = reh * 60 + rem;
+
+            // Un cours appartient au slot si il commence dans l'intervalle ou si il couvre l'intervalle
+            return cMin >= rMin && cMin < reMin;
+        });
+    };
+
+    return (
+        <div className="print-container font-sans text-slate-800 flex flex-col h-full bg-white">
+            {/* Header Title */}
+            <div className="bg-[#2563EB] text-white py-6 text-center shadow-md">
+                <h1 className="text-[32px] font-black tracking-[0.1em] uppercase">University Class Schedule</h1>
+            </div>
+
+            <div className="p-1 flex-1 flex flex-col">
+                {/* Info Bar */}
+                <div className="grid grid-cols-[1.5fr_1fr_1fr] gap-8 py-8 px-4 border-b border-slate-100">
+                    <div>
+                        <span className="text-xs font-black uppercase text-slate-400">Class:</span>
+                        <span className="ml-3 font-bold text-slate-700">{levelName}</span>
+                    </div>
+                    <div>
+                        <span className="text-xs font-black uppercase text-slate-400">Student ID:</span>
+                        <span className="ml-3 font-bold text-slate-700">TOUS (OFFICIEL)</span>
+                    </div>
+                    <div>
+                        <span className="text-xs font-black uppercase text-slate-400">Name:</span>
+                        <span className="ml-3 font-bold text-slate-700">ADMINISTRATION</span>
+                    </div>
+                </div>
+
+                <div className="flex flex-1">
+                    {/* Main Grid Wrapper */}
+                    <div className="flex-1 p-4 grid grid-cols-[60px_repeat(7,1fr)] gap-2">
+                        {/* Headers */}
+                        <div className="flex items-center justify-center font-black text-xs text-slate-300 uppercase">Time</div>
+                        {days.map(d => (
+                            <div key={d} className="flex items-center justify-center font-bold text-xs text-slate-500 py-4 border-b border-slate-50">{d}</div>
+                        ))}
+
+                        {/* Rows */}
+                        {rowSlots.map(row => (
+                            <Fragment key={row.id}>
+                                <div className="relative flex items-center justify-center border-r border-slate-50 min-h-[100px]">
+                                    {row.id === 1 && (
+                                        <div className="absolute top-0 left-0 bottom-0 flex items-center -ml-2">
+                                            <span className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50 py-4 rounded-full">Morning</span>
+                                        </div>
+                                    )}
+                                    {row.id === 5 && (
+                                        <div className="absolute top-0 left-0 bottom-0 flex items-center -ml-2">
+                                            <span className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50 py-4 rounded-full">Afternoon</span>
+                                        </div>
+                                    )}
+                                    <span className="font-black text-slate-300 text-lg">{row.label}</span>
+                                </div>
+                                {days.map(day => {
+                                    const slotCourses = getSlotCourses(day, row.id);
+                                    return (
+                                        <div key={day} className="bg-slate-50/30 rounded-lg p-1 border border-transparent">
+                                            {slotCourses.map((course, idx) => (
+                                                <div 
+                                                    key={idx} 
+                                                    className="w-full h-full p-2 rounded-lg flex flex-col justify-center items-center text-center shadow-sm"
+                                                    style={{ 
+                                                        backgroundColor: course.color + '22',
+                                                        border: `2px solid ${course.color}`,
+                                                        color: course.color
+                                                    }}
+                                                >
+                                                    <p className="text-[10px] font-black leading-tight mb-1">{course.name}</p>
+                                                    <p className="text-[8px] font-bold opacity-80">{course.professor}</p>
+                                                    <p className="text-[8px] mt-1 font-black bg-white/50 px-1 rounded uppercase">{course.room}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })}
+                            </Fragment>
+                        ))}
+                    </div>
+
+                    {/* Right Sidebar */}
+                    <div className="w-[180px] bg-[#34D399] p-4 text-white flex flex-col gap-8">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-80">Course notes</p>
+                            <div className="h-[2px] bg-white opacity-20 mb-4" />
+                            <div className="space-y-4">
+                                <div>
+                                    <p className="text-[9px] font-bold opacity-80">Credits taken this semester:</p>
+                                    <p className="text-xl font-black">26 credits</p>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-bold opacity-80">Elective courses for this semester:</p>
+                                    <p className="text-sm font-bold">Sports 2</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-80">Time period for this semester:</p>
+                            <p className="text-sm font-bold leading-tight">2025.10 - 2026.07</p>
+                        </div>
+
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-80">Adjustment/suspension/make-up class information:</p>
+                            <p className="text-xs font-bold leading-tight opacity-90 mt-2">
+                                University Location:<br/>
+                                Sciences & Technologies<br/>
+                                <br/>
+                                Course selection time:<br/>
+                                2025.09.24<br/>
+                                08:30-18:30
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-4 border-t border-slate-50 flex justify-between items-center text-[10px] text-slate-300 font-bold uppercase tracking-widest">
+                    <span>© {new Date().getFullYear()} Université de Lubumbashi</span>
+                    <span>Document de travail officiel - Faculté des Sciences</span>
+                </div>
+            </div>
         </div>
     );
 }

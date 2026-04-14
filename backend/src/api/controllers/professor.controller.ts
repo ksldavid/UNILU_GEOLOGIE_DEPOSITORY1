@@ -1068,7 +1068,10 @@ export const enrollStudent = async (req: AuthRequest, res: Response) => {
 
 export const createAssessment = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode, title, instructions, type, maxPoints, date, weight, dueDate } = req.body;
+        const { 
+            courseCode, title, instructions, type, maxPoints, date, weight, dueDate,
+            shouldNotify = true
+        } = req.body;
         const userId = req.user?.userId;
 
         if (!userId) return res.status(401).json({ message: 'Non autorisé' });
@@ -1105,7 +1108,7 @@ export const createAssessment = async (req: AuthRequest, res: Response) => {
 
         // --- ENVOI DES NOTIFICATIONS PUSH ET CRÉATION D'ANNONCE ---
         const notifyTypes = ['ASSIGNMENT', 'HOMEWORK', 'TP', 'INTERROGATION', 'QUIZ', 'EXAM'];
-        if (notifyTypes.includes(type)) {
+        if (notifyTypes.includes(type) && shouldNotify) {
             console.log(`[Push Assessment] Déclenchement pour type: ${type}, cours: ${courseCode}`);
             try {
                 const course = await prisma.course.findUnique({
