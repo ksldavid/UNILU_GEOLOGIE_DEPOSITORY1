@@ -813,143 +813,117 @@ function SchedulePrintGrid({ levelName, courses }: { levelName: string, courses:
         });
     };
 
+    // Redesign as a proper table grid like requested
     return (
-        <div className="print-container font-sans text-slate-800 flex flex-col h-full bg-white relative">
-            {/* Header Title with Logo */}
-            <div className="bg-[#1e3a8a] text-white py-8 px-12 flex items-center justify-between shadow-md relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 -rotate-12 translate-x-32 -translate-y-12 rounded-full" />
-                <div className="flex items-center gap-6 relative z-10">
-                    <div className="w-20 h-20 bg-white p-2 rounded-2xl shadow-lg">
-                        <img src="/src/assets/unilu-official-logo.png" alt="Logo UNILU" className="w-full h-full object-contain" />
-                    </div>
-                    <div className="text-left">
-                        <h1 className="text-[28px] font-black tracking-tight leading-none">FACULTÉ DES SCIENCES</h1>
-                        <p className="text-blue-200 text-sm font-bold mt-1 tracking-widest uppercase opacity-80">Département de Géologie</p>
+        <div className="print-container font-sans text-slate-800 flex flex-col min-h-screen bg-white p-8">
+            {/* School Header */}
+            <div className="w-full bg-[#9ACD32] border-2 border-black py-2 mb-1">
+                <h1 className="text-center text-xl font-black uppercase tracking-widest text-black">
+                    HORAIRE DES COURS - FACULTÉ DES SCIENCES
+                </h1>
+            </div>
+
+            {/* Sub Header / Info */}
+            <div className="flex justify-between items-center mb-4 px-2">
+                <div className="flex items-center gap-4">
+                    <img src="/src/assets/unilu-official-logo.png" alt="Logo UNILU" className="w-12 h-12 object-contain" />
+                    <div>
+                        <p className="text-xs font-black uppercase text-slate-600">Promotion: <span className="text-blue-700">{levelName}</span></p>
+                        <p className="text-[10px] font-bold text-slate-400">Année Académique 2025-2026</p>
                     </div>
                 </div>
-                <div className="text-right relative z-10">
-                    <h2 className="text-3xl font-black italic tracking-tighter">HORAIRE DES COURS</h2>
-                    <p className="text-blue-100/60 text-xs font-bold uppercase tracking-widest mt-1">Année Académique 2025-2026</p>
+                <div className="text-right">
+                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Département de Géologie</p>
+                    <p className="text-[10px] font-bold text-slate-400">Lubumbashi, RDC</p>
                 </div>
             </div>
 
-            <div className="p-1 flex-1 flex flex-col">
-                {/* Info Bar */}
-                <div className="grid grid-cols-[1.5fr_1fr_1fr] gap-8 py-8 px-6 border-b border-slate-100 bg-slate-50/30">
-                    <div>
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">PROMOTION :</span>
-                        <span className="ml-3 font-black text-[#1e3a8a] text-lg uppercase">{levelName}</span>
-                    </div>
-                    <div>
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">ID ÉTUDIANT :</span>
-                        <span className="ml-3 font-bold text-slate-700">TOUS (OFFICIEL)</span>
-                    </div>
-                    <div>
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">SEMESTRE :</span>
-                        <span className="ml-3 font-bold text-slate-700">PREMIER SEMESTRE</span>
-                    </div>
-                </div>
-
-                <div className="flex flex-1">
-                    {/* Main Grid Wrapper */}
-                    <div className="flex-1 p-4 grid grid-cols-[70px_repeat(6,1fr)] gap-2">
-                        {/* Headers */}
-                        <div className="flex items-center justify-center font-black text-[10px] text-slate-300 uppercase tracking-widest bg-slate-50/50 rounded-lg">HEURE</div>
-                        {['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI'].map(d => (
-                            <div key={d} className="flex items-center justify-center font-black text-[10px] text-slate-500 py-4 border-b-2 border-[#1e3a8a]/10 uppercase tracking-widest">{d}</div>
+            {/* Proper Table Grid */}
+            <table className="w-full border-collapse border-2 border-black">
+                <thead>
+                    <tr>
+                        <th className="border-2 border-black w-32 bg-slate-50"></th>
+                        {['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI'].map(day => (
+                            <th key={day} className="border-2 border-black py-2 text-xs font-black italic uppercase italic">
+                                <u>{day}</u>
+                            </th>
                         ))}
-
-                        {/* Rows */}
-                        {rowSlots.map(row => (
-                            <Fragment key={row.id}>
-                                <div className="relative flex items-center justify-center border-r border-slate-50 min-h-[100px]">
-                                    {row.id === 1 && (
-                                        <div className="absolute top-0 left-0 bottom-0 flex items-center -ml-2">
-                                            <span className="[writing-mode:vertical-lr] rotate-180 text-[9px] font-black text-blue-400 uppercase tracking-[0.3em] bg-blue-50 py-4 px-1 rounded-full border border-blue-100">Matin</span>
-                                        </div>
-                                    )}
-                                    {row.id === 5 && (
-                                        <div className="absolute top-0 left-0 bottom-0 flex items-center -ml-2">
-                                            <span className="[writing-mode:vertical-lr] rotate-180 text-[9px] font-black text-orange-400 uppercase tracking-[0.3em] bg-orange-50 py-4 px-1 rounded-full border border-orange-100">Après-midi</span>
-                                        </div>
-                                    )}
-                                    <span className="font-black text-slate-200 text-xl">{row.label}</span>
-                                </div>
-                                {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(day => {
-                                    const slotCourses = getSlotCourses(day, row.id);
-                                    return (
-                                        <div key={day} className="bg-slate-50/30 rounded-lg p-1 border border-transparent">
-                                            {slotCourses.map((course, idx) => (
-                                                <div 
-                                                    key={idx} 
-                                                    className="w-full h-full p-2 rounded-lg flex flex-col justify-center items-center text-center shadow-sm"
-                                                    style={{ 
-                                                        backgroundColor: course.color + '22',
-                                                        border: `2px solid ${course.color}`,
-                                                        color: course.color
-                                                    }}
-                                                >
-                                                    <p className="text-[10px] font-black leading-tight mb-1">{course.name}</p>
-                                                    <p className="text-[8px] font-bold opacity-80">{course.professor}</p>
-                                                    <p className="text-[8px] mt-1 font-black bg-white/50 px-1 rounded uppercase">{course.room}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    );
-                                })}
-                            </Fragment>
+                    </tr>
+                </thead>
+                <tbody>
+                    {/* Period 1: Mornings */}
+                    <tr className="bg-[#B0C4DE]">
+                        <td className="border-2 border-black p-2 text-center text-[10px] font-black italic"><u>Matin 1</u></td>
+                        {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(day => (
+                            <td key={day} className="border-2 border-black p-1 text-center font-bold text-[9px]">
+                                {getSlotCourses(day, 1).map((c, i) => <div key={i}>{c.name}<br/><span className="font-normal opacity-70">07:00 à 08:30</span></div>)}
+                            </td>
                         ))}
-                    </div>
+                    </tr>
+                    <tr>
+                        <td className="border-2 border-black p-2 text-center text-[10px] font-black italic"><u>Matin 2</u></td>
+                        {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(day => (
+                            <td key={day} className="border-2 border-black p-1 text-center font-bold text-[9px]">
+                                {getSlotCourses(day, 2).map((c, i) => <div key={i}>{c.name}<br/><span className="font-normal opacity-70">08:30 à 10:00</span></div>)}
+                            </td>
+                        ))}
+                    </tr>
+                    <tr>
+                        <td className="border-2 border-black p-2 text-center text-[10px] font-black italic"><u>Matin 3</u></td>
+                        {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(day => (
+                            <td key={day} className="border-2 border-black p-1 text-center font-bold text-[9px]">
+                                {getSlotCourses(day, 3).map((c, i) => <div key={i}>{c.name}<br/><span className="font-normal opacity-70">10:00 à 11:30</span></div>)}
+                            </td>
+                        ))}
+                    </tr>
 
-                    {/* Right Sidebar - Improved Aesthetics */}
-                    <div className="w-[200px] bg-slate-50 p-6 flex flex-col gap-10 border-l border-slate-100">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest mb-2 text-[#1e3a8a] opacity-80">NOTES DE COURS</p>
-                            <div className="h-[2px] bg-[#1e3a8a] opacity-10 mb-5" />
-                            <div className="space-y-6">
-                                <div>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tight">Crédits validés ce semestre :</p>
-                                    <p className="text-2xl font-black text-[#1e3a8a]">26 crédits</p>
-                                </div>
-                                <div>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tight">Cours à option :</p>
-                                    <p className="text-sm font-bold text-slate-700">Sports 2</p>
-                                </div>
-                            </div>
-                        </div>
+                    {/* Pause Row */}
+                    <tr className="bg-[#FBCFE8]">
+                        <td className="border-2 border-black p-2 text-center text-[10px] font-black italic"><u>Pause</u></td>
+                        {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(day => (
+                            <td key={day} className="border-2 border-black p-1 text-center font-black text-[10px] text-rose-700">
+                                12:00 à 13:30
+                            </td>
+                        ))}
+                    </tr>
 
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest mb-2 text-[#1e3a8a] opacity-80">PÉRIODE DU SEMESTRE</p>
-                            <div className="h-[2px] bg-[#1e3a8a] opacity-10 mb-5" />
-                            <p className="text-sm font-black text-slate-700">10.2025 - 07.2026</p>
-                        </div>
+                    {/* Period 2: Afternoon */}
+                    <tr>
+                        <td className="border-2 border-black p-2 text-center text-[10px] font-black italic"><u>Après-midi 1</u></td>
+                        {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(day => (
+                            <td key={day} className="border-2 border-black p-1 text-center font-bold text-[9px]">
+                                {getSlotCourses(day, 5).map((c, i) => <div key={i}>{c.name}<br/><span className="font-normal opacity-70">13:30 à 15:00</span></div>)}
+                            </td>
+                        ))}
+                    </tr>
+                    <tr>
+                        <td className="border-2 border-black p-2 text-center text-[10px] font-black italic"><u>Après-midi 2</u></td>
+                        {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(day => (
+                            <td key={day} className="border-2 border-black p-1 text-center font-bold text-[9px]">
+                                {getSlotCourses(day, 6).map((c, i) => <div key={i}>{c.name}<br/><span className="font-normal opacity-70">15:00 à 16:30</span></div>)}
+                            </td>
+                        ))}
+                    </tr>
+                    <tr className="bg-[#B0C4DE]">
+                        <td className="border-2 border-black p-2 text-center text-[10px] font-black italic"><u>Fin de Journée</u></td>
+                        {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(day => (
+                            <td key={day} className="border-2 border-black p-1 text-center font-bold text-[9px]">
+                                {getSlotCourses(day, 7).map((c, i) => <div key={i}>{c.name}<br/><span className="font-normal opacity-70">16:30 à 18:00</span></div>)}
+                            </td>
+                        ))}
+                    </tr>
+                </tbody>
+            </table>
 
-                        <div className="flex-1">
-                            <p className="text-[10px] font-black uppercase tracking-widest mb-2 text-[#1e3a8a] opacity-80">INFORMATIONS</p>
-                            <div className="h-[2px] bg-[#1e3a8a] opacity-10 mb-5" />
-                            <div className="space-y-4">
-                                <div>
-                                    <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Localisation :</p>
-                                    <p className="text-[11px] font-bold text-slate-700 leading-tight">Faculté des Sciences<br/>Bâtiment de Géologie</p>
-                                </div>
-                                
-                                <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
-                                    <p className="text-[8px] font-black text-blue-400 uppercase mb-1 whitespace-nowrap">Date de sélection :</p>
-                                    <p className="text-[10px] font-black text-blue-900">24 Septembre 2025</p>
-                                    <p className="text-[9px] font-bold text-blue-900/60">08:30 - 18:30</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="pt-4 opacity-20 filter grayscale">
-                            <img src="/src/assets/unilu-official-logo.png" alt="Logo Watermark" className="w-16 h-16 mx-auto" />
-                        </div>
-                    </div>
+            {/* Footer */}
+            <div className="mt-8 flex justify-between items-end border-t border-slate-100 pt-4">
+                <div className="text-[9px] font-bold text-slate-400 space-y-1">
+                    <p>Document généré le {new Date().toLocaleDateString('fr-FR')}</p>
+                    <p>Signature et Sceau de la Faculté :</p>
+                    <div className="h-16 w-32 border border-dashed border-slate-200 mt-2 rounded"></div>
                 </div>
-
-                <div className="p-4 border-t border-slate-50 flex justify-between items-center text-[10px] text-slate-300 font-bold uppercase tracking-widest">
-                    <span>© {new Date().getFullYear()} Université de Lubumbashi</span>
-                    <span>Document de travail officiel - Faculté des Sciences</span>
+                <div className="text-right">
+                    <p className="text-[10px] font-black text-[#1e3a8a] italic">UNILU - Scientia splendet et conscientia</p>
                 </div>
             </div>
         </div>
