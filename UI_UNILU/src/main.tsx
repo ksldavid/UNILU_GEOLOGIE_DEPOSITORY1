@@ -1,4 +1,4 @@
-// Vercel Build Trigger - Force Fresh Deployment
+// Vercel Build Trigger - Reconnected - Force Deployment #2
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from "./App.tsx";
