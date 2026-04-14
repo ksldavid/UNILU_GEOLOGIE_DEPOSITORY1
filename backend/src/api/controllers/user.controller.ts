@@ -80,7 +80,7 @@ export const getUsers = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
-        const { name, email, title, isChefDePromo } = req.body
+        const { name, email, title, isChefDePromo, systemRole } = req.body
 
         // Validation du nombre de CP par classe si on tente d'activer le statut
         if (isChefDePromo === true) {
@@ -126,6 +126,7 @@ export const updateUser = async (req: Request, res: Response) => {
             data: {
                 name, email,
                 isChefDePromo,
+                systemRole,
                 professorProfile: title ? {
                     upsert: { create: { id, title }, update: { title } }
                 } : undefined

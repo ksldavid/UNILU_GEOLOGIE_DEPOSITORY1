@@ -88,6 +88,9 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
         if (!window.confirm(`Voulez-vous vraiment ${user.status === 'Actif' ? 'bloquer' : 'débloquer'} l'accès pour ${user.name} ?`)) return;
 
         try {
+            // Optimistic update
+            setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: newStatus } : u));
+
             const token = sessionStorage.getItem('token');
             const res = await fetch(`${API_URL}/admin/users/${user.id}/status`, {
                 method: 'PATCH',
@@ -97,11 +100,16 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
                 },
                 body: JSON.stringify({ status: newStatus })
             });
-            if (res.ok) {
-                fetchUsers();
+            if (!res.ok) {
+                // Rollback on error
+                setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: user.status } : u));
+                const errorData = await res.json();
+                alert(errorData.message || "Erreur lors de la mise à jour du statut.");
             }
         } catch (error) {
             console.error("Erreur statut:", error);
+            // Rollback on error
+            setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: user.status } : u));
         }
     };
 
@@ -338,12 +346,13 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
                                                 <button
                                                     onClick={() => handleToggleStatus(u)}
                                                     title={u.status === 'Actif' ? 'Révoquer l\'accès' : 'Rétablir l\'accès'}
-                                                    className={`p-2 rounded-xl border transition-all shadow-sm ${u.status === 'Actif'
+                                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all text-[10px] font-black uppercase tracking-wide shadow-sm ${u.status === 'Actif'
                                                         ? 'bg-orange-600/10 text-orange-400 border-orange-500/20 hover:bg-orange-600 hover:text-white'
                                                         : 'bg-emerald-600/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-600 hover:text-white'
                                                         }`}
                                                 >
-                                                    <Ban className="w-4 h-4" />
+                                                    <Ban className="w-3.5 h-3.5" />
+                                                    {u.status === 'Actif' ? 'Bloquer' : 'Débloquer'}
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteUser(u)}
@@ -373,6 +382,43 @@ export function AccessManagement({ onOpenNewUser }: { onOpenNewUser: () => void 
                                                         {u.isChefDePromo ? 'Retirer CP' : 'Nommer CP'}
                                                     </button>
                                                 )}
+
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const isAdmin = u.role === 'Admin Technique';
+                                                            if (!confirm(`Voulez-vous ${isAdmin ? 'retirer' : 'accorder'} les privilèges d'Admin Technique (Service Technique) à ${u.name} ?`)) return;
+                                                            
+                                                            const roleMapBack: any = {
+                                                                'Étudiant': 'STUDENT',
+                                                                'Professeur': 'USER',
+                                                                'Service Académique': 'ACADEMIC_OFFICE',
+                                                                'Admin Technique': 'STUDENT' // Fallback for safety
+                                                            };
+
+                                                            const newRole = isAdmin ? (roleMapBack[u.role] || 'USER') : 'ADMIN';
+                                                            const newRoleText = isAdmin ? 'Retiré Admin' : 'Admin Technique';
+                                                            
+                                                            // Optimistic update
+                                                            setUsers(prev => prev.map(user =>
+                                                                user.id === u.id ? { ...user, role: isAdmin ? 'Chargement...' : 'Admin Technique' } : user
+                                                            ));
+
+                                                            await userService.updateUser(u.id, { systemRole: newRole });
+                                                            
+                                                            // Re-fetch to be sure of the final state after role change
+                                                            fetchUsers();
+                                                        } catch (err: any) { alert(err.message || 'Erreur lors de la mise à jour du rôle.'); }
+                                                    }}
+                                                    title={u.role === 'Admin Technique' ? 'Retirer Admin' : 'Promouvoir Admin Technique'}
+                                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all text-[10px] font-black uppercase tracking-wide shadow-sm ${
+                                                        u.role === 'Admin Technique' 
+                                                        ? 'bg-purple-600 text-white border-purple-500 hover:bg-purple-700'
+                                                        : 'bg-purple-600/10 text-purple-400 border-purple-500/20 hover:bg-purple-600 hover:text-white'}`}
+                                                >
+                                                    <ShieldAlert className="w-3.5 h-3.5" />
+                                                    {u.role === 'Admin Technique' ? 'Admin ON' : 'Make ADMIN'}
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>

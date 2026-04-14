@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { Save, Send, Clock, GripVertical, X, Calendar as CalendarIcon, Loader2, School, Search, Layout, AlertTriangle, CheckCircle2, FileDown, Printer } from 'lucide-react';
+import logoUnilu from '../../../../assets/unilu-official-logo.png';
 import { courseService } from '../../../../services/course';
 import { scheduleService } from '../../../../services/schedule';
 
@@ -826,7 +827,7 @@ function SchedulePrintGrid({ levelName, courses }: { levelName: string, courses:
             {/* Sub Header / Info */}
             <div className="flex justify-between items-center mb-4 px-2">
                 <div className="flex items-center gap-4">
-                    <img src="/src/assets/unilu-official-logo.png" alt="Logo UNILU" className="w-12 h-12 object-contain" />
+                    <img src={logoUnilu} alt="Logo UNILU" className="w-12 h-12 object-contain" />
                     <div>
                         <p className="text-xs font-black uppercase text-slate-600">Promotion: <span className="text-blue-700">{levelName}</span></p>
                         <p className="text-[10px] font-bold text-slate-400">Année Académique 2025-2026</p>
