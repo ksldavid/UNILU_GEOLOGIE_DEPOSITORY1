@@ -258,7 +258,6 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
     }
   };
 
-  const currentStudent = JSON.parse(sessionStorage.getItem('user') || '{}');
 
   const handleGenerateCPQR = async (course: any) => {
     const timeState = getCPButtonState(course.time);

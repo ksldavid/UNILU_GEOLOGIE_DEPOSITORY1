@@ -32,12 +32,12 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export const generateQRToken = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode, sessionNumber = 1, expiresInMinutes = 1440 } = req.body;
+        const { courseCode, sessionNumber = 1, expiresInMinutes = 15, latitude: reqLat, longitude: reqLng } = req.body;
         const sessionNum = Number(sessionNumber);
 
-        // Coordonnées par défaut
-        const latitude = FACULTY_LOCATIONS[0].lat;
-        const longitude = FACULTY_LOCATIONS[0].lng;
+        // Coordonnées par défaut (ou celles envoyées par le mobile)
+        const latitude = reqLat || FACULTY_LOCATIONS[0].lat;
+        const longitude = reqLng || FACULTY_LOCATIONS[0].lng;
 
         const userId = req.user?.userId;
 
@@ -77,6 +77,8 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             const now = new Date();
             const lubumbashiTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
             const dayOfWeek = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][lubumbashiTime.getDay()];
+            
+            console.log(`[CP DEBUG] CP ${userId} génère un token pour ${courseCode}. Session: ${sessionNumber}, Coords: ${latitude},${longitude}`);
             
             const schedule = await prisma.schedule.findFirst({
                 where: {
@@ -334,6 +336,16 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
             });
         }
 
+        // Trouver l'ID du professeur pour marquer la présence comme "Officielle"
+        const courseProf = await prisma.courseEnrollment.findFirst({
+            where: {
+                courseCode: session.courseCode,
+                role: 'PROFESSOR',
+                academicYear: "2025-2026"
+            },
+            select: { userId: true }
+        });
+
         // 6. Enregistrer ou Mettre à jour la présence 
         await (prisma as any).attendanceRecord.upsert({
             where: {
@@ -342,11 +354,15 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
                     studentId: userId
                 }
             },
-            update: { status: 'PRESENT' },
+            update: { 
+                status: 'PRESENT',
+                modifiedBy: courseProf?.userId || null
+            },
             create: {
                 sessionId: session.id,
                 studentId: userId,
-                status: 'PRESENT'
+                status: 'PRESENT',
+                modifiedBy: courseProf?.userId || null
             }
         });
 

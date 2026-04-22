@@ -756,7 +756,10 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
         // 3. Pour chaque cours, calculer les statistiques réelles
         const progressResults = await Promise.all(courses.map(async (course) => {
             const sessions = await prisma.attendanceSession.findMany({
-                where: { courseCode: course.code },
+                where: { 
+                    courseCode: course.code,
+                    date: { gte: semesterStart }
+                },
                 orderBy: { date: 'desc' },
                 include: {
                     records: { select: { status: true } }

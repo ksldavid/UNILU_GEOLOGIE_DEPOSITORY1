@@ -38,11 +38,13 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
         // 2. Récupérer les statistiques par cours
         const courseStats = await Promise.all(
             student.studentCourseEnrollments.map(async (enrollment: any) => {
-                const courseCode = enrollment.courseCode
-
-                // Get all sessions for this course
+                const semesterStart = new Date('2026-02-01');
+                // Get all sessions for this course since semester start
                 const sessions = await prisma.attendanceSession.findMany({
-                    where: { courseCode }
+                    where: { 
+                        courseCode,
+                        date: { gte: semesterStart }
+                    }
                 })
 
                 // Get student's attendance records for these sessions
@@ -302,6 +304,9 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
                         },
                         academicLevels: true,
                         attendanceSessions: {
+                            where: {
+                                date: { gte: semesterStart }
+                            },
                             include: {
                                 records: {
                                     where: { studentId: userId }
@@ -428,9 +433,13 @@ export const getStudentCourseDetails = async (req: AuthRequest, res: Response) =
 
         if (!course) return res.status(404).json({ message: 'Cours non trouvé' });
 
-        // 2. Attendance Stats for this course
+        const semesterStart = new Date('2026-02-01');
+        // 2. Attendance Stats for this course (Semester 2 only)
         const sessions = await prisma.attendanceSession.findMany({
-            where: { courseCode },
+            where: { 
+                courseCode,
+                date: { gte: semesterStart }
+            },
             select: {
                 id: true,
                 date: true,
