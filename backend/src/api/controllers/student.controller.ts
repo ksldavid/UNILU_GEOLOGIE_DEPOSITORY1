@@ -42,7 +42,7 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
                 // Get all sessions for this course since semester start
                 const sessions = await prisma.attendanceSession.findMany({
                     where: { 
-                        courseCode,
+                        courseCode: enrollment.courseCode,
                         date: { gte: semesterStart }
                     }
                 })
@@ -68,7 +68,7 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
                 else if (percentage < 85) color = '#0284c7' // blue
 
                 return {
-                    id: courseCode,
+                    id: enrollment.courseCode,
                     name: enrollment.course.name,
                     percentage,
                     totalCount,
@@ -252,6 +252,8 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
 export const getStudentCourses = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
+        const academicYear = "2025-2026";
+        const semesterStart = new Date('2026-02-01');
 
         // Get student's academic level
         const student = await prisma.user.findUnique({
@@ -330,8 +332,6 @@ export const getStudentCourses = async (req: AuthRequest, res: Response) => {
             { from: '#06b6d4', to: '#0891b2' }     // cyan
         ];
 
-        const academicYear = "2025-2026";
-        const semesterStart = new Date('2026-02-01');
 
         const courses = enrollments.map((e, index) => {
             const c = e.course;
