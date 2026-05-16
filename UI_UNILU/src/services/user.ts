@@ -257,6 +257,20 @@ export const userService = {
             throw new Error(error.error || 'Erreur lors de la création de l\'utilisateur');
         }
         return response.json();
+    },
+
+    async getStudentAttendanceDetail(userId: string) {
+        const token = sessionStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        const response = await fetch(`${API_URL}/stats/student/${userId}/attendance`, { headers });
+        if (!response.ok) {
+            throw new Error('Erreur lors de la récupération du détail des présences');
+        }
+        return response.json();
     }
 
 };

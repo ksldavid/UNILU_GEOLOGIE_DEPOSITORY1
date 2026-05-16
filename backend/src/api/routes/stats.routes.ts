@@ -3,7 +3,8 @@ import {
     getAcademicStats, getRecentActivities, getAttendanceStatsByLevel,
     getCourseAttendance, getTechnicalStats, getApiLogs,
     restartServer, clearCache, getStudentDemographics,
-    getDemographicFilters, getTrafficInsights, getDetailedCourseProgress
+    getDemographicFilters, getTrafficInsights, getDetailedCourseProgress,
+    getIndividualStudentAttendance
 } from '../controllers/stats.controller'
 import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 
@@ -18,6 +19,7 @@ router.get('/course-attendance', authenticateToken, authorizeRole(['ADMIN', 'ACA
 router.get('/student-demographics', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getStudentDemographics)
 router.get('/student-demographics-filters', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getDemographicFilters)
 router.get('/course-progress', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getDetailedCourseProgress)
+router.get('/student/:userId/attendance', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getIndividualStudentAttendance)
 
 // Route technique (ADMIN uniquement)
 router.get('/technical', authenticateToken, authorizeRole(['ADMIN']), getTechnicalStats)

@@ -179,6 +179,38 @@ export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
     fetchData();
   }, []);
 
+  // Fetch detailed attendance for selected student (Dynamic loading on-click)
+  useEffect(() => {
+    const fetchStudentAttendance = async () => {
+      if (!selectedUser || selectedUser.role !== 'student' || !selectedUser.enrolledCourses) return;
+      
+      // Don't re-fetch if we already have some data (optional, but let's fetch to be fresh)
+      try {
+        const attendanceDetails = await userService.getStudentAttendanceDetail(selectedUser.id);
+        
+        // Update the selectedUser with the real rates
+        const updatedCourses = selectedUser.enrolledCourses.map(course => {
+          const detail = attendanceDetails.find((d: any) => d.courseCode === course.code);
+          return detail ? { ...course, attendance: detail.attendanceRate } : course;
+        });
+
+        setSelectedUser(prev => {
+          if (!prev || prev.id !== selectedUser.id) return prev;
+          
+          // Only update if the attendance values actually changed to avoid unnecessary renders
+          const hasChanged = updatedCourses.some((c, i) => c.attendance !== prev.enrolledCourses?.[i]?.attendance);
+          if (!hasChanged) return prev;
+          
+          return { ...prev, enrolledCourses: updatedCourses };
+        });
+      } catch (error) {
+        console.error("Erreur chargement détails présence:", error);
+      }
+    };
+
+    fetchStudentAttendance();
+  }, [selectedUser?.id]);
+
 
   // Modal States
   const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);

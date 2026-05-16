@@ -881,3 +881,55 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
         res.status(500).json({ message: 'Erreur serveur' });
     }
 }
+
+// Récupérer le détail des présences pour un étudiant spécifique (Chargement dynamique au clic)
+export const getIndividualStudentAttendance = async (req: Request, res: Response) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).json({ message: "L'identifiant de l'étudiant est requis" });
+        }
+
+        // 1. Récupérer les cours auxquels l'étudiant est inscrit
+        const enrollments = await prisma.studentCourseEnrollment.findMany({
+            where: { studentId: userId, isActive: true },
+            include: {
+                course: {
+                    select: {
+                        id: true,
+                        code: true,
+                        name: true,
+                        _count: {
+                            select: { attendanceSessions: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Pour chaque cours, compter les présences réelles de cet étudiant
+        const results = await Promise.all(enrollments.map(async (en) => {
+            const presentCount = await prisma.attendanceRecord.count({
+                where: {
+                    studentId: userId,
+                    session: { courseCode: en.course.code },
+                    status: { in: ['PRESENT', 'LATE'] }
+                }
+            });
+
+            const totalSessions = en.course._count.attendanceSessions;
+            
+            return {
+                courseId: en.course.id,
+                courseCode: en.course.code,
+                attendanceRate: totalSessions === 0 ? 0 : Math.round((presentCount / totalSessions) * 100)
+            };
+        }));
+
+        res.json(results);
+    } catch (error) {
+        console.error('Erreur detail attendance etudiant:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+}
