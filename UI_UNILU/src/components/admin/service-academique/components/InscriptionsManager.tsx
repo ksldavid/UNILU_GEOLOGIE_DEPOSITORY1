@@ -23,6 +23,7 @@ interface Course {
   name: string;
   code: string;
   level: string;
+  isCompleted?: boolean;
   teachingRole?: 'professor' | 'assistant'; // Nouveau: pour distinguer Titulaire vs Assistant
 }
 
@@ -137,6 +138,7 @@ export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
               id: enrollment.course.id || enrollment.course.code,
               name: enrollment.course.name,
               code: enrollment.course.code,
+              isCompleted: !!enrollment.course.isCompleted,
               attendance: enrollment.attendanceRate || 0, // Utiliser le taux réel calculé par le backend
               grade: 'N/A',
               grades: []
@@ -964,7 +966,14 @@ Nom complet: ${formData.nom} ${formData.postNom} ${formData.prenom}
                               <BookOpen className="w-6 h-6" />
                             </div>
                             <div>
-                              <h4 className="font-bold text-[#1B4332]">{course.name}</h4>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-[#1B4332]">{course.name}</h4>
+                                {course.isCompleted && (
+                                  <span className="text-[10px] bg-[#D8F3DC] text-[#1B4332] px-2 py-0.5 rounded-full font-bold border border-[#1B4332]/10">
+                                    Terminé
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-[#52796F] font-medium">{course.code} • {course.level}</p>
                             </div>
                           </div>
