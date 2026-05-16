@@ -337,7 +337,7 @@ export const getCourseAttendance = async (req: Request, res: Response) => {
             where: {
                 courseCode,
                 date: {
-                    gte: new Date(new Date().getFullYear(), 0, 1), // Depuis le début de l'année
+                    gte: new Date('2026-01-01'), // Harmonisé : début de l'année académique/civile en cours
                 }
             },
             select: { id: true }
@@ -885,7 +885,7 @@ export const getDetailedCourseProgress = async (req: Request, res: Response) => 
 // Récupérer le détail des présences pour un étudiant spécifique (Chargement dynamique au clic)
 export const getIndividualStudentAttendance = async (req: Request, res: Response) => {
     try {
-        const { userId } = req.params;
+        const userId = req.params.userId as string;
 
         if (!userId) {
             return res.status(400).json({ message: "L'identifiant de l'étudiant est requis" });
@@ -893,11 +893,10 @@ export const getIndividualStudentAttendance = async (req: Request, res: Response
 
         // 1. Récupérer les cours auxquels l'étudiant est inscrit
         const enrollments = await prisma.studentCourseEnrollment.findMany({
-            where: { studentId: userId, isActive: true },
+            where: { userId: userId, isActive: true },
             include: {
                 course: {
                     select: {
-                        id: true,
                         code: true,
                         name: true,
                         _count: {
@@ -910,19 +909,25 @@ export const getIndividualStudentAttendance = async (req: Request, res: Response
 
         // 2. Pour chaque cours, compter les présences réelles de cet étudiant
         const results = await Promise.all(enrollments.map(async (en) => {
-            const presentCount = await prisma.attendanceRecord.count({
-                where: {
-                    studentId: userId,
-                    session: { courseCode: en.course.code },
-                    status: { in: ['PRESENT', 'LATE'] }
-                }
-            });
+            const [presentCount, totalSessions] = await Promise.all([
+                prisma.attendanceRecord.count({
+                    where: {
+                        studentId: userId,
+                        session: { courseCode: en.courseCode },
+                        status: { in: ['PRESENT', 'LATE'] }
+                    }
+                }),
+                prisma.attendanceSession.count({
+                    where: {
+                        courseCode: en.courseCode,
+                        date: { gte: new Date('2026-01-01') } // Filtre pour l'année en cours uniquement
+                    }
+                })
+            ]);
 
-            const totalSessions = en.course._count.attendanceSessions;
-            
             return {
-                courseId: en.course.id,
-                courseCode: en.course.code,
+                courseId: en.courseCode, // Correction TypeScript: utilise courseCode directement
+                courseCode: en.courseCode,
                 attendanceRate: totalSessions === 0 ? 0 : Math.round((presentCount / totalSessions) * 100)
             };
         }));
