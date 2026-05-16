@@ -1153,6 +1153,11 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                               Session {session.sessionNumber}
                             </span>
                           )}
+                          {session.createdByCP && (
+                            <span className="text-[10px] bg-amber-50 text-amber-600 px-2.5 py-0.5 rounded-md border border-amber-200 uppercase tracking-tighter font-black flex items-center gap-1 shadow-sm">
+                              <ShieldCheck className="w-3 h-3" /> prise par le cp
+                            </span>
+                          )}
                         </p>
                         <div className="flex items-center gap-4 mt-1">
                           <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
@@ -1234,8 +1239,13 @@ export function AttendanceManagement({ course, onBack, onDirtyChange, saveTrigge
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">
-                    Détails du {new Date(selectedHistorySession.date).toLocaleDateString('fr-FR')}
+                      {new Date(selectedHistorySession.date).toLocaleDateString('fr-FR')}
                     {selectedHistorySession.sessionNumber && ` - Session ${selectedHistorySession.sessionNumber}`}
+                    {selectedHistorySession.createdByCP && (
+                      <span className="ml-3 text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-full border border-amber-200 uppercase tracking-widest font-black inline-flex items-center gap-1.5 shadow-sm">
+                        <ShieldCheck className="w-3.5 h-3.5" /> prise par le délégué (cp)
+                      </span>
+                    )}
                   </h2>
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{course.code}</p>
                 </div>

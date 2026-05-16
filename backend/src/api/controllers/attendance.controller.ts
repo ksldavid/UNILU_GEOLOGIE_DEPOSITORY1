@@ -203,7 +203,8 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
                 qrExpiresAt,
                 latitude,
                 longitude,
-                isLocked: false
+                isLocked: false,
+                createdByCP: !!user?.isChefDePromo
             }
         });
 
@@ -479,6 +480,7 @@ export const getCourseAttendanceSessions = async (req: AuthRequest, res: Respons
                 totalStudents: enrollments.length,
                 presentCount,
                 absentCount: enrollments.length - presentCount,
+                createdByCP: session.createdByCP,
                 students: studentsStatus
             };
         });

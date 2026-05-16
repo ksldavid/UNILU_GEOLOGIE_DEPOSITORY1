@@ -462,6 +462,7 @@ model AttendanceSession {
   qrExpiresAt DateTime?
   latitude    Float?
   longitude   Float?
+  createdByCP Boolean   @default(false)
 
   course  Course             @relation(fields: [courseCode], references: [code])
   records AttendanceRecord[]
