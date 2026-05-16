@@ -124,6 +124,7 @@ export const getProfessorAttendanceHistory = async (req: AuthRequest, res: Respo
                 present: present + late,  // Late counts as present in summary
                 absent: absent,
                 late: late,
+                createdByCP: session.createdByCP,
                 records: allRecords.sort((a: any, b: any) => a.studentName.localeCompare(b.studentName))
             };
         });
