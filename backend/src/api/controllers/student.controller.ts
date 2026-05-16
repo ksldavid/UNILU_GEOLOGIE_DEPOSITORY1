@@ -94,8 +94,7 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
                     where: { studentId: userId }
                 }
             },
-            orderBy: { date: 'desc' },
-            take: 20 // On prend les 20 plus récents pour en afficher 10 au final
+            orderBy: { date: 'desc' }
         });
 
         const formattedHistory = allSessions.map((session: any) => {
@@ -107,7 +106,7 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
                 time: record ? record.createdAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : null,
                 status: record ? record.status : 'ABSENT'
             };
-        }).slice(0, 10);
+        });
 
         // Calculate overall attendance
         const totalSessions = courseStats.reduce((sum, course) => sum + course.totalCount, 0);
