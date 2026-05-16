@@ -250,35 +250,42 @@ export const getAttendanceStatsByLevel = async (req: Request, res: Response) => 
             const monthData: any = { month };
 
             const levelPromises = levels.map(async (level) => {
-                const whereClause = {
-                    session: {
-                        course: {
-                            academicLevels: {
-                                some: { id: level.id }
-                            }
-                        },
+                // 1. Compter les étudiants inscrits à ce niveau
+                const studentCount = await prisma.studentEnrollment.count({
+                    where: { academicLevelId: level.id, academicYear: "2025-2026" }
+                });
+
+                if (studentCount === 0) return { key: level.key, value: 0 };
+
+                // 2. Trouver toutes les sessions pour ce niveau dans le mois
+                const sessions = await prisma.attendanceSession.findMany({
+                    where: {
+                        course: { academicLevels: { some: { id: level.id } } },
                         date: {
                             gte: new Date(currentYear, i, 1),
                             lt: new Date(currentYear, i + 1, 1)
                         }
+                    },
+                    select: { id: true }
+                });
+
+                if (sessions.length === 0) return { key: level.key, value: 0 };
+
+                const sessionIds = sessions.map(s => s.id);
+
+                // 3. Compter les présences réelles
+                const attendanceCount = await prisma.attendanceRecord.count({
+                    where: {
+                        sessionId: { in: sessionIds },
+                        status: { in: ['PRESENT', 'LATE'] }
                     }
-                };
+                });
 
-                const [attendanceCount, totalAttempts] = await Promise.all([
-                    prisma.attendanceRecord.count({
-                        where: {
-                            ...whereClause,
-                            status: { in: ['PRESENT', 'LATE'] }
-                        }
-                    }),
-                    prisma.attendanceRecord.count({
-                        where: whereClause
-                    })
-                ]);
-
+                // 4. Calculer le pourcentage sur la base du total théorique
+                const theoreticalTotal = sessions.length * studentCount;
                 return {
                     key: level.key,
-                    value: totalAttempts === 0 ? 0 : Math.round((attendanceCount / totalAttempts) * 100)
+                    value: Math.round((attendanceCount / theoreticalTotal) * 100)
                 };
             });
 
