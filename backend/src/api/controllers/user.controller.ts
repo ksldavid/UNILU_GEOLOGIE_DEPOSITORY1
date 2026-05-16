@@ -35,8 +35,7 @@ export const getUsers = async (req: Request, res: Response) => {
                     select: {
                         course: {
                             select: {
-                                name: true, code: true, isCompleted: true,
-                                _count: { select: { attendanceSessions: true } }
+                                name: true, code: true, isCompleted: true
                             }
                         }
                     }
