@@ -135,10 +135,10 @@ export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
 
             // Mapping des cours étudiants
             const enrolledCourses = u.studentCourseEnrollments?.map((enrollment: any) => ({
-              id: enrollment.course.id || enrollment.course.code,
-              name: enrollment.course.name,
-              code: enrollment.course.code,
-              isCompleted: !!enrollment.course.isCompleted,
+              id: enrollment.course?.id || enrollment.course?.code,
+              name: enrollment.course?.name || 'Cours inconnu',
+              code: enrollment.course?.code || 'N/A',
+              isCompleted: !!enrollment.course?.isCompleted,
               attendance: enrollment.attendanceRate || 0, // Utiliser le taux réel calculé par le backend
               grade: 'N/A',
               grades: []
