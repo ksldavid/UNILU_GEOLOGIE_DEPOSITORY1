@@ -18,7 +18,7 @@ router.post('/offline-token/rotate', authenticateToken, authorizeRole(['ADMIN', 
 
 // Routes réservées au Service Académique et à l'Admin
 const adminOnly = [authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE'])]
-router.get('/sessions/:courseCode', ...adminOnly, getCourseAttendanceSessions)
+router.get('/sessions/:courseCode', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getCourseAttendanceSessions)
 router.post('/override', ...adminOnly, overrideAttendance)
 router.delete('/session/:sessionId', authenticateToken, deleteAttendanceSession)
 

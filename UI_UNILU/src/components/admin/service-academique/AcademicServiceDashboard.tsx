@@ -20,6 +20,7 @@ import { ExamInterroScheduler } from "../../common/ExamInterroScheduler";
 
 interface AcademicServiceDashboardProps {
     onLogout: () => void;
+    isReadOnly?: boolean;
 }
 
 const navItems = [
@@ -46,7 +47,7 @@ const navItems = [
 
 // Note: attendanceData will be fetched dynamically
 
-export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardProps) {
+export function AcademicServiceDashboard({ onLogout, isReadOnly }: AcademicServiceDashboardProps) {
     const [activeSection, setActiveSection] = useState("supervision");
     const [showDropdown, setShowDropdown] = useState(false);
     const [showFullYear, setShowFullYear] = useState(false);
@@ -394,13 +395,15 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                         <div className="flex items-center gap-4">
 
 
-                            <button
-                                onClick={() => setShowAnnouncementModal(true)}
-                                className="relative p-2 hover:bg-[#D8F3DC] rounded-[16px] transition-colors"
-                                title="Faire une annonce"
-                            >
-                                <Megaphone className="w-5 h-5 text-[#1B4332]" />
-                            </button>
+                            {!isReadOnly && (
+                                <button
+                                    onClick={() => setShowAnnouncementModal(true)}
+                                    className="relative p-2 hover:bg-[#D8F3DC] rounded-[16px] transition-colors"
+                                    title="Faire une annonce"
+                                >
+                                    <Megaphone className="w-5 h-5 text-[#1B4332]" />
+                                </button>
+                            )}
 
                             <div className="relative">
                                 <button
@@ -622,20 +625,22 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                        <button
-                                                            onClick={() => handleQuickAction(request.id, 'REJECTED')}
-                                                            className="p-2 hover:bg-red-50 rounded-[12px] transition-colors"
-                                                        >
-                                                            <X className="w-5 h-5 text-red-400 group-hover:text-red-600" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleQuickAction(request.id, 'APPROVED')}
-                                                            className="p-2 bg-[#1B4332] hover:bg-[#2D6A4F] rounded-[12px] transition-colors"
-                                                        >
-                                                            <Check className="w-5 h-5 text-white" />
-                                                        </button>
-                                                    </div>
+                                                    {!isReadOnly && (
+                                                        <div className="flex gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                            <button
+                                                                onClick={() => handleQuickAction(request.id, 'REJECTED')}
+                                                                className="p-2 hover:bg-red-50 rounded-[12px] transition-colors"
+                                                            >
+                                                                <X className="w-5 h-5 text-red-400 group-hover:text-red-600" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleQuickAction(request.id, 'APPROVED')}
+                                                                className="p-2 bg-[#1B4332] hover:bg-[#2D6A4F] rounded-[12px] transition-colors"
+                                                            >
+                                                                <Check className="w-5 h-5 text-white" />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -1159,22 +1164,24 @@ export function AcademicServiceDashboard({ onLogout }: AcademicServiceDashboardP
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    onClick={() => handleQuickAction(selectedNoteRequest.id, 'REJECTED')}
-                                    className="flex-1 py-3 border border-red-200 hover:bg-red-50 text-red-600 rounded-[16px] font-medium transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <X className="w-4 h-4" />
-                                    Refuser
-                                </button>
-                                <button
-                                    onClick={() => handleQuickAction(selectedNoteRequest.id, 'APPROVED')}
-                                    className="flex-1 py-3 bg-[#1B4332] hover:bg-[#2D6A4F] text-white rounded-[16px] font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#1B4332]/20"
-                                >
-                                    <Check className="w-4 h-4" />
-                                    Valider
-                                </button>
-                            </div>
+                            {!isReadOnly && (
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        onClick={() => handleQuickAction(selectedNoteRequest.id, 'REJECTED')}
+                                        className="flex-1 py-3 border border-red-200 hover:bg-red-50 text-red-600 rounded-[16px] font-medium transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <X className="w-4 h-4" />
+                                        Refuser
+                                    </button>
+                                    <button
+                                        onClick={() => handleQuickAction(selectedNoteRequest.id, 'APPROVED')}
+                                        className="flex-1 py-3 bg-[#1B4332] hover:bg-[#2D6A4F] text-white rounded-[16px] font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#1B4332]/20"
+                                    >
+                                        <Check className="w-4 h-4" />
+                                        Valider
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

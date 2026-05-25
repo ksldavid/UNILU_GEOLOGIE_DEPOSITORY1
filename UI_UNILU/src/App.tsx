@@ -504,11 +504,11 @@ export default function App() {
   }
 
   // Service Académique Dashboard
-  if (userData.role === 'ACADEMIC_OFFICE') {
+  if (userData.role === 'ACADEMIC_OFFICE' || userData.role === 'ACADEMIC_VISITOR') {
     return (
       <>
         <AutoLogout onLogout={handleLogout} />
-        <AcademicServiceDashboard onLogout={handleLogout} />
+        <AcademicServiceDashboard onLogout={handleLogout} isReadOnly={userData.role === 'ACADEMIC_VISITOR'} />
       </>
     );
   }

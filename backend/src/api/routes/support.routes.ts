@@ -26,7 +26,7 @@ router.get('/notifications', getMyNotifications)
 router.put('/notifications/:id/read', markNotificationRead)
 
 // Routes ADMIN / SERVICE TECHNIQUE / ACADEMIQUE
-router.get('/admin/tickets', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getAllTickets)
+router.get('/admin/tickets', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getAllTickets)
 router.put('/admin/tickets/:id/status', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), updateTicketStatus)
 
 export default router

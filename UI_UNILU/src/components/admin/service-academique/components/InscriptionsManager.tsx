@@ -5,6 +5,7 @@ import { saveAs } from 'file-saver';
 import { userService } from '../../../../services/user';
 import { supportService } from '../../../../services/support';
 import { courseService } from '../../../../services/course';
+import { authService } from '../../../../services/auth';
 import { API_URL } from '../../../../services/config';
 
 // Types definitons
@@ -56,6 +57,7 @@ interface User {
 const INITIAL_USERS: User[] = [];
 
 export function InscriptionsManager({ onUpdate }: { onUpdate?: () => void }) {
+  const isReadOnly = authService.getCurrentUser()?.role === 'ACADEMIC_VISITOR';
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -716,13 +718,15 @@ Nom complet: ${formData.nom} ${formData.postNom} ${formData.prenom}
               </h2>
               <span className="text-[10px] font-bold text-[#52796F] uppercase tracking-widest opacity-60">Service Académique</span>
             </div>
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-2 bg-[#1B4332] text-white px-5 py-2.5 rounded-[16px] text-sm font-semibold hover:bg-[#2D6A4F] transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Nouvelle Inscription</span>
-            </button>
+            {!isReadOnly && (
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="flex items-center gap-2 bg-[#1B4332] text-white px-5 py-2.5 rounded-[16px] text-sm font-semibold hover:bg-[#2D6A4F] transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Nouvelle Inscription</span>
+              </button>
+            )}
           </div>
 
           <div className="flex gap-2">

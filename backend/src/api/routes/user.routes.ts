@@ -20,7 +20,7 @@ router.post('/profile-photo', upload.single('photo'), uploadProfilePhoto)
 router.delete('/profile-photo', deleteProfilePhoto)
 
 // Route pour récupérer les utilisateurs (Admin et Service Académique uniquement)
-router.get('/', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getUsers)
+router.get('/', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getUsers)
 
 // Route pour mettre à jour un utilisateur (Admin uniquement)
 router.put('/:id', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), updateUser)

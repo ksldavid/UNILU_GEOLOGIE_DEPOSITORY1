@@ -15,6 +15,7 @@ datasource db {
 enum SystemRole {
   ADMIN // Super user, has full access
   ACADEMIC_OFFICE // Approves grades, manages global academic data
+  ACADEMIC_VISITOR // Can view academic data, but cannot modify anything
   STUDENT
   USER // Standard user (Professor, Assistant, Student)
 }

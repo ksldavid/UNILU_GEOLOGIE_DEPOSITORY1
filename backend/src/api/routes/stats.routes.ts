@@ -10,16 +10,14 @@ import { authenticateToken, authorizeRole } from '../middleware/auth.middleware'
 
 const router = Router()
 
-// Route pour récupérer les statistiques du service académique
-// Sécurité : Il faut être ADMIN ou ACADEMIC_OFFICE
-router.get('/academic', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getAcademicStats)
-router.get('/recent-activities', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getRecentActivities)
-router.get('/attendance-stats', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getAttendanceStatsByLevel)
-router.get('/course-attendance', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getCourseAttendance)
-router.get('/student-demographics', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getStudentDemographics)
-router.get('/student-demographics-filters', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getDemographicFilters)
-router.get('/course-progress', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getDetailedCourseProgress)
-router.get('/student/:userId/attendance', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getIndividualStudentAttendance)
+router.get('/academic', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getAcademicStats)
+router.get('/recent-activities', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getRecentActivities)
+router.get('/attendance-stats', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getAttendanceStatsByLevel)
+router.get('/course-attendance', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getCourseAttendance)
+router.get('/student-demographics', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getStudentDemographics)
+router.get('/student-demographics-filters', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getDemographicFilters)
+router.get('/course-progress', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getDetailedCourseProgress)
+router.get('/student/:userId/attendance', authenticateToken, authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getIndividualStudentAttendance)
 
 // Route technique (ADMIN uniquement)
 router.get('/technical', authenticateToken, authorizeRole(['ADMIN']), getTechnicalStats)

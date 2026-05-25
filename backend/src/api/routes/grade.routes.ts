@@ -8,12 +8,12 @@ const router = Router()
 router.use(authenticateToken)
 
 // Routes pour les demandes de modification de notes
-router.get('/requests', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getGradeChangeRequests)
+router.get('/requests', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getGradeChangeRequests)
 router.get('/my-requests', getMyGradeChangeRequests)
 router.patch('/requests/:id/status', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), updateGradeChangeRequestStatus)
 
 // Routes pour les statistiques et le PV
-router.get('/stats', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE']), getGradesStats)
-router.get('/pv', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'USER']), getCourseGrades)
+router.get('/stats', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'ACADEMIC_VISITOR']), getGradesStats)
+router.get('/pv', authorizeRole(['ADMIN', 'ACADEMIC_OFFICE', 'USER', 'ACADEMIC_VISITOR']), getCourseGrades)
 
 export default router
