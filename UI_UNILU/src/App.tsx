@@ -61,6 +61,7 @@ export interface UserData {
   id: string;
   title?: string;
   isChefDePromo?: boolean;
+  loginTab?: UserRole;
 }
 
 type AppView = 'student-login' | 'admin-login' | 'logged-in' | 'attendance-scan' | 'location-diagnostic';
@@ -257,8 +258,8 @@ export default function App() {
           return { status: 'ROLE_MISMATCH' };
         }
         if (role === 'USER' && actualRole !== 'USER') {
-          // On autorise l'admin à accéder à l'interface prof pour gestion/test
-          if (actualRole !== 'ADMIN' && actualRole !== 'ACADEMIC_OFFICE') {
+          // On autorise l'admin, le service académique et le visiteur à accéder à l'interface prof
+          if (actualRole !== 'ADMIN' && actualRole !== 'ACADEMIC_OFFICE' && actualRole !== 'ACADEMIC_VISITOR') {
             return { status: 'ROLE_MISMATCH' };
           }
         }
@@ -266,7 +267,10 @@ export default function App() {
           return { status: 'ROLE_MISMATCH' };
         }
         if (role === 'ACADEMIC_OFFICE' && actualRole !== 'ACADEMIC_OFFICE') {
-          return { status: 'ROLE_MISMATCH' };
+          // On autorise le visiteur académique à accéder au service académique
+          if (actualRole !== 'ACADEMIC_VISITOR') {
+            return { status: 'ROLE_MISMATCH' };
+          }
         }
 
         // Si tout est bon, on connecte
@@ -292,7 +296,8 @@ export default function App() {
           id: user.id,
           class: actualRole === 'STUDENT' ? studentClass : undefined,
           title: actualRole !== 'STUDENT' ? 'Membre du Personnel' : undefined,
-          isChefDePromo: user.isChefDePromo
+          isChefDePromo: user.isChefDePromo,
+          loginTab: role
         });
 
         setIsLoggedIn(true);
@@ -504,7 +509,7 @@ export default function App() {
   }
 
   // Service Académique Dashboard
-  if (userData.role === 'ACADEMIC_OFFICE' || userData.role === 'ACADEMIC_VISITOR') {
+  if (userData.role === 'ACADEMIC_OFFICE' || (userData.role === 'ACADEMIC_VISITOR' && userData.loginTab === 'ACADEMIC_OFFICE')) {
     return (
       <>
         <AutoLogout onLogout={handleLogout} />
@@ -514,7 +519,7 @@ export default function App() {
   }
 
   // Professor Interface (Corps Académique)
-  if (userData.role === 'USER') {
+  if (userData.role === 'USER' || (userData.role === 'ACADEMIC_VISITOR' && userData.loginTab === 'USER')) {
     return (
       <>
         <AutoLogout onLogout={handleLogout} />
