@@ -30,6 +30,22 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
     return R * c; // Distance en mètres
 }
 
+/**
+ * Génère les variations de codes de cours avec ou sans espaces pour matcher robuste
+ */
+function getCourseCodeCandidates(code: string): string[] {
+    const trimmed = code.trim();
+    const stripped = trimmed.replace(/\s+/g, '');
+    const candidates = new Set<string>([trimmed, stripped]);
+
+    const matchSpaced = stripped.match(/^([A-Z]+)(\d+.*)$/i);
+    if (matchSpaced) {
+        candidates.add(`${matchSpaced[1]} ${matchSpaced[2]}`);
+    }
+
+    return Array.from(candidates);
+}
+
 export const generateQRToken = async (req: AuthRequest, res: Response) => {
     try {
         const { courseCode, sessionNumber = 1, expiresInMinutes = 15, latitude: reqLat, longitude: reqLng } = req.body;
@@ -43,9 +59,22 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
 
         if (!userId) return res.status(401).json({ message: 'Non authentifié' });
 
+        // Normaliser et trouver le code officiel du cours
+        const candidates = getCourseCodeCandidates(courseCode);
+        const officialCourse = await prisma.course.findFirst({
+            where: { code: { in: candidates } },
+            select: { code: true }
+        });
+
+        if (!officialCourse) {
+            return res.status(404).json({ message: "Cours introuvable." });
+        }
+
+        const officialCourseCode = officialCourse.code;
+
         // 1. Vérifier si l'utilisateur enseigne ce cours
         const hasProfAccess = await prisma.courseEnrollment.findFirst({
-            where: { userId, courseCode }
+            where: { userId, courseCode: officialCourseCode }
         });
 
         const user = await prisma.user.findUnique({
@@ -78,11 +107,11 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             const lubumbashiTime = new Date(now.getTime() + (2 * 60 * 60 * 1000));
             const dayOfWeek = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][lubumbashiTime.getDay()];
             
-            console.log(`[CP DEBUG] CP ${userId} génère un token pour ${courseCode}. Session: ${sessionNumber}, Coords: ${latitude},${longitude}`);
+            console.log(`[CP DEBUG] CP ${userId} génère un token pour ${officialCourseCode}. Session: ${sessionNumber}, Coords: ${latitude},${longitude}`);
             
             const schedule = await prisma.schedule.findFirst({
                 where: {
-                    courseCode,
+                    courseCode: officialCourseCode,
                     day: dayOfWeek,
                     academicLevelId: enrollment.academicLevelId,
                     academicYear: "2025-2026"
@@ -130,7 +159,7 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         const existingSession = await (prisma as any).attendanceSession.findUnique({
             where: {
                 courseCode_date_sessionNumber: {
-                    courseCode,
+                    courseCode: officialCourseCode,
                     date: today,
                     sessionNumber: sessionNum
                 }
@@ -183,7 +212,7 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
         const session = await (prisma as any).attendanceSession.upsert({
             where: {
                 courseCode_date_sessionNumber: {
-                    courseCode,
+                    courseCode: officialCourseCode,
                     date: today,
                     sessionNumber: sessionNum
                 }
@@ -196,7 +225,7 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
                 isLocked: false
             },
             create: {
-                courseCode,
+                courseCode: officialCourseCode,
                 date: today,
                 sessionNumber: sessionNum,
                 qrToken,
@@ -439,10 +468,17 @@ export const scanQRToken = async (req: AuthRequest, res: Response) => {
  */
 export const getCourseAttendanceSessions = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseCode } = req.params;
+        const courseCode = req.params.courseCode as string;
+
+        const candidates = getCourseCodeCandidates(courseCode);
+        const officialCourse = await prisma.course.findFirst({
+            where: { code: { in: candidates } },
+            select: { code: true }
+        });
+        const officialCourseCode: string = officialCourse?.code || courseCode;
 
         const sessions = await (prisma as any).attendanceSession.findMany({
-            where: { courseCode },
+            where: { courseCode: officialCourseCode },
             orderBy: { date: 'desc' },
             include: {
                 records: {
@@ -454,7 +490,7 @@ export const getCourseAttendanceSessions = async (req: AuthRequest, res: Respons
         });
 
         const enrollments = await prisma.studentCourseEnrollment.findMany({
-            where: { courseCode: courseCode as string, isActive: true },
+            where: { courseCode: officialCourseCode, isActive: true },
             include: {
                 user: { select: { id: true, name: true } }
             }
