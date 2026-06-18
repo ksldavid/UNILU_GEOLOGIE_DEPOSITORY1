@@ -109,7 +109,7 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
             
             console.log(`[CP DEBUG] CP ${userId} génère un token pour ${officialCourseCode}. Session: ${sessionNumber}, Coords: ${latitude},${longitude}`);
             
-            const schedule = await prisma.schedule.findFirst({
+            const schedules = await prisma.schedule.findMany({
                 where: {
                     courseCode: officialCourseCode,
                     day: dayOfWeek,
@@ -118,34 +118,59 @@ export const generateQRToken = async (req: AuthRequest, res: Response) => {
                 }
             });
 
-            if (!schedule) {
+            if (schedules.length === 0) {
                 return res.status(403).json({ message: "Ce cours n'est pas prévu à l'horaire pour votre promotion aujourd'hui." });
             }
 
-            // Calculer les heures pour la comparaison
-            const [startH, startM] = schedule.startTime.split(':').map(Number);
-            const [endH, endM] = schedule.endTime.split(':').map(Number);
-            
-            const startTimeDate = new Date(lubumbashiTime);
-            startTimeDate.setHours(startH, startM, 0, 0);
-            
-            const startTimeMinus10 = new Date(startTimeDate.getTime() - 10 * 60 * 1000);
-            
-            const endTimeDate = new Date(lubumbashiTime);
-            endTimeDate.setHours(endH, endM, 0, 0);
+            let activeSchedule = null;
+            let upcomingSchedules: typeof schedules = [];
 
-            if (lubumbashiTime < startTimeMinus10) {
-                const hourStr = `${startH}h${startM.toString().padStart(2, '0')}`;
-                const waitTime = new Date(startTimeMinus10);
-                const waitHourStr = waitTime.getHours() + 'h' + waitTime.getMinutes().toString().padStart(2, '0');
-                
-                return res.status(403).json({ 
-                    message: `Le cours n'a pas encore débuté (prévu à ${hourStr}). Attendez ${waitHourStr} pour débuter la présence en tant que CP.` 
-                });
+            for (const sched of schedules) {
+                const [startH, startM] = sched.startTime.split(':').map(Number);
+                const [endH, endM] = sched.endTime.split(':').map(Number);
+
+                const startTimeDate = new Date(lubumbashiTime);
+                startTimeDate.setHours(startH, startM, 0, 0);
+
+                const startTimeMinus10 = new Date(startTimeDate.getTime() - 10 * 60 * 1000);
+
+                const endTimeDate = new Date(lubumbashiTime);
+                endTimeDate.setHours(endH, endM, 0, 0);
+
+                if (lubumbashiTime >= startTimeMinus10 && lubumbashiTime <= endTimeDate) {
+                    activeSchedule = sched;
+                    break;
+                }
+
+                if (lubumbashiTime < startTimeMinus10) {
+                    upcomingSchedules.push(sched);
+                }
             }
 
-            if (lubumbashiTime > endTimeDate) {
-                return res.status(403).json({ message: "Le cours est déjà passé, demandez au professeur de passer la présence." });
+            if (!activeSchedule) {
+                if (upcomingSchedules.length > 0) {
+                    // Trier par heure de début croissante pour proposer le cours le plus proche
+                    upcomingSchedules.sort((a, b) => {
+                        const [aH, aM] = a.startTime.split(':').map(Number);
+                        const [bH, bM] = b.startTime.split(':').map(Number);
+                        return (aH * 60 + aM) - (bH * 60 + bM);
+                    });
+
+                    const nextSched = upcomingSchedules[0];
+                    const [startH, startM] = nextSched.startTime.split(':').map(Number);
+                    const startTimeDate = new Date(lubumbashiTime);
+                    startTimeDate.setHours(startH, startM, 0, 0);
+                    const startTimeMinus10 = new Date(startTimeDate.getTime() - 10 * 60 * 1000);
+
+                    const hourStr = `${startH}h${startM.toString().padStart(2, '0')}`;
+                    const waitHourStr = startTimeMinus10.getHours() + 'h' + startTimeMinus10.getMinutes().toString().padStart(2, '0');
+
+                    return res.status(403).json({
+                        message: `Le cours n'a pas encore débuté (prévu à ${hourStr}). Attendez ${waitHourStr} pour débuter la présence en tant que CP.`
+                    });
+                } else {
+                    return res.status(403).json({ message: "Le cours est déjà passé, demandez au professeur de passer la présence." });
+                }
             }
         }
 
